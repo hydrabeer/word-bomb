@@ -10,6 +10,8 @@ export default function JoinRoom() {
   const handleJoin = () => {
     if (!name || !roomCode) return;
 
+    socket.connect();
+
     localStorage.setItem("name", name);
 
     socket.emit('joinRoom', { name, roomCode });
