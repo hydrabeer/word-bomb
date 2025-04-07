@@ -38,7 +38,7 @@ export default function JoinRoomPage() {
   const handleSaveName = (newName: string) => {
     // Validate: no more than 30 characters.
     if (!newName.match(/^.{1,30}$/)) {
-      console.log("Invalid room code");
+      console.log("Invalid name");
       return;
     }
     setName(newName);
@@ -53,7 +53,7 @@ export default function JoinRoomPage() {
 
     // Validate: no more than 20 characters.
     if (!roomName.match(/^.{1,20}$/)) {
-      console.log("Invalid room code");
+      console.log("Invalid room name");
       return;
     }
     const userToken = localStorage.getItem("userToken");
