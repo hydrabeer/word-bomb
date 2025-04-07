@@ -1,7 +1,6 @@
-// src/hooks/useAutoScroll.ts
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, DependencyList } from "react";
 
-export function useAutoScroll<T extends HTMLElement>(dependencies: any[]) {
+export function useAutoScroll<T extends HTMLElement>(dependencies: DependencyList) {
   const containerRef = useRef<T>(null);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
 
@@ -21,15 +20,14 @@ export function useAutoScroll<T extends HTMLElement>(dependencies: any[]) {
     return () => container.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Whenever the dependencies change (e.g. messages update), auto-scroll if enabled.
+  // Whenever dependencies change and if auto-scroll is enabled, scroll to bottom.
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container || !autoScrollEnabled) return;
-    // Use requestAnimationFrame to ensure DOM updates have occurred.
     requestAnimationFrame(() => {
       container.scrollTop = container.scrollHeight;
     });
-  }, dependencies);
+  }, [autoScrollEnabled, ...dependencies]);
 
   return containerRef;
 }
