@@ -25,8 +25,22 @@ function generateRoomCode(): string {
   return code;
 }
 
+// In-memory rate limiting data for chat messages per user.
+const chatTimestamps = new Map<string, number[]>();
+const lastSystemMessage = new Map<string, number>();
+
+const RATE_LIMIT_WINDOW = 5000; // 5 seconds
+const MESSAGE_THRESHOLD = 10;   // Allow 10 messages per window
+const SYSTEM_MESSAGE_INTERVAL = 3000; // 3 seconds between system messages
+
+
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
+
+  socket.on('checkRoom', (roomCode: string, callback: (exists: boolean) => void) => {
+    // Check if the room exists in the map.
+    callback(rooms.has(roomCode));
+  });
 
   // Event for joining an existing room.
   socket.on('joinRoom', ({ name, roomCode, userToken }) => {
@@ -37,7 +51,7 @@ io.on('connection', (socket) => {
         code: roomCode,
         players: [],
         currentTurnIndex: 0,
-        usedWords: new Set(),
+        usedWords: new Set<string>(),
         fragment: '',
         isPlaying: false,
       };
@@ -68,7 +82,11 @@ io.on('connection', (socket) => {
 
   // Event for creating a new room.
   // A callback is provided to return the generated room code to the client.
-  socket.on('createRoom', ({ name, roomName, userToken }, callback: (roomCode: string) => void) => {
+  socket.on('createRoom', ({
+                             name,
+                             roomName,
+                             userToken
+                           }, callback: (roomCode: string) => void) => {
     let roomCode = "";
     // Ensure we generate a unique 4-letter code.
     do {
@@ -104,9 +122,40 @@ io.on('connection', (socket) => {
   });
 
   // Chat message event: broadcast to the room.
-  socket.on('chatMessage', ({ roomCode, name, message }) => {
-    const chatMsg = { sender: name, message, timestamp: Date.now() };
-    io.to(roomCode).emit('chatMessage', chatMsg);
+  socket.on('chatMessage', (payload) => {
+    const { roomCode, name, message, userToken } = payload;
+    const now = Date.now();
+
+    // Get recent timestamps for this user (or an empty array).
+    let timestamps = chatTimestamps.get(userToken) || [];
+    // Remove timestamps older than RATE_LIMIT_WINDOW.
+    timestamps = timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW);
+
+    if (timestamps.length >= MESSAGE_THRESHOLD) {
+      // User has exceeded the message threshold.
+      const lastMsgTime = lastSystemMessage.get(userToken) || 0;
+      if (now - lastMsgTime > SYSTEM_MESSAGE_INTERVAL) {
+        io.to(roomCode).emit("chatMessage", {
+          sender: "System",
+          message: `${name}, you're sending messages too fast. Please slow down.`,
+          timestamp: now,
+        });
+        lastSystemMessage.set(userToken, now);
+      }
+      // Save the filtered timestamps back and do not broadcast the message.
+      chatTimestamps.set(userToken, timestamps);
+      return;
+    }
+
+    // Otherwise, allow the message:
+    timestamps.push(now);
+    chatTimestamps.set(userToken, timestamps);
+
+    io.to(roomCode).emit("chatMessage", {
+      sender: name,
+      message,
+      timestamp: now,
+    });
   });
 
   // On disconnect, remove the player from any room they were in.
@@ -117,7 +166,12 @@ io.on('connection', (socket) => {
       const room = rooms.get(roomCode);
       if (room) {
         room.players = room.players.filter(p => p.id !== socket.id);
-        io.to(roomCode).emit('roomUpdate', room);
+        // Clean up empty room.
+        if (room.players.length === 0) {
+          rooms.delete(roomCode);
+        } else {
+          io.to(roomCode).emit('roomUpdate', room);
+        }
       }
     }
   });

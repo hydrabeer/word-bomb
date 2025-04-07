@@ -58,15 +58,27 @@ export default function JoinRoom() {
     });
   };
 
-  // Join an existing room.
+  // Join an existing room with validation.
   const handleJoinRoom = () => {
     if (!name || !roomCode) return;
+    // Validate: exactly 4 characters.
+    if (roomCode.length !== 4) {
+      alert("Room code must be exactly 4 characters.");
+      return;
+    }
     const userToken = localStorage.getItem("userToken");
 
     socket.connect();
     localStorage.setItem("name", name);
-    socket.emit("joinRoom", { name, roomCode, userToken });
-    navigate(`/room/${roomCode}`);
+    // First, check if the room exists.
+    socket.emit("checkRoom", roomCode, (exists: boolean) => {
+      if (!exists) {
+        alert(`Room "${roomCode}" does not exist.`);
+      } else {
+        socket.emit("joinRoom", { name, roomCode, userToken });
+        navigate(`/room/${roomCode}`);
+      }
+    });
   };
 
   return (

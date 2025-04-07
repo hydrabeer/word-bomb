@@ -5,10 +5,10 @@ type JoinRoomPanelProps = {
 };
 
 export function JoinRoomPanel({
-                                roomCode,
-                                setRoomCode,
-                                onJoin,
-                              }: JoinRoomPanelProps) {
+  roomCode,
+  setRoomCode,
+  onJoin,
+}: JoinRoomPanelProps) {
   return (
     <div className="flex flex-col">
       <h2 className="text-xl font-semibold mb-2">Join a Room</h2>
@@ -18,6 +18,7 @@ export function JoinRoomPanel({
         placeholder="Enter room code"
         value={roomCode}
         onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+        maxLength={4} // limit to 4 characters
         className="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
       />
       <button

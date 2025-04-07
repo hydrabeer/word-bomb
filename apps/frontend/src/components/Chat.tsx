@@ -23,8 +23,9 @@ export default function Chat() {
     if (!newMessage.trim()) return;
     const roomCode = localStorage.getItem("roomCode");
     const name = localStorage.getItem("name");
-    if (!roomCode || !name) return;
-    socket.emit("chatMessage", { roomCode, name, message: newMessage });
+    const userToken = localStorage.getItem("userToken");
+    if (!roomCode || !name || !userToken) return;
+    socket.emit("chatMessage", { roomCode, name, message: newMessage, userToken });
     setNewMessage("");
   }, [newMessage]);
 
