@@ -36,8 +36,8 @@ export default function JoinRoomPage() {
 
   // When user saves a new name, update local state and localStorage.
   const handleSaveName = (newName: string) => {
-    // Validate: no more than 30 characters.
-    if (!newName.match(/^.{1,30}$/)) {
+    // Validate: no more than 20 characters.
+    if (!newName.match(/^.{1,20}$/)) {
       console.log("Invalid name");
       return;
     }
@@ -51,8 +51,8 @@ export default function JoinRoomPage() {
   const handleCreateRoom = () => {
     if (!name || !roomName) return;
 
-    // Validate: no more than 20 characters.
-    if (!roomName.match(/^.{1,20}$/)) {
+    // Validate: no more than 30 characters.
+    if (!roomName.match(/^.{1,30}$/)) {
       console.log("Invalid room name");
       return;
     }
