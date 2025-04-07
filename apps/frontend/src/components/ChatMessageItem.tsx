@@ -25,7 +25,8 @@ export function ChatMessageItem({ msg }: ChatMessageItemProps) {
           <span className="text-xs text-gray-400 ml-2">{timeFormatted}</span>
         </div>
         <div
-          className="text-sm"
+          className="text-sm whitespace-pre-wrap"
+          style={{ overflowWrap: 'anywhere' }}
           // NOTE: For production, consider sanitizing this HTML with a library like DOMPurify.
           dangerouslySetInnerHTML={{ __html: formattedMessage }}
         />
