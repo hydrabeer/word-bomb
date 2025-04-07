@@ -1,17 +1,16 @@
 {
   "name": "word-bomb",
-  "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
-    "dev:frontend": "cd apps/frontend && npm run dev",
-    "dev:backend": "cd apps/backend && npx ts-node src/index.ts"
+    "dev": "concurrently \"npm run dev --workspace backend\" \"npm run dev --workspace frontend\""
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "author": "hydrabeer",
+  "license": "UNLICENSED",
   "devDependencies": {
     "concurrently": "^9.1.2"
   }
