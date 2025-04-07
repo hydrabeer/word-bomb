@@ -51,6 +51,7 @@ export default function Chat() {
         <input
           type="text"
           value={newMessage}
+          maxLength={300}
           placeholder="Type here to chat"
           className="w-full p-2 rounded bg-gray-800 border border-gray-600 focus:outline-none"
           onChange={(e) => setNewMessage(e.target.value)}
