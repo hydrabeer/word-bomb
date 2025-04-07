@@ -36,6 +36,11 @@ export default function JoinRoom() {
 
   // When user saves a new name, update local state and localStorage.
   const handleSaveName = (newName: string) => {
+    // Validate: no more than 30 characters.
+    if (!roomCode.matchAll(RegExp(/^.{1,30}$/g))) {
+      console.log("Invalid room code");
+      return;
+    }
     setName(newName);
     localStorage.setItem("name", newName);
     // Update roomName if it still uses the default pattern.
@@ -45,6 +50,12 @@ export default function JoinRoom() {
   // Create a new room by emitting createRoom to the server.
   const handleCreateRoom = () => {
     if (!name || !roomName) return;
+
+    // Validate: no more than 20 characters.
+    if (!roomCode.matchAll(RegExp(/^.{1,20}$/g))) {
+      console.log("Invalid room code");
+      return;
+    }
     const userToken = localStorage.getItem("userToken");
 
     socket.connect();
@@ -61,9 +72,9 @@ export default function JoinRoom() {
   // Join an existing room with validation.
   const handleJoinRoom = () => {
     if (!name || !roomCode) return;
-    // Validate: exactly 4 characters.
-    if (roomCode.length !== 4) {
-      alert("Room code must be exactly 4 characters.");
+    // Validate: exactly 4 alphabetic characters.
+    if (!roomCode.matchAll(RegExp(/^[A-Z]{4}$/g))) {
+      console.log("Invalid room code");
       return;
     }
     const userToken = localStorage.getItem("userToken");

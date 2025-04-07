@@ -21,12 +21,16 @@ export function NamePanel({ initialName, onSave }: NamePanelProps) {
         <div className="flex space-x-2">
           <input
             type="text"
+            placeholder="Your name"
+            maxLength={20}
+            title="Maximum 20 characters."
             className="px-4 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <button
             onClick={handleSave}
+            title="Save your name"
             className="bg-green-600 hover:bg-green-500 transition-colors px-4 py-2 rounded"
           >
             Save
@@ -37,6 +41,7 @@ export function NamePanel({ initialName, onSave }: NamePanelProps) {
           <span className="text-lg">{name}</span>
           <button
             onClick={() => setEditing(true)}
+            title="Edit your name"
             className="bg-gray-600 hover:bg-gray-500 transition-colors px-3 py-1 rounded"
           >
             Edit
