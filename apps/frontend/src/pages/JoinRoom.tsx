@@ -1,5 +1,5 @@
 // pages/JoinRoom.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { socket } from "../socket";
@@ -71,7 +71,7 @@ export default function JoinRoom() {
   };
 
   // Join an existing room with validation.
-  const handleJoinRoom = (code?: string) => {
+  const handleJoinRoom = useCallback((code?: string) => {
     const joinCode = code || roomCode;
     if (!name || !joinCode) return;
     // Validate: exactly 4 alphabetic characters.
@@ -92,7 +92,7 @@ export default function JoinRoom() {
         navigate(`/${joinCode}`);
       }
     });
-  };
+  }, [name, roomCode, navigate]);
 
   // If the URL includes a valid room code, auto join the room.
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function JoinRoom() {
       setRoomCode(code);
       handleJoinRoom(code);
     }
-  }, [routeRoomCode]);
+  }, [routeRoomCode, handleJoinRoom]);
 
 
   return (
