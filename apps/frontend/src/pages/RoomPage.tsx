@@ -26,7 +26,7 @@ type RoomData = {
   isPlaying: boolean;
 };
 
-export default function Room() {
+export default function RoomPage() {
   const navigate = useNavigate();
   const { roomCode } = useParams();
   const [roomData, setRoomData] = useState<RoomData | null>(null);

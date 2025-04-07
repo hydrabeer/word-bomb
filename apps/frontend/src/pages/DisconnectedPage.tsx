@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-export default function Disconnected() {
+export default function DisconnectedPage() {
   const navigate = useNavigate();
 
   const handleReturn = () => {

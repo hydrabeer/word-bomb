@@ -1,18 +1,18 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import JoinRoom from './pages/JoinRoom.tsx';
-import Room from './pages/Room.tsx';
-import Disconnected from "./pages/Disconnected";
+import JoinRoomPage from './pages/JoinRoomPage.tsx';
+import RoomPage from './pages/RoomPage.tsx';
+import DisconnectedPage from "./pages/DisconnectedPage.tsx";
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<JoinRoom/>}/>
-        <Route path="/:roomCode" element={<Room/>}/>
-        <Route path="/disconnected" element={<Disconnected />} />
+        <Route path="/" element={<JoinRoomPage/>}/>
+        <Route path="/:roomCode" element={<RoomPage/>}/>
+        <Route path="/disconnected" element={<DisconnectedPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,
