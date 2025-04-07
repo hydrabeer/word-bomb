@@ -4,7 +4,7 @@ export default function DisconnectedPage() {
   const navigate = useNavigate();
 
   const handleReturn = () => {
-    navigate("/");
+    void navigate("/");
   };
 
   return (
