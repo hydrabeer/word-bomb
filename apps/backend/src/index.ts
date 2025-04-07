@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import { generateRoomCode, getRandomFragment } from './utils/helpers';
 import { rooms, Player } from './game';
 
 const app = express();
@@ -15,16 +16,6 @@ const io = new Server(server, {
   },
 });
 
-// Helper: Generate a random 4-letter room code.
-function generateRoomCode(): string {
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  let code = "";
-  for (let i = 0; i < 4; i++) {
-    code += letters.charAt(Math.floor(Math.random() * letters.length));
-  }
-  return code;
-}
-
 // In-memory rate limiting data for chat messages per user.
 const chatTimestamps = new Map<string, number[]>();
 const lastSystemMessage = new Map<string, number>();
@@ -33,6 +24,8 @@ const RATE_LIMIT_WINDOW = 5000; // 5 seconds
 const MESSAGE_THRESHOLD = 10;   // Allow 10 messages per window
 const SYSTEM_MESSAGE_INTERVAL = 3000; // 3 seconds between system messages
 
+// Map to keep track of scheduled deletion timers per room.
+const deletionTimers = new Map<string, NodeJS.Timeout>();
 
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
@@ -49,19 +42,32 @@ io.on('connection', (socket) => {
       // If the room doesn't exist, we create it on-the-fly.
       room = {
         code: roomCode,
-        players: [],
+        players: [] as Player[],
         currentTurnIndex: 0,
         usedWords: new Set<string>(),
-        fragment: '',
+        fragment: getRandomFragment(),
         isPlaying: false,
       };
       rooms.set(roomCode, room);
     }
 
+    // If there's a pending deletion timer for this room, cancel it.
+    if (deletionTimers.has(roomCode)) {
+      clearTimeout(deletionTimers.get(roomCode)!);
+      deletionTimers.delete(roomCode);
+    }
+
     // Check if the user (via their persistent token) is already in the room.
     const existingPlayer = room.players.find(p => p.userToken === userToken);
     if (existingPlayer) {
-      // Update their socket id and name if needed.
+      // If the existing player's socket is different from the current one, disconnect the old socket.
+      if (existingPlayer.id !== socket.id) {
+        const oldSocket = io.sockets.sockets.get(existingPlayer.id);
+        if (oldSocket) {
+          oldSocket.disconnect(true);
+        }
+      }
+      // Update the player's socket id and name.
       existingPlayer.id = socket.id;
       existingPlayer.name = name;
     } else {
@@ -121,6 +127,86 @@ io.on('connection', (socket) => {
     if (callback) callback(roomCode);
   });
 
+  socket.on('liveInputUpdate', (payload) => {
+    const { roomCode, input } = payload;
+    // Broadcast the live input to all clients in the room.
+    io.to(roomCode).emit('liveInputUpdate', { input });
+  });
+
+  // New event: submitWord for gameplay.
+  // Expects payload: { roomCode, word, timeout, userToken }
+  socket.on('submitWord', (payload, callback?: (result: {
+    success: boolean;
+    message?: string
+  }) => void) => {
+    const { roomCode, word, timeout, userToken } = payload;
+    const room = rooms.get(roomCode);
+    if (!room) {
+      if (callback) callback({ success: false, message: "Room not found." });
+      return;
+    }
+    // Ensure it's the active player's turn.
+    const activePlayer = room.players[room.currentTurnIndex];
+    if (!activePlayer || activePlayer.userToken !== userToken) {
+      if (callback) callback({ success: false, message: "Not your turn." });
+      return;
+    }
+    const now = Date.now();
+
+    if (timeout) {
+      activePlayer.isAlive = false;
+      io.to(roomCode).emit("chatMessage", {
+        sender: "System",
+        message: `${activePlayer.name} timed out and is eliminated.`,
+        timestamp: now,
+      });
+    } else {
+      // Validate word: it must contain the fragment and not be used before.
+      if (!word.includes(room.fragment)) {
+        activePlayer.isAlive = false;
+        io.to(roomCode).emit("chatMessage", {
+          sender: "System",
+          message: `${activePlayer.name} submitted an invalid word and is eliminated.`,
+          timestamp: now,
+        });
+      } else if (room.usedWords.has(word.toLowerCase())) {
+        activePlayer.isAlive = false;
+        io.to(roomCode).emit("chatMessage", {
+          sender: "System",
+          message: `${activePlayer.name} submitted a repeated word and is eliminated.`,
+          timestamp: now,
+        });
+      } else {
+        // Accept the word.
+        room.usedWords.add(word.toLowerCase());
+        io.to(roomCode).emit("chatMessage", {
+          sender: activePlayer.name,
+          message: word,
+          timestamp: now,
+        });
+      }
+    }
+
+    // Move to next active player:
+    let nextIndex = room.currentTurnIndex;
+    const playersCount = room.players.length;
+    let iterations = 0;
+    do {
+      nextIndex = (nextIndex + 1) % playersCount;
+      iterations++;
+      // If we've looped through all players and found none alive, end game.
+      if (iterations > playersCount) break;
+    } while (!room.players[nextIndex].isAlive);
+    room.currentTurnIndex = nextIndex;
+    // Choose a new fragment.
+    room.fragment = getRandomFragment();
+    io.to(roomCode).emit("turnUpdate", {
+      isMyTurn: false,
+      fragment: room.fragment
+    });
+    if (callback) callback({ success: true });
+  });
+
   // Chat message event: broadcast to the room.
   socket.on('chatMessage', (payload) => {
     const { roomCode, name, message, userToken } = payload;
@@ -166,11 +252,23 @@ io.on('connection', (socket) => {
       const room = rooms.get(roomCode);
       if (room) {
         room.players = room.players.filter(p => p.id !== socket.id);
-        // Clean up empty room.
+        io.to(roomCode).emit('roomUpdate', room);
+
+        // If the room is now empty, schedule its deletion.
         if (room.players.length === 0) {
-          rooms.delete(roomCode);
-        } else {
-          io.to(roomCode).emit('roomUpdate', room);
+          // If a timer already exists, clear it first.
+          if (deletionTimers.has(roomCode)) {
+            clearTimeout(deletionTimers.get(roomCode)!);
+          }
+          const timer = setTimeout(() => {
+            const currentRoom = rooms.get(roomCode);
+            if (currentRoom && currentRoom.players.length === 0) {
+              rooms.delete(roomCode);
+              console.log(`Room ${roomCode} deleted due to inactivity.`);
+            }
+            deletionTimers.delete(roomCode);
+          }, 5000);
+          deletionTimers.set(roomCode, timer);
         }
       }
     }

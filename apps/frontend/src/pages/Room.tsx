@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   FaChevronRight,
   FaChevronLeft,
@@ -7,6 +7,7 @@ import {
   FaChevronDown,
 } from "react-icons/fa";
 import { socket } from "../socket";
+import GameArea from "../components/GameArea";
 import Chat from "../components/Chat";
 
 type Player = {
@@ -26,6 +27,7 @@ type RoomData = {
 };
 
 export default function Room() {
+  const navigate = useNavigate();
   const { roomCode } = useParams();
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -54,6 +56,18 @@ export default function Room() {
     };
   }, [roomCode]);
 
+  useEffect(() => {
+    const handleDisconnect = () => {
+      navigate("/disconnected");
+    };
+
+    socket.on("disconnect", handleDisconnect);
+
+    return () => {
+      socket.off("disconnect", handleDisconnect);
+    };
+  }, [navigate]);
+
   return (
     <div
       className="relative h-screen w-screen overflow-hidden bg-gray-700 text-white">
@@ -61,7 +75,8 @@ export default function Room() {
       <div className="flex h-full">
         {/* Left Sidebar */}
         <div className="w-screen md:w-64 bg-gray-800 p-4 overflow-y-auto">
-          <h1 className="text-2xl font-bold mb-4">Room: {roomData?.roomName || roomCode}</h1>
+          <h1
+            className="text-2xl font-bold mb-4">Room: {roomData?.roomName || roomCode}</h1>
           <h2 className="text-xl mb-2">Players</h2>
           <ul className="list-disc list-inside">
             {roomData?.players.map((player) => (
@@ -72,10 +87,9 @@ export default function Room() {
           </ul>
         </div>
 
-        {/* Center Area: Game Placeholder */}
-        <div className="flex-1 p-4 hidden md:block">
-          <h2 className="text-3xl font-bold mb-4">Game Area</h2>
-          {/* Put your actual gameplay UI here */}
+        {/* Main game area */}
+        <div className="flex-1 p-4 hidden">
+          <GameArea/>
         </div>
       </div>
 

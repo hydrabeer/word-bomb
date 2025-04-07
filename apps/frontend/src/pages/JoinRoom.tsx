@@ -54,7 +54,7 @@ export default function JoinRoom() {
       roomName,
       userToken
     }, (newRoomCode: string) => {
-      navigate(`/room/${newRoomCode}`);
+      navigate(`/${newRoomCode}`);
     });
   };
 
@@ -76,7 +76,7 @@ export default function JoinRoom() {
         alert(`Room "${roomCode}" does not exist.`);
       } else {
         socket.emit("joinRoom", { name, roomCode, userToken });
-        navigate(`/room/${roomCode}`);
+        navigate(`/${roomCode}`);
       }
     });
   };
