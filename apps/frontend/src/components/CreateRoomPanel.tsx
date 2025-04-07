@@ -1,10 +1,10 @@
 import { FormEvent } from "react";
 
-type CreateRoomPanelProps = {
+interface CreateRoomPanelProps {
   roomName: string;
   setRoomName: (val: string) => void;
   onCreate: () => void;
-};
+}
 
 export function CreateRoomPanel({
                                   roomName,

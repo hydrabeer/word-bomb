@@ -1,10 +1,10 @@
 import { FormEvent } from "react";
 
-type JoinRoomPanelProps = {
+interface JoinRoomPanelProps {
   roomCode: string;
   setRoomCode: (val: string) => void;
   onJoin: () => void;
-};
+}
 
 export function JoinRoomPanel({
                                 roomCode,

@@ -10,13 +10,13 @@ import { socket } from "../socket";
 import GameArea from "../components/GameArea";
 import Chat from "../components/Chat";
 
-type Player = {
+interface Player {
   id: string;
   name: string;
   isAlive: boolean;
-};
+}
 
-type RoomData = {
+interface RoomData {
   code: string;
   roomName?: string;
   players: Player[];
@@ -24,7 +24,7 @@ type RoomData = {
   usedWords: Set<string>;
   fragment: string;
   isPlaying: boolean;
-};
+}
 
 export default function RoomPage() {
   const navigate = useNavigate();
@@ -58,7 +58,7 @@ export default function RoomPage() {
 
   useEffect(() => {
     const handleDisconnect = () => {
-      navigate("/disconnected");
+      void navigate("/disconnected");
     };
 
     socket.on("disconnect", handleDisconnect);

@@ -2,15 +2,15 @@ import dayjs from "dayjs";
 import { FaUser } from "react-icons/fa";
 import { formatMessage } from "../utils/formatMessage";
 
-export type ChatMessage = {
+export interface ChatMessage {
   sender: string;
   message: string;
   timestamp: number;
-};
+}
 
-type ChatMessageItemProps = {
+interface ChatMessageItemProps {
   msg: ChatMessage;
-};
+}
 
 export function ChatMessageItem({ msg }: ChatMessageItemProps) {
   const timeFormatted = dayjs(msg.timestamp).format("HH:mm");

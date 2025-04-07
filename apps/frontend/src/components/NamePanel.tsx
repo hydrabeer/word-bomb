@@ -1,9 +1,9 @@
 import { useState } from "react";
 
-type NamePanelProps = {
+interface NamePanelProps {
   initialName: string;
   onSave: (newName: string) => void;
-};
+}
 
 export function NamePanel({ initialName, onSave }: NamePanelProps) {
   const [editing, setEditing] = useState(false);
