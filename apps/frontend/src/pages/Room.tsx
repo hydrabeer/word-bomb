@@ -70,11 +70,11 @@ export default function Room() {
 
   return (
     <div
-      className="relative h-screen w-screen overflow-hidden bg-gray-900 text-white">
+      className="relative h-screen w-screen overflow-hidden bg-gray-700 text-white">
       {/* Main content area: left sidebar + center */}
       <div className="flex h-full">
         {/* Left Sidebar */}
-        <div className="w-screen md:w-96 bg-gray-800 p-4 overflow-y-auto break-words whitespace-pre-wrap">
+        <div className="w-screen md:w-96 bg-gray-900 p-4 overflow-y-auto break-words whitespace-pre-wrap">
           <h1
             className="text-2xl font-bold mb-4">Room: {roomData?.roomName || roomCode}</h1>
           <h2 className="text-xl mb-2">Players</h2>
