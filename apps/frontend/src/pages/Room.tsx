@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { FaChevronRight, FaChevronLeft } from "react-icons/fa";
+import {
+  FaChevronRight,
+  FaChevronLeft,
+  FaChevronUp,
+  FaChevronDown,
+} from "react-icons/fa";
 import { socket } from "../socket";
 import Chat from "../components/Chat";
 
@@ -53,7 +58,7 @@ export default function Room() {
       {/* Main content area: left sidebar + center */}
       <div className="flex h-full">
         {/* Left Sidebar */}
-        <div className="w-64 bg-gray-800 p-4 overflow-y-auto">
+        <div className="w-screen md:w-64 bg-gray-800 p-4 overflow-y-auto">
           <h1 className="text-2xl font-bold mb-4">Room: {roomCode}</h1>
           <h2 className="text-xl mb-2">Players</h2>
           <ul className="list-disc list-inside">
@@ -66,28 +71,56 @@ export default function Room() {
         </div>
 
         {/* Center Area: Game Placeholder */}
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-4 hidden md:block">
           <h2 className="text-3xl font-bold mb-4">Game Area</h2>
           {/* Put your actual gameplay UI here */}
         </div>
       </div>
 
       {/* CHAT PANEL (slides in/out) */}
+      {/*
+        For mobile (default):
+          Positioned at the bottom, full width, 1/3 of the screen height.
+        For md+ screens:
+          Positioned at the right, fixed width and full height.
+      */}
       <div
-        className={`absolute top-0 right-0 h-full w-96 bg-gray-900 transform transition-transform duration-300 ${
-          isChatOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`absolute bg-gray-900 transform transition-transform duration-300 
+          bottom-0 left-0 w-full h-1/3 md:top-0 md:right-0 md:bottom-auto md:left-auto md:w-96 md:h-full md:translate-y-0
+          ${isChatOpen ? "translate-y-0 md:translate-x-0" : "translate-y-full md:translate-x-full"}`}
       >
         <Chat/>
       </div>
 
-      {/* TOGGLE BUTTON (top-right corner) */}
+      {/* TOGGLE BUTTON */}
+      {/*
+          On mobile: placed near bottom center with up/down icons.
+          On desktop: placed in top-right corner with left/right icons.
+      */}
       <button
         onClick={() => setIsChatOpen(!isChatOpen)}
-        className="absolute top-2 right-2 z-50 bg-gray-600 hover:bg-gray-500 text-white p-2 rounded shadow"
+        className={`
+          absolute z-50 bg-gray-600 hover:bg-gray-500 text-white p-2 rounded shadow
+          md:top-2 md:right-2 md:bottom-auto md:left-auto md:transform-none
+          ${
+          // Mobile: if chat is open, position the button above the chat drawer (chat height = 33% of screen)
+          // Otherwise, position it at the bottom center.
+          isChatOpen
+            ? "bottom-[calc(33%+0.5rem)] left-1/2 transform -translate-x-1/2"
+            : "bottom-2 left-1/2 transform -translate-x-1/2"
+        }
+  `}
+
         aria-label={isChatOpen ? "Close chat" : "Open chat"}
       >
-        {isChatOpen ? <FaChevronRight/> : <FaChevronLeft/>}
+        {/* Mobile toggle icons */}
+        <span className="block md:hidden">
+          {isChatOpen ? <FaChevronDown/> : <FaChevronUp/>}
+        </span>
+        {/* Desktop toggle icons */}
+        <span className="hidden md:block">
+          {isChatOpen ? <FaChevronRight/> : <FaChevronLeft/>}
+        </span>
       </button>
     </div>
   );
