@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { socket } from "../socket";
-import { generateGuestName } from "../utils/guestName";
+import { generateGuestName } from "../utils/generateGuestName.ts";
 import { NamePanel } from "../components/NamePanel";
 import { CreateRoomPanel } from "../components/CreateRoomPanel";
 import { JoinRoomPanel } from "../components/JoinRoomPanel";
