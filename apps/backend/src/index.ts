@@ -8,7 +8,7 @@ import { rooms, Player } from './game';
 const app = express();
 app.use(cors());
 
-const server = http.createServer(app);
+const server = http.createServer(void app);
 const io = new Server(server, {
   cors: {
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
@@ -53,7 +53,7 @@ io.on('connection', (socket) => {
 
     // If there's a pending deletion timer for this room, cancel it.
     if (deletionTimers.has(roomCode)) {
-      clearTimeout(deletionTimers.get(roomCode)!);
+      clearTimeout(deletionTimers.get(roomCode));
       deletionTimers.delete(roomCode);
     }
 
@@ -81,7 +81,7 @@ io.on('connection', (socket) => {
       room.players.push(newPlayer);
     }
 
-    socket.join(roomCode);
+    void socket.join(roomCode);
     // Broadcast the updated room state.
     io.to(roomCode).emit('roomUpdate', room);
   });
@@ -120,7 +120,7 @@ io.on('connection', (socket) => {
     };
     room.players.push(newPlayer);
 
-    socket.join(roomCode);
+    void socket.join(roomCode);
     io.to(roomCode).emit('roomUpdate', room);
 
     // Return the generated room code to the client via the callback.
@@ -258,7 +258,7 @@ io.on('connection', (socket) => {
         if (room.players.length === 0) {
           // If a timer already exists, clear it first.
           if (deletionTimers.has(roomCode)) {
-            clearTimeout(deletionTimers.get(roomCode)!);
+            clearTimeout(deletionTimers.get(roomCode));
           }
           const timer = setTimeout(() => {
             const currentRoom = rooms.get(roomCode);
