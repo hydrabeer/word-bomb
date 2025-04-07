@@ -18,7 +18,7 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  socket.on('joinRoom', ({ name, roomCode }) => {
+  socket.on('joinRoom', ({ name, roomCode, userToken }) => {
     let room = rooms.get(roomCode);
 
     if (!room) {
@@ -33,19 +33,23 @@ io.on('connection', (socket) => {
       rooms.set(roomCode, room);
     }
 
-    const player: Player = {
-      id: socket.id,
-      name,
-      isAlive: true,
-    };
-
-    // Avoid duplicate players (e.g. refresh)
-    if (!room.players.find(p => p.id === socket.id)) {
-      room.players.push(player);
+    const existingPlayer = room.players.find(p => p.userToken === userToken);
+    if (existingPlayer) {
+      // Update their socket id, in case they refreshed.
+      existingPlayer.id = socket.id;
+      existingPlayer.name = name; // Optionally update name if it changed.
+    } else {
+      // Create a new player record.
+      const newPlayer: Player = {
+        id: socket.id,
+        name,
+        userToken,
+        isAlive: true,
+      };
+      room.players.push(newPlayer);
     }
 
     socket.join(roomCode);
-
     // Broadcast updated room state
     io.to(roomCode).emit('roomUpdate', room);
   });

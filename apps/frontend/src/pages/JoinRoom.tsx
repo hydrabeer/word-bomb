@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { socket } from '../socket.ts';
 import { useNavigate } from 'react-router-dom';
+import { v4 as uuidv4 } from "uuid";
 
 export default function JoinRoom() {
   const [name, setName] = useState('');
@@ -10,11 +11,15 @@ export default function JoinRoom() {
   const handleJoin = () => {
     if (!name || !roomCode) return;
 
+    let userToken = localStorage.getItem("userToken");
+    if (!userToken) {
+      userToken = uuidv4();
+      localStorage.setItem("userToken", userToken);
+    }
+
     socket.connect();
-
     localStorage.setItem("name", name);
-
-    socket.emit('joinRoom', { name, roomCode });
+    socket.emit('joinRoom', { name, roomCode, userToken });
     navigate(`/room/${roomCode}`);
   };
 

@@ -1,6 +1,7 @@
 type Player = {
   id: string;
   name: string;
+  userToken: string;
   isAlive: boolean;
 };
 
