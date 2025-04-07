@@ -7,6 +7,7 @@ type Player = {
 
 type Room = {
   code: string;
+  roomName?: string;
   players: Player[];
   currentTurnIndex: number;
   usedWords: Set<string>;

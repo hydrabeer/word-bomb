@@ -17,6 +17,7 @@ type Player = {
 
 type RoomData = {
   code: string;
+  roomName?: string;
   players: Player[];
   currentTurnIndex: number;
   usedWords: Set<string>;
@@ -26,7 +27,7 @@ type RoomData = {
 
 export default function Room() {
   const { roomCode } = useParams();
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(true);
 
   useEffect(() => {
@@ -44,7 +45,8 @@ export default function Room() {
     }
 
     socket.on("roomUpdate", (room: RoomData) => {
-      setPlayers(room.players);
+      setRoomData(room);
+      document.title = `[${roomCode}] ${room.roomName} | Word Bomb`;
     });
 
     return () => {
@@ -59,10 +61,10 @@ export default function Room() {
       <div className="flex h-full">
         {/* Left Sidebar */}
         <div className="w-screen md:w-64 bg-gray-800 p-4 overflow-y-auto">
-          <h1 className="text-2xl font-bold mb-4">Room: {roomCode}</h1>
+          <h1 className="text-2xl font-bold mb-4">Room: {roomData?.roomName || roomCode}</h1>
           <h2 className="text-xl mb-2">Players</h2>
           <ul className="list-disc list-inside">
-            {players.map((player) => (
+            {roomData?.players.map((player) => (
               <li key={player.id}>
                 {player.name} {player.isAlive ? "" : "(eliminated)"}
               </li>
