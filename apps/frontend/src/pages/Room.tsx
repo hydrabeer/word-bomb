@@ -70,7 +70,7 @@ export default function Room() {
 
   return (
     <div
-      className="relative h-screen w-screen overflow-hidden bg-gray-700 text-white">
+      className="relative h-screen w-screen overflow-hidden bg-gray-900 text-white">
       {/* Main content area: left sidebar + center */}
       <div className="flex h-full">
         {/* Left Sidebar */}
