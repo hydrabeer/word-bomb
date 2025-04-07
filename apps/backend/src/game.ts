@@ -1,11 +1,11 @@
-type Player = {
+interface Player {
   id: string;
   name: string;
   userToken: string;
   isAlive: boolean;
-};
+}
 
-type Room = {
+interface Room {
   code: string;
   roomName?: string;
   players: Player[];
@@ -13,7 +13,7 @@ type Room = {
   usedWords: Set<string>;
   fragment: string;
   isPlaying: boolean;
-};
+}
 
 const rooms = new Map<string, Room>();
 
