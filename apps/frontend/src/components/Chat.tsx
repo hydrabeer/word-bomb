@@ -3,10 +3,14 @@ import { socket } from "../socket";
 import { useAutoScroll } from "../hooks/useAutoScroll";
 import { ChatMessageItem, ChatMessage } from "./ChatMessageItem";
 
-export default function Chat() {
+interface ChatProps {
+  roomCode: string;
+}
+
+export default function Chat(props: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
-
+  const roomCode = props.roomCode;
   const containerRef = useAutoScroll<HTMLDivElement>([messages]);
 
   useEffect(() => {
@@ -21,13 +25,12 @@ export default function Chat() {
 
   const sendMessage = useCallback(() => {
     if (!newMessage.trim()) return;
-    const roomCode = localStorage.getItem("roomCode");
     const name = localStorage.getItem("name");
     const userToken = localStorage.getItem("userToken");
     if (!roomCode || !name || !userToken) return;
     socket.emit("chatMessage", { roomCode, name, message: newMessage, userToken });
     setNewMessage("");
-  }, [newMessage]);
+  }, [newMessage, roomCode]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
