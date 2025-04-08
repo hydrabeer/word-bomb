@@ -5,16 +5,17 @@ interface Player {
   isAlive: boolean;
 }
 
-interface Room {
+interface Game {
   code: string;
   roomName?: string;
   players: Player[];
+  playersById: Map<string, Player>;
   currentTurnIndex: number;
   usedWords: Set<string>;
   fragment: string;
   isPlaying: boolean;
 }
 
-const rooms = new Map<string, Room>();
+const rooms = new Map<string, Game>();
 
-export { Player, Room, rooms };
+export { Player, Game, rooms };
