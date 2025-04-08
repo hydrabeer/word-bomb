@@ -8,13 +8,35 @@ import { rooms, Player } from './game';
 const app = express();
 app.use(cors());
 
-const server = http.createServer(void app);
+app.use(express.json());
+
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     methods: ["GET", "POST"]
   },
 });
+
+app.post("/api/joinRoom", (req: Request, res: Response) => {
+    const { roomCode } = req.body;
+
+    if (!roomCode) {
+      res.status(400).json({
+        success: false,
+        message: "Missing roomCode"
+      });
+    }
+
+    const room = rooms.get(roomCode);
+    if (!room) {
+      res.status(404).json({ success: false, message: "Room not found." });
+      return;
+    }
+    res.status(200).json({ success: true, room });
+  }
+);
+
 
 // In-memory rate limiting data for chat messages per user.
 const chatTimestamps = new Map<string, number[]>();
@@ -30,25 +52,12 @@ const deletionTimers = new Map<string, NodeJS.Timeout>();
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  socket.on('checkRoom', (roomCode: string, callback: (exists: boolean) => void) => {
-    // Check if the room exists in the map.
-    callback(rooms.has(roomCode));
-  });
-
   // Event for joining an existing room.
   socket.on('joinRoom', ({ name, roomCode, userToken }) => {
     let room = rooms.get(roomCode);
     if (!room) {
-      // If the room doesn't exist, we create it on-the-fly.
-      room = {
-        code: roomCode,
-        players: [] as Player[],
-        currentTurnIndex: 0,
-        usedWords: new Set<string>(),
-        fragment: getRandomFragment(),
-        isPlaying: false,
-      };
-      rooms.set(roomCode, room);
+      console.log(`Room ${roomCode} does not exist.`);
+      return;
     }
 
     // If there's a pending deletion timer for this room, cancel it.
@@ -58,7 +67,7 @@ io.on('connection', (socket) => {
     }
 
     // Check if the user (via their persistent token) is already in the room.
-    const existingPlayer = room.players.find(p => p.userToken === userToken);
+    const existingPlayer = room.playersById.get(userToken);
     if (existingPlayer) {
       // If the existing player's socket is different from the current one, disconnect the old socket.
       if (existingPlayer.id !== socket.id) {
@@ -69,7 +78,6 @@ io.on('connection', (socket) => {
       }
       // Update the player's socket id and name.
       existingPlayer.id = socket.id;
-      existingPlayer.name = name;
     } else {
       // Create a new player record.
       const newPlayer: Player = {
@@ -79,6 +87,7 @@ io.on('connection', (socket) => {
         isAlive: true,
       };
       room.players.push(newPlayer);
+      room.playersById.set(newPlayer.userToken, newPlayer);
     }
 
     void socket.join(roomCode);
@@ -104,6 +113,7 @@ io.on('connection', (socket) => {
       code: roomCode,
       roomName,
       players: [] as Player[],
+      playersById: new Map<string, Player>(),
       currentTurnIndex: 0,
       usedWords: new Set<string>(),
       fragment: '',
@@ -119,6 +129,7 @@ io.on('connection', (socket) => {
       isAlive: true,
     };
     room.players.push(newPlayer);
+    room.playersById.set(newPlayer.userToken, newPlayer);
 
     void socket.join(roomCode);
     io.to(roomCode).emit('roomUpdate', room);
@@ -249,10 +260,16 @@ io.on('connection', (socket) => {
     for (const roomCode of socket.rooms) {
       // Skip the socket's default room (which is the socket id).
       if (roomCode === socket.id) continue;
+      // Remove the player from the room.
+
       const room = rooms.get(roomCode);
       if (room) {
-        room.players = room.players.filter(p => p.id !== socket.id);
-        io.to(roomCode).emit('roomUpdate', room);
+        const player = room.players.find(p => p.id === socket.id);
+        if (player) {
+          room.players = room.players.splice(room.players.indexOf(player), 1);
+          room.playersById.delete(player.userToken);
+          io.to(roomCode).emit('roomUpdate', room);
+        }
 
         // If the room is now empty, schedule its deletion.
         if (room.players.length === 0) {
@@ -267,7 +284,7 @@ io.on('connection', (socket) => {
               console.log(`Room ${roomCode} deleted due to inactivity.`);
             }
             deletionTimers.delete(roomCode);
-          }, 5000);
+          }, 10000);
           deletionTimers.set(roomCode, timer);
         }
       }

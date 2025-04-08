@@ -1,21 +1,18 @@
-import { FormEvent } from "react";
+import { FormEvent, useState } from "react";
 
 interface JoinRoomPanelProps {
-  roomCode: string;
-  setRoomCode: (val: string) => void;
-  onJoin: () => void;
+  onJoin: (roomCode: string) => void;
 }
 
-export function JoinRoomPanel({
-                                roomCode,
-                                setRoomCode,
-                                onJoin,
-                              }: JoinRoomPanelProps) {
+export function JoinRoomPanel({ onJoin }: JoinRoomPanelProps) {
   // Prevent default submission behavior
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    onJoin();
+    onJoin(roomCode);
   };
+
+  const [roomCode, setRoomCode] = useState("");
+
   return (
     <div className="flex flex-col">
       <h2 className="text-xl font-semibold mb-2">Join a Room</h2>

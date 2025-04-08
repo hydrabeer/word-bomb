@@ -1,15 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { socket } from "../socket";
 import { generateGuestName } from "../utils/generateGuestName.ts";
 import { NamePanel } from "../components/NamePanel";
 import { CreateRoomPanel } from "../components/CreateRoomPanel";
 import { JoinRoomPanel } from "../components/JoinRoomPanel";
+import { postJson } from "../utils/getPostJson.ts";
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export default function JoinRoomPage() {
   const navigate = useNavigate();
-  const { roomCode: routeRoomCode } = useParams<{ roomCode?: string }>();
 
   useEffect(() => {
     document.title = "Word Bomb";
@@ -30,9 +32,6 @@ export default function JoinRoomPage() {
 
   // Create Room: roomName defaults to "NAME's room".
   const [roomName, setRoomName] = useState(`${name}'s room`);
-
-  // Join Room: roomCode state.
-  const [roomCode, setRoomCode] = useState("");
 
   // When user saves a new name, update local state and localStorage.
   const handleSaveName = (newName: string) => {
@@ -70,38 +69,18 @@ export default function JoinRoomPage() {
   };
 
   // Join an existing room with validation.
-  const handleJoinRoom = useCallback((code?: string) => {
-    const joinCode = code || roomCode;
-    if (!name || !joinCode) return;
+  const handleJoinRoom = (roomCode: string) => {
+    if (!roomCode) return;
     // Validate: exactly 4 alphabetic characters.
-    if (!joinCode.match(/^[A-Z]{4}$/)) {
+    if (!roomCode.match(/^[A-Z]{4}$/)) {
       console.log("Invalid room code");
       return;
     }
-    const userToken = localStorage.getItem("userToken");
-
-    socket.connect();
-    localStorage.setItem("name", name);
-    // First, check if the room exists.
-    socket.emit("checkRoom", joinCode, (exists: boolean) => {
-      if (!exists) {
-        alert(`Room "${joinCode}" does not exist.`);
-      } else {
-        socket.emit("joinRoom", { name, roomCode: joinCode, userToken });
-        void navigate(`/${joinCode}`);
-      }
-    });
-  }, [name, roomCode, navigate]);
-
-  // If the URL includes a valid room code, auto join the room.
-  useEffect(() => {
-    if (routeRoomCode) {
-      const code = routeRoomCode.toUpperCase();
-      setRoomCode(code);
-      handleJoinRoom(code);
-    }
-  }, [routeRoomCode, handleJoinRoom]);
-
+    postJson(BACKEND_URL + "/api/joinRoom", { roomCode: roomCode }, res => {
+      if (res.errorCode) return alert(`Room ${roomCode} does not exist.`);
+      void navigate(`/${roomCode}`);
+    })
+  }
 
   return (
     <div
@@ -126,8 +105,6 @@ export default function JoinRoomPage() {
         {/* Right Column: Join Room Panel */}
         <div className="flex-1">
           <JoinRoomPanel
-            roomCode={roomCode}
-            setRoomCode={setRoomCode}
             onJoin={handleJoinRoom}
           />
         </div>

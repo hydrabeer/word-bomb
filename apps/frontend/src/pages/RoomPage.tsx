@@ -9,6 +9,9 @@ import {
 import { socket } from "../socket";
 import GameArea from "../components/GameArea";
 import Chat from "../components/Chat";
+import { postJson } from "../utils/getPostJson.ts";
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 interface Player {
   id: string;
@@ -16,10 +19,11 @@ interface Player {
   isAlive: boolean;
 }
 
-interface RoomData {
+interface GameData {
   code: string;
   roomName?: string;
   players: Player[];
+  playersById: Map<string, Player>;
   currentTurnIndex: number;
   usedWords: Set<string>;
   fragment: string;
@@ -29,25 +33,30 @@ interface RoomData {
 export default function RoomPage() {
   const navigate = useNavigate();
   const { roomCode } = useParams();
-  const [roomData, setRoomData] = useState<RoomData | null>(null);
+  const [gameData, setGameData] = useState<GameData | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(true);
-
+  if (!roomCode) {
+    void navigate("/");
+    socket.disconnect();
+    return;
+  }
   useEffect(() => {
-    if (!roomCode) return;
+    postJson(BACKEND_URL + "/api/joinRoom", { roomCode: roomCode }, res => {
+      if (res.errorCode) {
+        void navigate('/disconnected');
+        return;
+      }
+    })
 
-    localStorage.setItem("roomCode", roomCode);
-    document.title = `[${roomCode}] Word Bomb`;
-
-    // If a name is stored, re-emit joinRoom on refresh
-    const storedName = localStorage.getItem("name");
+    const name = localStorage.getItem("name");
     const userToken = localStorage.getItem("userToken")
-    if (storedName) {
+    if (!socket.connected) {
       socket.connect(); // reconnect if necessary
-      socket.emit("joinRoom", { name: storedName, roomCode, userToken });
+      socket.emit("joinRoom", { name, roomCode, userToken });
     }
 
-    socket.on("roomUpdate", (room: RoomData) => {
-      setRoomData(room);
+    socket.on("roomUpdate", (room: GameData) => {
+      setGameData(room);
       document.title = `[${roomCode}] ${room.roomName} | Word Bomb`;
     });
 
@@ -76,10 +85,10 @@ export default function RoomPage() {
         {/* Left Sidebar */}
         <div className="w-screen md:w-96 bg-gray-800 p-4 overflow-y-auto break-words whitespace-pre-wrap">
           <h1
-            className="text-2xl font-bold mb-4">Room: {roomData?.roomName || roomCode}</h1>
+            className="text-2xl font-bold mb-4">Room: {gameData?.roomName || roomCode}</h1>
           <h2 className="text-xl mb-2">Players</h2>
           <ul className="list-disc list-inside">
-            {roomData?.players.map((player) => (
+            {gameData?.players.map((player) => (
               <li key={player.id}>
                 {player.name} {player.isAlive ? "" : "(eliminated)"}
               </li>
@@ -105,7 +114,7 @@ export default function RoomPage() {
           bottom-0 left-0 w-full h-1/3 md:top-0 md:right-0 md:bottom-auto md:left-auto md:w-96 md:h-full md:translate-y-0
           ${isChatOpen ? "translate-y-0 md:translate-x-0" : "translate-y-full md:translate-x-full"}`}
       >
-        <Chat/>
+        <Chat roomCode={roomCode}/>
       </div>
 
       {/* TOGGLE BUTTON */}
