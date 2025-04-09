@@ -85,7 +85,12 @@ export default function HomePage() {
         {/* Create Room Panel */}
         <div className="flex flex-col rounded-2xl bg-[#1E1B2E] p-6 shadow-lg">
           <h2 className="mb-4 text-lg font-semibold">Create a Room</h2>
-          <form onSubmit={handleCreateRoom} className="flex flex-col gap-3">
+          <form
+            onSubmit={(e) => {
+              void handleCreateRoom(e);
+            }}
+            className="flex flex-col gap-3"
+          >
             <label className="text-sm font-medium text-gray-300" htmlFor="roomName">
               Room name
             </label>
@@ -110,7 +115,12 @@ export default function HomePage() {
         {/* Join Room Panel */}
         <div className="flex flex-col rounded-2xl bg-[#1E1B2E] p-6 shadow-lg">
           <h2 className="mb-4 text-lg font-semibold">Join a Room</h2>
-          <form onSubmit={handleJoinRoom} className="flex flex-col gap-3">
+          <form
+            onSubmit={(e) => {
+              void handleJoinRoom(e);
+            }}
+            className="flex flex-col gap-3"
+          >
             <label className="text-sm font-medium text-gray-300" htmlFor="joinCode">
               Code
             </label>

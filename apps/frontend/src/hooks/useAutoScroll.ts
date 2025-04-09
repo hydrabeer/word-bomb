@@ -27,6 +27,7 @@ export function useAutoScroll<T extends HTMLElement>(dependencies: DependencyLis
     requestAnimationFrame(() => {
       container.scrollTop = container.scrollHeight;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoScrollEnabled, ...dependencies]);
 
   return containerRef;
