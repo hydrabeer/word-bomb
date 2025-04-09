@@ -11,8 +11,8 @@
     "moduleResolution": "Node",
     "baseUrl": ".",
     "paths": {
-      "@game/domain": [
-        "packages/domain/src"
+      "@game/domain/*": [
+        "packages/domain/src/*"
       ]
     },
     "strict": true

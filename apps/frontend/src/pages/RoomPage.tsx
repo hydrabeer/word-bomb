@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+// apps/frontend/src/pages/RoomPage.tsx
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   FaChevronRight,
@@ -6,147 +7,281 @@ import {
   FaChevronUp,
   FaChevronDown,
 } from "react-icons/fa";
-import { socket } from "../socket";
-import GameArea from "../components/GameArea";
 import Chat from "../components/Chat";
-import { postJson } from "../utils/getPostJson.ts";
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-interface Player {
-  id: string;
-  name: string;
-  isAlive: boolean;
-}
-
-interface GameData {
-  code: string;
-  roomName?: string;
-  players: Player[];
-  playersById: Map<string, Player>;
-  currentTurnIndex: number;
-  usedWords: Set<string>;
-  fragment: string;
-  isPlaying: boolean;
-}
+import { useGameRoom } from "../hooks/useGameRoom";
+import { socket } from "../socket";
+import { GameBoard, GameState } from "../components/GameBoard";
+import { getOrCreatePlayerProfile } from "../utils/playerProfile";
 
 export default function RoomPage() {
   const navigate = useNavigate();
   const { roomCode } = useParams();
-  const [gameData, setGameData] = useState<GameData | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(true);
-  if (!roomCode) {
-    void navigate("/");
-    socket.disconnect();
-    return;
-  }
-  useEffect(() => {
-    postJson(BACKEND_URL + "/api/joinRoom", { roomCode: roomCode }, res => {
-      if (res.errorCode) {
-        void navigate('/disconnected');
-        return;
-      }
-    })
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [inputWord, setInputWord] = useState("");
+  const [leaderId, setLeaderId] = useState<string | null>(null);
+  const [countdownDeadline, setCountdownDeadline] = useState<number | null>(null);
+  const [timeLeftSec, setTimeLeftSec] = useState(0);
+  const { id: playerId, name: playerName } = getOrCreatePlayerProfile();
+  const [players, setPlayers] = useState<{
+    id: string,
+    name: string,
+    isSeated: boolean
+  }[]>([]);
+  const me = useMemo(() => players.find((p) => p.id === playerId), [players, playerId]);
 
-    const name = localStorage.getItem("name");
-    const userToken = localStorage.getItem("userToken")
-    if (!socket.connected) {
-      socket.connect(); // reconnect if necessary
-      socket.emit("joinRoom", { name, roomCode, userToken });
+  useEffect(() => {
+    function handlePlayersUpdated(data: any) {
+      setPlayers(data.players);
     }
 
-    socket.on("roomUpdate", (room: GameData) => {
-      setGameData(room);
-      document.title = `[${roomCode}] ${room.roomName} | Word Bomb`;
-    });
+    socket.on("playersUpdated", handlePlayersUpdated);
+    return () => {
+      socket.off("playersUpdated", handlePlayersUpdated);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!roomCode) {
+      void navigate("/");
+      return;
+    }
+  }, [roomCode, navigate, playerId, playerName]);
+
+  useGameRoom(roomCode!);
+
+  useEffect(() => {
+    function handleGameCountdownStarted(data: any) {
+      setCountdownDeadline(data.deadline);
+    }
+
+    function handleGameCountdownStopped() {
+      setCountdownDeadline(null);
+      setTimeLeftSec(0);
+    }
+
+    function handleGameStarted(data: any) {
+      setGameState({
+        fragment: data.fragment,
+        bombDuration: data.bombDuration,
+        currentPlayerId: data.currentPlayer,
+        players: data.players,
+      });
+      setLeaderId(data.leaderId || null);
+      setCountdownDeadline(null);
+    }
+
+    function handleTurnStarted(data: any) {
+      setGameState((prev) =>
+        prev
+          ? {
+            ...prev,
+            fragment: data.fragment,
+            bombDuration: data.bombDuration,
+            currentPlayerId: data.playerId,
+            players: data.players || prev.players,
+          }
+          : null
+      );
+    }
+
+    function handlePlayerUpdated(data: any) {
+      setGameState((prev) => {
+        if (!prev) return prev;
+        const updatedPlayers = prev.players.map((p) =>
+          p.id === data.playerId
+            ? { ...p, lives: data.lives, isEliminated: data.lives <= 0 }
+            : p
+        );
+        return { ...prev, players: updatedPlayers };
+      });
+    }
+
+    socket.on("gameCountdownStarted", handleGameCountdownStarted);
+    socket.on("gameCountdownStopped", handleGameCountdownStopped);
+    socket.on("gameStarted", handleGameStarted);
+    socket.on("turnStarted", handleTurnStarted);
+    socket.on("playerUpdated", handlePlayerUpdated);
 
     return () => {
-      socket.off("roomUpdate");
+      socket.off("gameCountdownStarted", handleGameCountdownStarted);
+      socket.off("gameCountdownStopped", handleGameCountdownStopped);
+      socket.off("gameStarted", handleGameStarted);
+      socket.off("turnStarted", handleTurnStarted);
+      socket.off("playerUpdated", handlePlayerUpdated);
     };
+  }, []);
+
+  useEffect(() => {
+    if (countdownDeadline == null) {
+      setTimeLeftSec(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      const diff = countdownDeadline - Date.now();
+      if (diff <= 0) {
+        setCountdownDeadline(null);
+        setTimeLeftSec(0);
+        clearInterval(timer);
+      } else {
+        setTimeLeftSec(Math.ceil(diff / 1000));
+      }
+    }, 250);
+    return () => clearInterval(timer);
+  }, [countdownDeadline]);
+
+  const handleSubmitWord = useCallback(() => {
+    socket.emit(
+      "submitWord",
+      { roomCode, playerId, word: inputWord },
+      (res: any) => {
+        if (res.success) setInputWord("");
+        else console.log(res.error);
+      }
+    );
+  }, [roomCode, playerId, inputWord]);
+
+  const handleStartGame = useCallback(() => {
+    socket.emit("startGame", { roomCode }, (res: any) => {
+      if (!res.success) console.log(res.error);
+    });
   }, [roomCode]);
+
+  const toggleSeated = useCallback(() => {
+    const seated = !(me?.isSeated ?? false);
+    socket.emit(
+      "setPlayerSeated",
+      { roomCode, playerId, seated },
+      (res: any) => {
+        if (res && !res.success) console.log("setPlayerSeated error:", res.error);
+      }
+    );
+  }, [roomCode, playerId, me?.isSeated]);
 
   useEffect(() => {
     const handleDisconnect = () => {
       void navigate("/disconnected");
     };
-
-    socket.on("disconnect", handleDisconnect);
-
-    return () => {
-      socket.off("disconnect", handleDisconnect);
-    };
+    window.addEventListener("offline", handleDisconnect);
+    return () => window.removeEventListener("offline", handleDisconnect);
   }, [navigate]);
+
+  const statusMessage = gameState
+    ? "🧠 Word Bomb – Game in Progress"
+    : countdownDeadline !== null
+      ? `⏳ Game starts in ${timeLeftSec}s...`
+      : "🕐 Waiting for more players...";
 
   return (
     <div
-      className="relative h-screen w-screen overflow-hidden bg-gray-700 text-white">
-      {/* Main content area: left sidebar + center */}
-      <div className="flex h-full">
-        {/* Left Sidebar */}
-        <div className="w-screen md:w-96 bg-gray-800 p-4 overflow-y-auto break-words whitespace-pre-wrap">
-          <h1
-            className="text-2xl font-bold mb-4">Room: {gameData?.roomName || roomCode}</h1>
-          <h2 className="text-xl mb-2">Players</h2>
-          <ul className="list-disc list-inside">
-            {gameData?.players.map((player) => (
-              <li key={player.id}>
-                {player.name} {player.isAlive ? "" : "(eliminated)"}
-              </li>
-            ))}
-          </ul>
-        </div>
+      className="flex flex-col h-screen w-screen bg-[#12101C] text-white overflow-hidden">
 
-        {/* Main game area */}
-        <div className="flex-1 p-4 hidden">
-          <GameArea/>
-        </div>
-      </div>
-
-      {/* CHAT PANEL (slides in/out) */}
-      {/*
-        For mobile (default):
-          Positioned at the bottom, full width, 1/3 of the screen height.
-        For md+ screens:
-          Positioned at the right, fixed width and full height.
-      */}
+      {/* Top Bar */}
       <div
-        className={`absolute bg-gray-900 transform transition-transform duration-300 
-          bottom-0 left-0 w-full h-1/3 md:top-0 md:right-0 md:bottom-auto md:left-auto md:w-96 md:h-full md:translate-y-0
-          ${isChatOpen ? "translate-y-0 md:translate-x-0" : "translate-y-full md:translate-x-full"}`}
-      >
-        <Chat roomCode={roomCode}/>
+        className="relative flex items-center justify-center px-4 py-2 bg-gradient-to-r from-[#2D1C5A] to-[#3C1C80] text-sm md:text-base font-medium">
+        <div className="truncate">{statusMessage}</div>
+
+        {/* Chat Toggle Button */}
+        <button
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          className={`
+            z-50 p-2 rounded-full transition-colors bg-white/10 hover:bg-white/20
+            md:absolute md:right-4 md:top-1/2 md:-translate-y-1/2
+      
+            fixed right-4
+            ${isChatOpen ? "bottom-[calc(33vh+1.4rem)]" : "bottom-5"}
+            md:bottom-auto
+          `}
+          aria-label={isChatOpen ? "Close chat" : "Open chat"}
+        >
+          <span className="block md:hidden">
+            {isChatOpen ? <FaChevronDown/> : <FaChevronUp/>}
+          </span>
+          <span className="hidden md:block">
+            {isChatOpen ? <FaChevronRight/> : <FaChevronLeft/>}
+          </span>
+        </button>
       </div>
 
-      {/* TOGGLE BUTTON */}
-      {/*
-          On mobile: placed near bottom center with up/down icons.
-          On desktop: placed in top-right corner with left/right icons.
-      */}
-      <button
-        onClick={() => setIsChatOpen(!isChatOpen)}
-        className={`
-          absolute z-50 bg-gray-600 hover:bg-gray-500 text-white p-2 rounded shadow
-          md:top-2 md:right-2 md:bottom-auto md:left-auto md:transform-none
-          ${
-          // Mobile: if chat is open, position the button above the chat drawer (chat height = 33% of screen)
-          // Otherwise, position it at the bottom center.
-          isChatOpen
-            ? "bottom-[calc(33%+0.5rem)] left-1/2 transform -translate-x-1/2"
-            : "bottom-2 left-1/2 transform -translate-x-1/2"
-        }
-  `}
 
-        aria-label={isChatOpen ? "Close chat" : "Open chat"}
-      >
-        {/* Mobile toggle icons */}
-        <span className="block md:hidden">
-          {isChatOpen ? <FaChevronDown/> : <FaChevronUp/>}
-        </span>
-        {/* Desktop toggle icons */}
-        <span className="hidden md:block">
-          {isChatOpen ? <FaChevronRight/> : <FaChevronLeft/>}
-        </span>
-      </button>
+      {/* Main Area */}
+      <div
+        className={`flex-1 overflow-y-auto transition-all duration-300 ${isChatOpen ? "pb-[33vh] md:pb-0" : ""}`}>
+        {gameState ? (
+          <GameBoard
+            gameState={gameState}
+            inputWord={inputWord}
+            setInputWord={setInputWord}
+            handleSubmitWord={handleSubmitWord}
+          />
+        ) : (
+          <div
+            className="flex flex-col justify-center items-center h-full text-center px-4">
+            <p className="text-xl md:text-2xl font-semibold text-white/90 mb-6">
+              Waiting for game to start...
+            </p>
+
+            {/* Seated Players */}
+            <div className="flex justify-center">
+              <div
+                className="flex flex-wrap gap-3 justify-center px-6 max-w-lg">
+                {players.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all
+                  ${p.isSeated
+                      ? "border-emerald-400 bg-emerald-900/30 text-emerald-300"
+                      : "border-white/30 text-white/60"
+                    }`}
+                  >
+                    {p.name} {p.isSeated && <span className="ml-1">✓</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Bar */}
+      {!gameState && (
+        <div
+          className="bg-[#1A1828] border-t border-[#3F3C58] shadow-inner w-full py-4 flex justify-center gap-4 z-10">
+          <button
+            onClick={toggleSeated}
+            className={`
+          font-bold px-6 py-2 rounded-lg transition-colors
+          ${me?.isSeated
+              ? "bg-rose-500 hover:bg-rose-400 text-white"
+              : "bg-emerald-500 hover:bg-emerald-400 text-black"}
+        `}
+          >
+            {me?.isSeated ? "Leave" : "Join Game"}
+          </button>
+          {leaderId && playerId === leaderId && (
+            <button
+              onClick={handleStartGame}
+              className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-6 py-2 rounded-lg transition-colors"
+            >
+              Start Now
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Chat Panel */}
+      {isChatOpen && (
+        <div
+          className={`
+        bg-[#1A1828] z-40
+        md:fixed md:top-0 md:right-0 md:h-full md:w-80
+        h-[33vh] md:border-l border-t md:border-t-0 border-[#3F3C58]
+        shadow-[0_0_10px_#00000033] flex flex-col
+      `}
+        >
+          <Chat roomCode={roomCode!}/>
+        </div>
+      )}
     </div>
   );
 }

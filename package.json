@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "cd apps/frontend && npm run dev",
-    "dev:backend": "cd apps/backend && npx ts-node src/index.ts"
+    "dev:backend": "cd apps/backend && npm run dev"
   },
   "author": "hydrabeer",
   "license": "UNLICENSED",

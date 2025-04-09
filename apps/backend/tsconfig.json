@@ -2,11 +2,17 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "composite": true,
     "rootDir": "src",
     "outDir": "dist",
     "module": "CommonJS"
   },
   "include": [
     "src"
+  ],
+  "references": [
+    {
+      "path": "../../packages/domain"
+    }
   ]
 }

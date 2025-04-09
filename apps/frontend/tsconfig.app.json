@@ -21,5 +21,11 @@
   },
   "include": [
     "src"
-  ]
+  ],
+  "references": [
+  {
+    "path": "../../packages/domain"
+  }
+]
+
 }

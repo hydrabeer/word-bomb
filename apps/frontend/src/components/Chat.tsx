@@ -2,21 +2,23 @@ import React, { useState, useCallback, useEffect } from "react";
 import { socket } from "../socket";
 import { useAutoScroll } from "../hooks/useAutoScroll";
 import { ChatMessageItem, ChatMessage } from "./ChatMessageItem";
+import { getOrCreatePlayerProfile } from "../utils/playerProfile.ts";
+import { ChatMessageSchema } from "@game/domain/chat/ChatMessage";
 
 interface ChatProps {
   roomCode: string;
 }
 
-export default function Chat(props: ChatProps) {
+export default function Chat({ roomCode }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const roomCode = props.roomCode;
   const containerRef = useAutoScroll<HTMLDivElement>([messages]);
 
   useEffect(() => {
     const handleNewMessage = (msg: ChatMessage) => {
       setMessages((prev) => [...prev, msg]);
     };
+
     socket.on("chatMessage", handleNewMessage);
     return () => {
       socket.off("chatMessage", handleNewMessage);
@@ -24,11 +26,28 @@ export default function Chat(props: ChatProps) {
   }, []);
 
   const sendMessage = useCallback(() => {
-    if (!newMessage.trim()) return;
-    const name = localStorage.getItem("name");
-    const userToken = localStorage.getItem("userToken");
-    if (!roomCode || !name || !userToken) return;
-    socket.emit("chatMessage", { roomCode, name, message: newMessage, userToken });
+    const trimmed = newMessage.trim();
+    if (!trimmed) return;
+
+    const { name } = getOrCreatePlayerProfile();
+
+    const messagePayload = {
+      roomCode,
+      sender: name,
+      message: trimmed,
+      timestamp: Date.now(),
+      type: "user" as const,
+    };
+
+    const result = ChatMessageSchema.safeParse(messagePayload);
+
+    if (!result.success) {
+      console.warn("Invalid chat message input:", result.error);
+      alert("Invalid message.");
+      return;
+    }
+
+    socket.emit("chatMessage", result.data);
     setNewMessage("");
   }, [newMessage, roomCode]);
 
@@ -39,27 +58,55 @@ export default function Chat(props: ChatProps) {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className="flex flex-col h-full rounded-xl overflow-hidden bg-[#1A1827]">
       {/* Message List */}
       <div
-        className="flex-1 overflow-y-auto p-2 space-y-3"
         ref={containerRef}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
       >
         {messages.map((msg, idx) => (
           <ChatMessageItem key={idx} msg={msg}/>
         ))}
       </div>
+
       {/* Input Box */}
-      <div className="p-2 border-t border-gray-700">
-        <input
-          type="text"
-          value={newMessage}
-          maxLength={300}
-          placeholder="Type here to chat"
-          className="w-full p-2 rounded bg-gray-800 border border-gray-600 focus:outline-none"
-          onChange={(e) => setNewMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
+      <div
+        className="bg-[#1E1B2E] border-t border-purple-800/40 shadow-inner shadow-purple-900/10 px-4 py-3">
+        <label className="relative block">
+          <input
+            type="text"
+            value={newMessage}
+            maxLength={300}
+            placeholder="Type your message..."
+            className={`
+              w-full peer
+              px-4 py-2
+              pt-4 peer-placeholder-shown:pt-2
+              rounded-lg
+              text-sm
+              bg-gray-800
+              border border-gray-600
+              placeholder-transparent
+              text-white
+              focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400
+              transition-all duration-200 ease-in-out
+            `}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <span
+            className={`
+              absolute left-4 text-sm text-gray-400
+              top-2.5 peer-placeholder-shown:top-3
+              peer-focus:top-0.5 peer-focus:text-xs peer-focus:text-blue-400
+              transition-all duration-200 ease-in-out
+              pointer-events-none
+            `}
+          >
+            Type your message...
+          </span>
+        </label>
       </div>
     </div>
   );
