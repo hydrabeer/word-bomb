@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useId } from "react";
+import { ChangeEvent, FormEvent, useId } from 'react';
 
 interface CreateRoomPanelProps {
   roomName: string;
@@ -6,11 +6,7 @@ interface CreateRoomPanelProps {
   onCreate: () => void;
 }
 
-export function CreateRoomPanel({
-                                  roomName,
-                                  setRoomName,
-                                  onCreate,
-                                }: CreateRoomPanelProps) {
+export function CreateRoomPanel({ roomName, setRoomName, onCreate }: CreateRoomPanelProps) {
   const id = useId();
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -26,30 +22,30 @@ export function CreateRoomPanel({
 
   const inputProps = {
     id: id,
-    type: "text",
-    placeholder: "Name your room",
+    type: 'text',
+    placeholder: 'Name your room',
     value: roomName,
     maxLength: 30,
-    title: "Maximum 30 characters.",
+    title: 'Maximum 30 characters.',
     required: true,
-    autoComplete: "off" as const,
+    autoComplete: 'off' as const,
     className:
-      "w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3",
+      'w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3',
     onChange: handleInputChange,
   };
 
   return (
     <div className="flex flex-col">
-      <h2 className="text-xl font-semibold mb-2">Create a Room</h2>
+      <h2 className="mb-2 text-xl font-semibold">Create a Room</h2>
       <form onSubmit={handleSubmit} className="flex flex-col">
-        <label htmlFor={id} className="block text-sm font-bold mb-1">
+        <label htmlFor={id} className="mb-1 block text-sm font-bold">
           Room name
         </label>
         <input {...inputProps} />
         <button
           type="submit"
           title="Create a new room"
-          className="bg-green-600 hover:bg-green-500 transition-colors w-full py-2 rounded font-semibold"
+          className="w-full rounded bg-green-600 py-2 font-semibold transition-colors hover:bg-green-500"
         >
           Play
         </button>

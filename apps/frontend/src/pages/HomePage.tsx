@@ -1,10 +1,7 @@
-import { useState, ChangeEvent, KeyboardEvent, FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  getOrCreatePlayerProfile,
-  updatePlayerName
-} from "../utils/playerProfile";
-import { useRoomActions } from "../hooks/useRoomActions";
+import { useState, ChangeEvent, KeyboardEvent, FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getOrCreatePlayerProfile, updatePlayerName } from '../utils/playerProfile';
+import { useRoomActions } from '../hooks/useRoomActions';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -12,14 +9,14 @@ export default function HomePage() {
   const [name, setName] = useState(initialName);
   const [editing, setEditing] = useState(false);
   const [roomName, setRoomName] = useState(`${initialName}'s room`);
-  const [joinCode, setJoinCode] = useState("");
+  const [joinCode, setJoinCode] = useState('');
 
   const { createNewRoom, validateRoom } = useRoomActions();
 
   const handleSaveName = () => {
     const trimmed = name.trim();
     if (!trimmed.match(/^.{1,20}$/)) {
-      alert("Name must be between 1 and 20 characters.");
+      alert('Name must be between 1 and 20 characters.');
       return;
     }
     updatePlayerName(trimmed);
@@ -46,38 +43,38 @@ export default function HomePage() {
   };
 
   return (
-    <div
-      className="min-h-screen bg-[#12111A] text-white flex flex-col items-center px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8 tracking-tight text-white">Word
-        Bomb</h1>
+    <div className="flex min-h-screen flex-col items-center bg-[#12111A] px-4 py-8 text-white">
+      <h1 className="mb-8 text-4xl font-bold tracking-tight text-white">Word Bomb</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+      <div className="grid w-full max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
         {/* Name Panel */}
-        <div className="bg-[#1E1B2E] rounded-2xl shadow-lg p-6 flex flex-col">
-          <h2 className="text-lg font-semibold mb-4">Your Name</h2>
+        <div className="flex flex-col rounded-2xl bg-[#1E1B2E] p-6 shadow-lg">
+          <h2 className="mb-4 text-lg font-semibold">Your Name</h2>
           {editing ? (
             <div className="flex gap-2">
               <input
                 value={name}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && handleSaveName()}
+                onKeyDown={(e: KeyboardEvent<HTMLInputElement>) =>
+                  e.key === 'Enter' && handleSaveName()
+                }
                 placeholder="Your name"
                 maxLength={20}
-                className="flex-1 px-4 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 rounded border border-gray-600 bg-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 onClick={handleSaveName}
-                className="bg-emerald-500 hover:bg-emerald-400 text-black font-semibold px-4 py-2 rounded"
+                className="rounded bg-emerald-500 px-4 py-2 font-semibold text-black hover:bg-emerald-400"
               >
                 Save
               </button>
             </div>
           ) : (
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
               <span className="text-lg font-medium">{name}</span>
               <button
                 onClick={() => setEditing(true)}
-                className="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded"
+                className="rounded bg-gray-600 px-3 py-1 hover:bg-gray-500"
               >
                 Edit
               </button>
@@ -86,22 +83,23 @@ export default function HomePage() {
         </div>
 
         {/* Create Room Panel */}
-        <div className="bg-[#1E1B2E] rounded-2xl shadow-lg p-6 flex flex-col">
-          <h2 className="text-lg font-semibold mb-4">Create a Room</h2>
+        <div className="flex flex-col rounded-2xl bg-[#1E1B2E] p-6 shadow-lg">
+          <h2 className="mb-4 text-lg font-semibold">Create a Room</h2>
           <form onSubmit={handleCreateRoom} className="flex flex-col gap-3">
-            <label className="text-sm font-medium text-gray-300"
-                   htmlFor="roomName">Room name</label>
+            <label className="text-sm font-medium text-gray-300" htmlFor="roomName">
+              Room name
+            </label>
             <input
               id="roomName"
               value={roomName}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setRoomName(e.target.value)}
               maxLength={30}
               placeholder="Enter room name"
-              className="px-4 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded border border-gray-600 bg-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               type="submit"
-              className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded bg-emerald-500 py-2 font-bold text-black hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!roomName.trim()}
             >
               Play
@@ -110,26 +108,27 @@ export default function HomePage() {
         </div>
 
         {/* Join Room Panel */}
-        <div className="bg-[#1E1B2E] rounded-2xl shadow-lg p-6 flex flex-col">
-          <h2 className="text-lg font-semibold mb-4">Join a Room</h2>
+        <div className="flex flex-col rounded-2xl bg-[#1E1B2E] p-6 shadow-lg">
+          <h2 className="mb-4 text-lg font-semibold">Join a Room</h2>
           <form onSubmit={handleJoinRoom} className="flex flex-col gap-3">
-            <label className="text-sm font-medium text-gray-300"
-                   htmlFor="joinCode">Code</label>
+            <label className="text-sm font-medium text-gray-300" htmlFor="joinCode">
+              Code
+            </label>
             <input
               id="joinCode"
               value={joinCode}
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                const filtered = e.target.value.toUpperCase().replace(/[^A-Z]/g, "");
+                const filtered = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
                 setJoinCode(filtered);
               }}
               placeholder="Enter 4-letter code"
               maxLength={4}
               pattern="[A-Z]{4}"
-              className="px-4 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded border border-gray-600 bg-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               type="submit"
-              className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded bg-emerald-500 py-2 font-bold text-black hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={joinCode.length !== 4}
             >
               Join

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, DependencyList } from "react";
+import { useLayoutEffect, useRef, useState, DependencyList } from 'react';
 
 export function useAutoScroll<T extends HTMLElement>(dependencies: DependencyList) {
   const containerRef = useRef<T>(null);
@@ -16,8 +16,8 @@ export function useAutoScroll<T extends HTMLElement>(dependencies: DependencyLis
       setAutoScrollEnabled(distanceFromBottom < 50);
     };
 
-    container.addEventListener("scroll", handleScroll);
-    return () => container.removeEventListener("scroll", handleScroll);
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Whenever dependencies change and if auto-scroll is enabled, scroll to bottom.

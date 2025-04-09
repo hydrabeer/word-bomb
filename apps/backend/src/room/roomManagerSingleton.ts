@@ -1,3 +1,3 @@
-import { GameRoomManager } from "./GameRoomManager";
+import { GameRoomManager } from './GameRoomManager';
 
 export const roomManager = new GameRoomManager();

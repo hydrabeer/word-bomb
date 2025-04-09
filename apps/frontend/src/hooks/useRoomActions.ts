@@ -1,4 +1,4 @@
-import { createRoom, checkRoomExists } from "../api/rooms";
+import { createRoom, checkRoomExists } from '../api/rooms';
 
 /**
  * Handles pure room HTTP operations (does not deal with socket or navigation).

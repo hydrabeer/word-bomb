@@ -1,11 +1,11 @@
-import { generateGuestName } from "./generateGuestName.ts";
+import { generateGuestName } from './generateGuestName.ts';
 
 export interface PlayerProfile {
   id: string;
   name: string;
 }
 
-const STORAGE_KEY = "wordbomb:profile:v1";
+const STORAGE_KEY = 'wordbomb:profile:v1';
 
 export function getOrCreatePlayerProfile(): PlayerProfile {
   const raw = localStorage.getItem(STORAGE_KEY);

@@ -1,7 +1,7 @@
 // packages/domain/src/game/Game.ts
-import { z } from "zod";
-import { Player } from "../players/Player";
-import { GameRoomRules, GameRulesSchema } from "../rooms/GameRoomRules";
+import { z } from 'zod';
+import { Player } from '../players/Player';
+import { GameRoomRules, GameRulesSchema } from '../rooms/GameRoomRules';
 
 export const GameSchema = z.object({
   roomCode: z.string().regex(/^[A-Z]{4}$/),
@@ -9,7 +9,7 @@ export const GameSchema = z.object({
   currentTurnIndex: z.number().int().nonnegative(),
   fragment: z.string().min(1),
   bombDuration: z.number().int().positive(), // in seconds
-  state: z.enum(["active", "ended"]),
+  state: z.enum(['active', 'ended']),
   rules: GameRulesSchema,
 });
 
@@ -21,7 +21,7 @@ export class Game {
   public currentTurnIndex: number;
   public fragment: string;
   public bombDuration: number;
-  public state: "active" | "ended";
+  public state: 'active' | 'ended';
   public rules: GameRoomRules;
 
   constructor(props: GameProps) {
@@ -57,7 +57,7 @@ export class Game {
 
   // Mark the game as ended.
   public endGame(): void {
-    this.state = "ended";
+    this.state = 'ended';
   }
 
   /**

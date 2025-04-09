@@ -3,17 +3,13 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "target": "ES2022",
-    "lib": [
-      "ES2022"
-    ],
+    "lib": ["ES2022"],
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@game/domain/*": [
-        "packages/domain/src/*"
-      ]
+      "@game/domain/*": ["packages/domain/src/*"]
     },
     "strict": true
   }

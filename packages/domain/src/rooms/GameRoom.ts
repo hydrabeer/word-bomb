@@ -1,8 +1,8 @@
-import { z } from "zod";
-import { Player, PlayerProps } from "../players/Player";
-import { PlayerFactory } from "../players/PlayerFactory";
-import { GameRoomRules } from "./GameRoomRules";
-import { Game } from "../game/Game";
+import { z } from 'zod';
+import { Player, PlayerProps } from '../players/Player';
+import { PlayerFactory } from '../players/PlayerFactory';
+import { GameRoomRules } from './GameRoomRules';
+import { Game } from '../game/Game';
 
 export const GameRoomSchema = z.object({
   code: z.string().regex(/[A-Z]{4}/),
@@ -14,7 +14,7 @@ export class GameRoom {
   public readonly code: string;
   public rules: GameRoomRules;
   private players: Map<string, Player> = new Map();
-  private state: "seating" | "playing" = "seating";
+  private state: 'seating' | 'playing' = 'seating';
   private leaderId: string | null = null;
   public game?: Game; // Active game instance, if any.
   private startGameTimerHandle?: ReturnType<typeof setTimeout>;
@@ -26,7 +26,7 @@ export class GameRoom {
   }
 
   addPlayer(props: PlayerProps): void {
-    if (this.players.has(props.id)) throw new Error("Player already in room.");
+    if (this.players.has(props.id)) throw new Error('Player already in room.');
 
     const player = PlayerFactory.create({
       props: {
@@ -87,12 +87,13 @@ export class GameRoom {
 
   // Starts the game once enough players are seated.
   startGame(): void {
-    const playersInGame = this.getAllPlayers().filter(p => p.isSeated);
-    if (playersInGame.length < 2) throw new Error("Need at least 2 players seated to start the game.");
-    this.state = "playing";
+    const playersInGame = this.getAllPlayers().filter((p) => p.isSeated);
+    if (playersInGame.length < 2)
+      throw new Error('Need at least 2 players seated to start the game.');
+    this.state = 'playing';
 
     // Reset all players for the new game.
-    playersInGame.forEach(p => {
+    playersInGame.forEach((p) => {
       p.resetForNextGame(this.rules.maxLives, this.rules.bonusTemplate);
     });
 
@@ -100,12 +101,11 @@ export class GameRoom {
     this.cancelGameStartTimer();
   }
 
-
   // Ends the game and reverts the room to seating.
   endGame(): void {
-    this.state = "seating";
+    this.state = 'seating';
     this.game = undefined;
-    this.getAllPlayers().forEach(p => {
+    this.getAllPlayers().forEach((p) => {
       p.isSeated = false;
     });
   }

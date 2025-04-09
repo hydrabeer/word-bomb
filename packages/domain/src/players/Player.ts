@@ -1,5 +1,5 @@
-import { z } from "zod";
-import { BonusProgress } from "../game/BonusProgress";
+import { z } from 'zod';
+import { BonusProgress } from '../game/BonusProgress';
 
 export const PlayerSchema = z.object({
   id: z.string().uuid(),

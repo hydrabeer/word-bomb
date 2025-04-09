@@ -1,9 +1,9 @@
 // packages/domain/src/players/PlayerFactory.ts
-import { Player, PlayerProps } from "./Player";
-import { BonusProgress } from "../game/BonusProgress";
+import { Player, PlayerProps } from './Player';
+import { BonusProgress } from '../game/BonusProgress';
 
 export interface CreatePlayerOptions {
-  props: Omit<PlayerProps, "bonusProgress">;
+  props: Omit<PlayerProps, 'bonusProgress'>;
   bonusTemplate: number[]; // e.g. [1,1,...] of length 26
 }
 

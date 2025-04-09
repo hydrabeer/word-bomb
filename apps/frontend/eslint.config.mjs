@@ -24,40 +24,39 @@ export default tseslint.config(
   // React Hooks plugin
   {
     plugins: {
-      'react-hooks': reactHooks
+      'react-hooks': reactHooks,
     },
     rules: {
-      ...reactHooks.configs['recommended-latest'].rules
-    }
+      ...reactHooks.configs['recommended-latest'].rules,
+    },
   },
 
   // Custom project-level settings
   {
     settings: {
       react: {
-        version: 'detect' // auto-detect from package.json
-      }
+        version: 'detect', // auto-detect from package.json
+      },
     },
     rules: {
       '@typescript-eslint/prefer-regexp-exec': 'off',
-      '@typescript-eslint/prefer-nullish-coalescing': 'off'
+      '@typescript-eslint/prefer-nullish-coalescing': 'off',
     },
     ignores: [
-      'dist',         // Vite build output
+      'dist', // Vite build output
       'node_modules', // Always ignore
       'vite.config.ts',
       'index.html',
-      '**/*.css',     // Optional: ignore CSS files
-      'public/**'     // Optional: static assets
+      '**/*.css', // Optional: ignore CSS files
+      'public/**', // Optional: static assets
     ],
     root: true,
     languageOptions: {
       parserOptions: {
         projectService: true,
         project: ['./tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname
-      }
-    }
-  }
-)
-;
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+);

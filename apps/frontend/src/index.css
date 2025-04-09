@@ -1,7 +1,8 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-html, body {
-  @apply m-0 p-0 box-border bg-[#12111A] text-gray-100 font-sans;
+html,
+body {
+  @apply m-0 box-border bg-[#12111A] p-0 font-sans text-gray-100;
 }
 
 * {
@@ -13,5 +14,5 @@ button {
 }
 
 a {
-  @apply text-purple-400 hover:text-purple-300 underline;
+  @apply text-purple-400 underline hover:text-purple-300;
 }

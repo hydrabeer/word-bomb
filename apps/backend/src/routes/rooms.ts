@@ -1,11 +1,11 @@
 // apps/backend/src/routes/rooms.ts
-import { Request, Response, Router } from "express";
-import { roomManager } from "../room/roomManagerSingleton";
+import { Request, Response, Router } from 'express';
+import { roomManager } from '../room/roomManagerSingleton';
 
 const router = Router();
 
 // POST /api/rooms
-router.post("/", (_: Request, res: Response) => {
+router.post('/', (_: Request, res: Response) => {
   try {
     const code = generateRoomCode();
     const rules = {
@@ -22,11 +22,11 @@ router.post("/", (_: Request, res: Response) => {
 });
 
 // GET /api/rooms/:code
-router.get("/:code", (req: Request, res: Response) => {
+router.get('/:code', (req: Request, res: Response) => {
   const { code } = req.params;
 
   if (!roomManager.has(code)) {
-    res.status(404).json({ error: "Room not found" });
+    res.status(404).json({ error: 'Room not found' });
     return;
   }
 
@@ -37,6 +37,6 @@ export default router;
 
 // Generate a room code (e.g. 4 uppercase letters)
 function generateRoomCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
