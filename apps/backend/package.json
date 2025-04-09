@@ -2,6 +2,7 @@
   "name": "backend",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "main": "src/index.ts",
   "scripts": {
     "dev": "ts-node -r tsconfig-paths/register src/index.ts",
