@@ -10,5 +10,6 @@ export default defineConfig({
     alias: {
       "@game/domain": path.resolve(__dirname, "../../packages/domain/src"),
     },
+    dedupe: ['zod']
   },
 })
