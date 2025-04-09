@@ -30,3 +30,6 @@ Thumbs.db
 *.ntvs*
 *.njsproj
 *.sln
+
+# Don't commit dictionary
+apps/backend/src/dictionary/
