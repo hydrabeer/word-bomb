@@ -1,20 +1,17 @@
 // apps/backend/src/socket/roomHandlers.ts
 
-import { Server, Socket } from 'socket.io';
 import { roomManager } from '../room/roomManagerSingleton';
 import { createPlayer } from '@game/domain/players/createPlayer';
-import { ChatMessage, ChatMessageSchema } from '@game/domain/chat/ChatMessage';
+import { ChatMessageSchema } from '@game/domain/chat/ChatMessage';
 import { noop } from '@game/domain/utils/noop';
 import { Game } from '@game/domain/game/Game';
-import { Player } from '@game/domain/players/Player';
-import { GameRoom } from '@game/domain/rooms/GameRoom';
+import type { Server, Socket } from 'socket.io';
+import type { Player } from '@game/domain/players/Player';
+import type { GameRoom } from '@game/domain/rooms/GameRoom';
 import type {
-  JoinRoomPayload,
-  SubmitWordPayload,
-  BasicResponse,
-  LeaveRoomPayload,
-  SetPlayerSeatedPayload,
-  StartGamePayload,
+  ClientToServerEvents,
+  ServerToClientEvents,
+  SocketData,
 } from '@game/domain/socket/types';
 
 // Convert a room code into the Socket.IO room name.
@@ -97,9 +94,12 @@ function checkGameOver(io: Server, roomCode: string) {
   }
 }
 
-export function registerRoomHandlers(io: Server, socket: Socket) {
+export function registerRoomHandlers(
+  io: Server<ClientToServerEvents, ServerToClientEvents>,
+  socket: Socket<ClientToServerEvents, ServerToClientEvents, never, SocketData>,
+) {
   // joinRoom event
-  socket.on('joinRoom', (data: JoinRoomPayload, cb?: (res: BasicResponse) => void) => {
+  socket.on('joinRoom', (data, cb) => {
     const callback = typeof cb === 'function' ? cb : noop;
     const { roomCode, playerId, name } = data;
 
@@ -165,7 +165,7 @@ export function registerRoomHandlers(io: Server, socket: Socket) {
   });
 
   // leaveRoom event
-  socket.on('leaveRoom', (data: LeaveRoomPayload) => {
+  socket.on('leaveRoom', (data) => {
     const { roomCode, playerId } = data;
     console.log(`[LEAVE ROOM] socketId=${socket.id}, playerId=${playerId}, roomCode=${roomCode}`);
     const room = roomManager.get(roomCode);
@@ -185,7 +185,7 @@ export function registerRoomHandlers(io: Server, socket: Socket) {
   });
 
   // chatMessage event
-  socket.on('chatMessage', (data: ChatMessage) => {
+  socket.on('chatMessage', (data) => {
     const result = ChatMessageSchema.safeParse({
       ...data,
       timestamp: Date.now(),
@@ -201,50 +201,47 @@ export function registerRoomHandlers(io: Server, socket: Socket) {
   });
 
   // setPlayerSeated event
-  socket.on(
-    'setPlayerSeated',
-    (data: SetPlayerSeatedPayload, cb?: (res: BasicResponse) => void) => {
-      const callback = typeof cb === 'function' ? cb : noop;
-      const { roomCode, playerId, seated } = data;
-      const room = roomManager.get(roomCode);
-      if (!room) {
-        console.log('[SET SEATED] Room not found:', roomCode);
-        callback({ success: false, error: 'Room not found' });
-        return;
-      }
+  socket.on('setPlayerSeated', (data, cb) => {
+    const callback = typeof cb === 'function' ? cb : noop;
+    const { roomCode, playerId, seated } = data;
+    const room = roomManager.get(roomCode);
+    if (!room) {
+      console.log('[SET SEATED] Room not found:', roomCode);
+      callback({ success: false, error: 'Room not found' });
+      return;
+    }
 
-      room.setPlayerSeated(playerId, seated);
-      console.log(`[SET SEATED] Updated seating for playerId=${playerId} to ${String(seated)}`);
+    room.setPlayerSeated(playerId, seated);
+    console.log(`[SET SEATED] Updated seating for playerId=${playerId} to ${String(seated)}`);
 
-      const seatedPlayers = room.getAllPlayers().filter((p: Player) => p.isSeated);
-      if (seatedPlayers.length >= 2) {
-        if (!room.isGameTimerRunning()) {
-          const timeLeft = 15000;
-          const deadline = Date.now() + timeLeft;
-          room.startGameStartTimer(() => {
-            console.log(`[AUTO START] Timer expired for roomCode=${roomCode}`);
-            try {
-              startGameForRoom(io, room);
-            } catch (err) {
-              console.error('[AUTO START] Error starting game:', err);
-            }
-          }, timeLeft);
-          io.to(socketRoomId(roomCode)).emit('gameCountdownStarted', { deadline });
-          console.log(
-            `[SET SEATED] Started game timer for roomCode=${roomCode}, deadline=${deadline.toString()}`,
-          );
-        }
-      } else {
-        room.cancelGameStartTimer();
-        io.to(socketRoomId(roomCode)).emit('gameCountdownStopped', {});
+    const seatedPlayers = room.getAllPlayers().filter((p: Player) => p.isSeated);
+    if (seatedPlayers.length >= 2) {
+      if (!room.isGameTimerRunning()) {
+        const timeLeft = 15000;
+        const deadline = Date.now() + timeLeft;
+        room.startGameStartTimer(() => {
+          console.log(`[AUTO START] Timer expired for roomCode=${roomCode}`);
+          try {
+            startGameForRoom(io, room);
+          } catch (err) {
+            console.error('[AUTO START] Error starting game:', err);
+          }
+        }, timeLeft);
+        io.to(socketRoomId(roomCode)).emit('gameCountdownStarted', { deadline });
+        console.log(
+          `[SET SEATED] Started game timer for roomCode=${roomCode}, deadline=${deadline.toString()}`,
+        );
       }
-      emitPlayers(io, roomCode);
-      callback({ success: true });
-    },
-  );
+    } else {
+      room.cancelGameStartTimer();
+      io.to(socketRoomId(roomCode)).emit('gameCountdownStopped');
+    }
+    emitPlayers(io, roomCode);
+    callback({ success: true });
+  });
 
   // startGame event
-  socket.on('startGame', (data: StartGamePayload, cb?: (res: BasicResponse) => void) => {
+  socket.on('startGame', (data, cb) => {
     const callback = typeof cb === 'function' ? cb : noop;
     const { roomCode } = data;
     const room = roomManager.get(roomCode);
@@ -273,7 +270,7 @@ export function registerRoomHandlers(io: Server, socket: Socket) {
   });
 
   // submitWord event
-  socket.on('submitWord', (data: SubmitWordPayload, cb?: (res: BasicResponse) => void) => {
+  socket.on('submitWord', (data, cb) => {
     const callback = typeof cb === 'function' ? cb : noop;
     const { roomCode, playerId, word } = data;
     const room = roomManager.get(roomCode);

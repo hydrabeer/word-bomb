@@ -8,7 +8,6 @@ import { socket } from '../socket';
 import { GameBoard, GameState } from '../components/GameBoard';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
 import type {
-  BasicResponse,
   GameCountdownStartedPayload,
   GameStartedPayload,
   PlayersUpdatedPayload,
@@ -18,7 +17,7 @@ import type {
 
 export default function RoomPage() {
   const navigate = useNavigate();
-  const { roomCode } = useParams();
+  const { roomCode } = useParams<{ roomCode: string }>();
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [inputWord, setInputWord] = useState('');
@@ -34,6 +33,10 @@ export default function RoomPage() {
     }[]
   >([]);
   const me = useMemo(() => players.find((p) => p.id === playerId), [players, playerId]);
+
+  if (!roomCode) {
+    throw new Error('roomCode missing from URL');
+  }
 
   useEffect(() => {
     function handlePlayersUpdated(data: PlayersUpdatedPayload) {
@@ -53,7 +56,7 @@ export default function RoomPage() {
     }
   }, [roomCode, navigate, playerId, playerName]);
 
-  useGameRoom(roomCode!);
+  useGameRoom(roomCode);
 
   useEffect(() => {
     function handleGameCountdownStarted(data: GameCountdownStartedPayload) {
@@ -134,21 +137,21 @@ export default function RoomPage() {
   }, [countdownDeadline]);
 
   const handleSubmitWord = useCallback(() => {
-    socket.emit('submitWord', { roomCode, playerId, word: inputWord }, (res: BasicResponse) => {
+    socket.emit('submitWord', { roomCode, playerId, word: inputWord }, (res) => {
       if (res.success) setInputWord('');
       else console.log(res.error);
     });
   }, [roomCode, playerId, inputWord]);
 
   const handleStartGame = useCallback(() => {
-    socket.emit('startGame', { roomCode }, (res: BasicResponse) => {
+    socket.emit('startGame', { roomCode }, (res) => {
       if (!res.success) console.log(res.error);
     });
   }, [roomCode]);
 
   const toggleSeated = useCallback(() => {
     const seated = !(me?.isSeated ?? false);
-    socket.emit('setPlayerSeated', { roomCode, playerId, seated }, (res: BasicResponse) => {
+    socket.emit('setPlayerSeated', { roomCode, playerId, seated }, (res) => {
       if (res && !res.success) console.log('setPlayerSeated error:', res.error);
     });
   }, [roomCode, playerId, me?.isSeated]);
@@ -255,7 +258,7 @@ export default function RoomPage() {
         <div
           className={`z-40 flex h-[33vh] flex-col border-t border-[#3F3C58] bg-[#1A1828] shadow-[0_0_10px_#00000033] md:fixed md:right-0 md:top-0 md:h-full md:w-80 md:border-l md:border-t-0`}
         >
-          <Chat roomCode={roomCode!} />
+          <Chat roomCode={roomCode} />
         </div>
       )}
     </div>
