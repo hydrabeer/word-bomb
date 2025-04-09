@@ -1,8 +1,9 @@
 // @ts-check
 
 import eslint from '@eslint/js';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import tseslint from 'typescript-eslint';
-import reactPlugin from "eslint-plugin-react";
+import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
@@ -19,26 +20,27 @@ export default tseslint.config(
   // React Refresh plugin
   reactRefresh.configs.vite,
 
+  eslintConfigPrettier,
   // React Hooks plugin
   {
     plugins: {
-      'react-hooks': reactHooks,
+      'react-hooks': reactHooks
     },
     rules: {
-      ...reactHooks.configs['recommended-latest'].rules,
-    },
+      ...reactHooks.configs['recommended-latest'].rules
+    }
   },
 
   // Custom project-level settings
   {
     settings: {
       react: {
-        version: 'detect', // auto-detect from package.json
-      },
+        version: 'detect' // auto-detect from package.json
+      }
     },
     rules: {
       '@typescript-eslint/prefer-regexp-exec': 'off',
-      '@typescript-eslint/prefer-nullish-coalescing': 'off',
+      '@typescript-eslint/prefer-nullish-coalescing': 'off'
     },
     ignores: [
       'dist',         // Vite build output
@@ -48,13 +50,14 @@ export default tseslint.config(
       '**/*.css',     // Optional: ignore CSS files
       'public/**'     // Optional: static assets
     ],
+    root: true,
     languageOptions: {
       parserOptions: {
         projectService: true,
         project: ['./tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
-  },
+        tsconfigRootDir: import.meta.dirname
+      }
+    }
+  }
 )
 ;
