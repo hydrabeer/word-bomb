@@ -7,9 +7,7 @@ export interface CreatePlayerOptions {
   bonusTemplate: number[]; // e.g. [1,1,...] of length 26
 }
 
-export class PlayerFactory {
-  static create({ props, bonusTemplate }: CreatePlayerOptions): Player {
-    const bonus = new BonusProgress(bonusTemplate);
-    return new Player({ ...props, bonusProgress: bonus });
-  }
+export function createPlayer({ props, bonusTemplate }: CreatePlayerOptions): Player {
+  const bonus = new BonusProgress(bonusTemplate);
+  return new Player({ ...props, bonusProgress: bonus });
 }

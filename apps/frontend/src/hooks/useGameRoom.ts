@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { socket } from '../socket';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
+import { BasicResponse } from '@game/domain/socket/types.ts';
 
 // Shared state to track where the socket *thinks* it is
 let latestRoomJoined: string | null = null;
@@ -22,7 +23,7 @@ export function useGameRoom(roomCode: string) {
         playerId,
         name,
       },
-      (res: any) => {
+      (res: BasicResponse) => {
         if (res && !res.success) {
           console.log('joinRoom error:', res.error);
         }

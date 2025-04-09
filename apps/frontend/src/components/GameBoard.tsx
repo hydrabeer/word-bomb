@@ -5,12 +5,12 @@ export interface GameState {
   fragment: string;
   bombDuration: number;
   currentPlayerId: string | null;
-  players: Array<{
+  players: {
     id: string;
     name: string;
     isEliminated: boolean;
     lives: number;
-  }>;
+  }[];
 }
 
 export interface GameBoardProps {
@@ -27,7 +27,7 @@ export function GameBoard({
   handleSubmitWord,
 }: GameBoardProps) {
   const localProfileRaw = localStorage.getItem('wordbomb:profile:v1');
-  const localPlayerId = localProfileRaw ? JSON.parse(localProfileRaw).id : null;
+  const localPlayerId = localProfileRaw ? (JSON.parse(localProfileRaw) as { id: string }).id : null;
 
   // Handler for key press event; if Enter is pressed, submit the word.
   const onKeyDownHandler = (e: KeyboardEvent<HTMLInputElement>) => {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Player, PlayerProps } from '../players/Player';
-import { PlayerFactory } from '../players/PlayerFactory';
+import { createPlayer } from '../players/createPlayer';
 import { GameRoomRules } from './GameRoomRules';
 import { Game } from '../game/Game';
 
@@ -13,7 +13,7 @@ export type GameRoomProps = z.infer<typeof GameRoomSchema>;
 export class GameRoom {
   public readonly code: string;
   public rules: GameRoomRules;
-  private players: Map<string, Player> = new Map();
+  private players = new Map<string, Player>();
   private state: 'seating' | 'playing' = 'seating';
   private leaderId: string | null = null;
   public game?: Game; // Active game instance, if any.
@@ -28,7 +28,7 @@ export class GameRoom {
   addPlayer(props: PlayerProps): void {
     if (this.players.has(props.id)) throw new Error('Player already in room.');
 
-    const player = PlayerFactory.create({
+    const player = createPlayer({
       props: {
         ...props,
         lives: this.rules.maxLives,
@@ -55,7 +55,7 @@ export class GameRoom {
     return this.players.has(playerId);
   }
 
-  getPlayer(playerId: any) {
+  getPlayer(playerId: string): Player | undefined {
     return this.players.get(playerId);
   }
 
@@ -118,7 +118,9 @@ export class GameRoom {
         this.startGameTimerHandle = undefined;
         callback();
       }, duration);
-      console.log(`[START GAME TIMER] Timer started for room ${this.code} for ${duration} ms`);
+      console.log(
+        `[START GAME TIMER] Timer started for room ${this.code} for ${duration.toString()} ms`,
+      );
     }
   }
 

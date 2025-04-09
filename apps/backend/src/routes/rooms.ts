@@ -2,7 +2,7 @@
 import { Request, Response, Router } from 'express';
 import { roomManager } from '../room/roomManagerSingleton';
 
-const router = Router();
+const router: Router = Router();
 
 // POST /api/rooms
 router.post('/', (_: Request, res: Response) => {

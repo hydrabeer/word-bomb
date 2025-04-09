@@ -7,6 +7,14 @@ import { useGameRoom } from '../hooks/useGameRoom';
 import { socket } from '../socket';
 import { GameBoard, GameState } from '../components/GameBoard';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
+import type {
+  BasicResponse,
+  GameCountdownStartedPayload,
+  GameStartedPayload,
+  PlayersUpdatedPayload,
+  TurnStartedPayload,
+  PlayerUpdatedPayload,
+} from '@game/domain/socket/types';
 
 export default function RoomPage() {
   const navigate = useNavigate();
@@ -28,7 +36,7 @@ export default function RoomPage() {
   const me = useMemo(() => players.find((p) => p.id === playerId), [players, playerId]);
 
   useEffect(() => {
-    function handlePlayersUpdated(data: any) {
+    function handlePlayersUpdated(data: PlayersUpdatedPayload) {
       setPlayers(data.players);
     }
 
@@ -48,7 +56,7 @@ export default function RoomPage() {
   useGameRoom(roomCode!);
 
   useEffect(() => {
-    function handleGameCountdownStarted(data: any) {
+    function handleGameCountdownStarted(data: GameCountdownStartedPayload) {
       setCountdownDeadline(data.deadline);
     }
 
@@ -57,7 +65,7 @@ export default function RoomPage() {
       setTimeLeftSec(0);
     }
 
-    function handleGameStarted(data: any) {
+    function handleGameStarted(data: GameStartedPayload) {
       setGameState({
         fragment: data.fragment,
         bombDuration: data.bombDuration,
@@ -68,7 +76,7 @@ export default function RoomPage() {
       setCountdownDeadline(null);
     }
 
-    function handleTurnStarted(data: any) {
+    function handleTurnStarted(data: TurnStartedPayload) {
       setGameState((prev) =>
         prev
           ? {
@@ -82,7 +90,7 @@ export default function RoomPage() {
       );
     }
 
-    function handlePlayerUpdated(data: any) {
+    function handlePlayerUpdated(data: PlayerUpdatedPayload) {
       setGameState((prev) => {
         if (!prev) return prev;
         const updatedPlayers = prev.players.map((p) =>
@@ -126,21 +134,21 @@ export default function RoomPage() {
   }, [countdownDeadline]);
 
   const handleSubmitWord = useCallback(() => {
-    socket.emit('submitWord', { roomCode, playerId, word: inputWord }, (res: any) => {
+    socket.emit('submitWord', { roomCode, playerId, word: inputWord }, (res: BasicResponse) => {
       if (res.success) setInputWord('');
       else console.log(res.error);
     });
   }, [roomCode, playerId, inputWord]);
 
   const handleStartGame = useCallback(() => {
-    socket.emit('startGame', { roomCode }, (res: any) => {
+    socket.emit('startGame', { roomCode }, (res: BasicResponse) => {
       if (!res.success) console.log(res.error);
     });
   }, [roomCode]);
 
   const toggleSeated = useCallback(() => {
     const seated = !(me?.isSeated ?? false);
-    socket.emit('setPlayerSeated', { roomCode, playerId, seated }, (res: any) => {
+    socket.emit('setPlayerSeated', { roomCode, playerId, seated }, (res: BasicResponse) => {
       if (res && !res.success) console.log('setPlayerSeated error:', res.error);
     });
   }, [roomCode, playerId, me?.isSeated]);

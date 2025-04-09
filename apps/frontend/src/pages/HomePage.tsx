@@ -28,7 +28,7 @@ export default function HomePage() {
     e.preventDefault();
     if (!roomName.trim()) return;
     const code = await createNewRoom();
-    navigate(`/${code}`);
+    void navigate(`/${code}`);
   };
 
   const handleJoinRoom = async (e: FormEvent) => {
@@ -39,7 +39,7 @@ export default function HomePage() {
       alert(`Room not found: ${joinCode}`);
       return;
     }
-    navigate(`/${joinCode}`);
+    void navigate(`/${joinCode}`);
   };
 
   return (

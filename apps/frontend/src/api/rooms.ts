@@ -6,7 +6,7 @@ export async function createRoom(): Promise<{ code: string }> {
   });
 
   if (!res.ok) throw new Error('Failed to create room');
-  return res.json();
+  return (await res.json()) as { code: string };
 }
 
 export async function checkRoomExists(code: string): Promise<boolean> {
