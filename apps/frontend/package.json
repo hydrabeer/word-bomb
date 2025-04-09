@@ -5,8 +5,8 @@
   "main": "src/main.tsx",
   "type": "module",
   "scripts": {
-    "dev": "vite",
     "build": "vite build",
+    "dev": "vite",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "preview": "vite preview"
   },
