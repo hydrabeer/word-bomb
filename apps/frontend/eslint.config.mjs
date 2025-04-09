@@ -50,7 +50,6 @@ export default tseslint.config(
       '**/*.css', // Optional: ignore CSS files
       'public/**', // Optional: static assets
     ],
-    root: true,
     languageOptions: {
       parserOptions: {
         projectService: true,
