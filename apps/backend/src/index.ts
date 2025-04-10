@@ -24,8 +24,20 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, never, SocketD
     methods: ['GET', 'POST'],
   },
 });
+const PORT = process.env.PORT ?? 3001;
 
-loadDictionary();
+async function start() {
+  await loadDictionary();
+
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT.toString()}`);
+  });
+}
+
+start().catch((err: unknown) => {
+  console.error('❌ Failed to start app:', err);
+  process.exit(1);
+});
 
 io.on('connection', (socket) => {
   console.log(`🔌 Socket connected: ${socket.id}`);
@@ -55,9 +67,4 @@ io.of('/').adapter.on('leave-room', (room: string, id: string) => {
   if (room.startsWith('room:')) {
     console.log(`👋 [Adapter] socket ${id} left ${room}`);
   }
-});
-
-const PORT = process.env.PORT ?? 3001;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT.toString()}`);
 });
