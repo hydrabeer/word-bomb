@@ -84,6 +84,17 @@ export interface TurnStartedPayload {
   }[];
 }
 
+export interface PlayerTypingPayload {
+  roomCode: string;
+  playerId: string;
+  input: string;
+}
+
+export interface PlayerTypingUpdatePayload {
+  playerId: string;
+  input: string;
+}
+
 export interface GameEndedPayload {
   winnerId: string | null;
 }
@@ -105,6 +116,7 @@ export interface ClientToServerEvents {
   chatMessage: (data: ChatMessagePayload) => void;
   setPlayerSeated: (data: SetPlayerSeatedPayload, cb?: (res: BasicResponse) => void) => void;
   startGame: (data: StartGamePayload, cb?: (res: BasicResponse) => void) => void;
+  playerTyping: (data: PlayerTypingPayload) => void;
   submitWord: (data: SubmitWordPayload, cb?: (res: BasicResponse) => void) => void;
 }
 
@@ -115,6 +127,7 @@ export interface ServerToClientEvents {
   gameStarted: (data: GameStartedPayload) => void;
   turnStarted: (data: TurnStartedPayload) => void;
   gameEnded: (data: GameEndedPayload) => void;
+  playerTypingUpdate: (data: PlayerTypingUpdatePayload) => void;
   wordAccepted: (data: WordAcceptedPayload) => void;
   gameCountdownStarted: (data: GameCountdownStartedPayload) => void;
   gameCountdownStopped: () => void;

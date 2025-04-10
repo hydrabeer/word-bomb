@@ -5,6 +5,8 @@ import { createPlayer } from '@game/domain/players/createPlayer';
 import { ChatMessageSchema } from '@game/domain/chat/ChatMessage';
 import { noop } from '@game/domain/utils/noop';
 import { Game } from '@game/domain/game/Game';
+import { GameEngine } from '../game/GameEngine';
+import { getRandomFragment } from '../dictionary';
 import type { Server, Socket } from 'socket.io';
 import type { Player } from '@game/domain/players/Player';
 import type { GameRoom } from '@game/domain/rooms/GameRoom';
@@ -13,6 +15,8 @@ import type {
   ServerToClientEvents,
   SocketData,
 } from '@game/domain/socket/types';
+
+const gameEngines = new WeakMap<GameRoom, GameEngine>();
 
 // Convert a room code into the Socket.IO room name.
 function socketRoomId(code: string): string {
@@ -42,28 +46,57 @@ function formatPlayers(game: Game) {
 }
 
 function startGameForRoom(io: Server, room: GameRoom) {
-  // Mark the room as playing and reset each player's status.
   room.startGame();
 
+  const fragment = getRandomFragment();
   const game = new Game({
     roomCode: room.code,
     players: room.getAllPlayers(),
     currentTurnIndex: 0,
-    fragment: 'ab', // Randomize this later if desired.
-    bombDuration: 10,
+    fragment,
     state: 'active',
     rules: room.rules,
   });
+
   room.game = game;
+
+  const engine = new GameEngine({
+    game,
+    emit: (event, payload) => {
+      io.to(socketRoomId(room.code)).emit(event, payload);
+    },
+    onTurnStarted: () => {
+      broadcastTurnState(io, room.code, game);
+    },
+    onTurnTimeout: (player) => {
+      io.to(socketRoomId(room.code)).emit('chatMessage', {
+        roomCode: room.code,
+        sender: 'System',
+        message: `${player.name} ran out of time!`,
+        timestamp: Date.now(),
+        type: 'system',
+      });
+    },
+    onGameEnded: (winnerId) => {
+      io.to(socketRoomId(room.code)).emit('gameEnded', { winnerId });
+      room.endGame();
+      room.game = undefined;
+      gameEngines.delete(room);
+    },
+  });
+
+  gameEngines.set(room, engine);
 
   io.to(socketRoomId(room.code)).emit('gameStarted', {
     roomCode: game.roomCode,
     fragment: game.fragment,
-    bombDuration: game.bombDuration,
+    bombDuration: game.getBombDuration(),
     currentPlayer: game.getCurrentPlayer()?.id ?? null,
     leaderId: room.getLeaderId(),
     players: formatPlayers(game),
   });
+
+  engine.beginGame();
 }
 
 function broadcastTurnState(io: Server, roomCode: string, game: Game) {
@@ -73,25 +106,9 @@ function broadcastTurnState(io: Server, roomCode: string, game: Game) {
   io.to(socketRoomId(roomCode)).emit('turnStarted', {
     playerId: game.getCurrentPlayer()?.id ?? null,
     fragment: game.fragment,
-    bombDuration: game.bombDuration,
+    bombDuration: game.getBombDuration(),
     players: formatPlayers(game),
   });
-}
-
-function checkGameOver(io: Server, roomCode: string) {
-  const room = roomManager.get(roomCode);
-  if (!room?.game) return;
-
-  const { game } = room;
-  const activePlayers = game.players.filter((p: Player) => !p.isEliminated);
-
-  if (activePlayers.length === 1) {
-    const winnerId = activePlayers[0].id;
-    console.log(`[GAME OVER] roomCode=${roomCode}, winnerId=${winnerId}`);
-    io.to(socketRoomId(roomCode)).emit('gameEnded', { winnerId });
-    room.endGame(); // Switch room state back (e.g., "seating")
-    room.game = undefined;
-  }
 }
 
 export function registerRoomHandlers(
@@ -269,74 +286,38 @@ export function registerRoomHandlers(
     }
   });
 
+  socket.on('playerTyping', (data) => {
+    const { roomCode, playerId, input } = data;
+    const room = roomManager.get(roomCode);
+    if (!room?.game) return;
+
+    // Optionally validate that it's their turn
+    const currentPlayer = room.game.getCurrentPlayer();
+    if (currentPlayer?.id !== playerId) return;
+
+    // Broadcast to all players in the room
+    io.to(socketRoomId(roomCode)).emit('playerTypingUpdate', { playerId, input });
+  });
+
   // submitWord event
   socket.on('submitWord', (data, cb) => {
     const callback = typeof cb === 'function' ? cb : noop;
     const { roomCode, playerId, word } = data;
+
     const room = roomManager.get(roomCode);
     if (!room) {
       callback({ success: false, error: 'Room not found' });
       return;
     }
-    if (!room.game) {
-      callback({
-        success: false,
-        error: 'Game not in progress',
-      });
+
+    const engine = gameEngines.get(room);
+    if (!engine) {
+      callback({ success: false, error: 'Game engine not running.' });
       return;
     }
 
-    const game = room.game;
-    const currentPlayer = game.getCurrentPlayer();
-    if (!currentPlayer) {
-      callback({
-        success: false,
-        error: 'No current player.',
-      });
-      return;
-    }
-    if (currentPlayer.id !== playerId) {
-      callback({
-        success: false,
-        error: 'Not your turn.',
-      });
-      return;
-    }
-
-    if (!word || word.trim().length < 2) {
-      currentPlayer.loseLife();
-      io.to(socketRoomId(roomCode)).emit('playerUpdated', {
-        playerId,
-        lives: currentPlayer.lives,
-      });
-      game.nextTurn();
-      broadcastTurnState(io, roomCode, game);
-      checkGameOver(io, roomCode);
-      callback({ success: false, error: 'Invalid word (too short).' });
-      return;
-    }
-
-    if (!word.toLowerCase().includes(game.fragment.toLowerCase())) {
-      currentPlayer.loseLife();
-      io.to(socketRoomId(roomCode)).emit('playerUpdated', {
-        playerId,
-        lives: currentPlayer.lives,
-      });
-      game.nextTurn();
-      broadcastTurnState(io, roomCode, game);
-      checkGameOver(io, roomCode);
-      callback({
-        success: false,
-        error: "Word doesn't contain the fragment.",
-      });
-      return;
-    }
-
-    io.to(socketRoomId(roomCode)).emit('wordAccepted', { playerId, word });
-    game.nextTurn();
-    broadcastTurnState(io, roomCode, game);
-    checkGameOver(io, roomCode);
-    callback({ success: true });
+    const result = engine.submitWord(playerId, word);
+    callback(result);
   });
 
   // disconnect event

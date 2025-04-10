@@ -1,18 +1,60 @@
 @import 'tailwindcss';
 
+/* --- Base styles --- */
+
 html,
 body {
-  @apply m-0 box-border bg-[#12111A] p-0 font-sans text-gray-100;
+  @apply m-0 box-border bg-gray-900 p-0 font-sans text-gray-100;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
 
 * {
   @apply outline-none;
 }
 
-button {
-  @apply rounded-lg px-4 py-2 font-semibold transition-colors duration-200;
+a {
+  @apply text-purple-300 underline transition-colors duration-200 hover:text-purple-200;
 }
 
-a {
-  @apply text-purple-400 underline hover:text-purple-300;
+/* --- Buttons --- */
+button {
+  @apply rounded-md bg-indigo-600 px-4 py-2 font-medium text-white shadow-sm transition-colors duration-200 hover:bg-indigo-500;
+}
+
+/* --- Animations --- */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+  will-change: transform;
+}
+
+@keyframes ping-fast {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-ping-fast {
+  animation: ping-fast 0.4s ease-in-out infinite;
 }

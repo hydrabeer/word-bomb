@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import roomsRouter from './routes/rooms';
 import { registerRoomHandlers } from './socket/roomHandlers';
+import { loadDictionary } from './dictionary';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -23,6 +24,8 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, never, SocketD
     methods: ['GET', 'POST'],
   },
 });
+
+loadDictionary();
 
 io.on('connection', (socket) => {
   console.log(`🔌 Socket connected: ${socket.id}`);

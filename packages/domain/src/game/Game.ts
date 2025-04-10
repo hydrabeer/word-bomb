@@ -7,8 +7,7 @@ export const GameSchema = z.object({
   roomCode: z.string().regex(/^[A-Z]{4}$/),
   players: z.array(z.instanceof(Player)),
   currentTurnIndex: z.number().int().nonnegative(),
-  fragment: z.string().min(1),
-  bombDuration: z.number().int().positive(), // in seconds
+  fragment: z.string().min(2).max(3),
   state: z.enum(['active', 'ended']),
   rules: GameRulesSchema,
 });
@@ -20,9 +19,9 @@ export class Game {
   public players: Player[];
   public currentTurnIndex: number;
   public fragment: string;
-  public bombDuration: number;
   public state: 'active' | 'ended';
   public rules: GameRoomRules;
+  private bombDuration: number;
 
   constructor(props: GameProps) {
     const parsed = GameSchema.parse(props);
@@ -30,51 +29,48 @@ export class Game {
     this.players = parsed.players;
     this.currentTurnIndex = parsed.currentTurnIndex;
     this.fragment = parsed.fragment;
-    this.bombDuration = parsed.bombDuration;
     this.state = parsed.state;
     this.rules = parsed.rules;
+    this.bombDuration = this.rollInitialBombDuration();
+  }
+
+  private rollInitialBombDuration(): number {
+    return Math.floor(Math.random() * 21) + 10; // 10–30 seconds
+  }
+
+  public getBombDuration(): number {
+    return this.bombDuration;
+  }
+
+  public resetBombTimer(): void {
+    this.bombDuration = this.rollInitialBombDuration();
+  }
+
+  public adjustBombTimerAfterValidWord(): void {
+    if (this.bombDuration < this.rules.minTurnDuration) {
+      this.bombDuration = this.rules.minTurnDuration;
+    }
   }
 
   // Returns the active player whose turn it is.
   public getCurrentPlayer(): Player | undefined {
-    const activePlayers = this.players.filter((p) => !p.isEliminated);
-    if (activePlayers.length === 0) return undefined;
-    // For simplicity, we assume currentTurnIndex indexes into the active players.
-    return activePlayers[this.currentTurnIndex % activePlayers.length];
+    const active = this.players.filter((p) => !p.isEliminated);
+    return active.length > 0 ? active[this.currentTurnIndex % active.length] : undefined;
   }
 
   // Advance to the next non‑eliminated player.
   public nextTurn(): void {
-    const activePlayers = this.players.filter((p) => !p.isEliminated);
-    if (activePlayers.length <= 1) return;
-    this.currentTurnIndex = (this.currentTurnIndex + 1) % activePlayers.length;
+    const active = this.players.filter((p) => !p.isEliminated);
+    if (active.length > 1) {
+      this.currentTurnIndex = (this.currentTurnIndex + 1) % active.length;
+    }
   }
 
-  // Update the word fragment (could be replaced with more complex logic).
-  public updateFragment(newFragment: string): void {
-    this.fragment = newFragment;
-  }
-
-  // Mark the game as ended.
-  public endGame(): void {
+  public end(): void {
     this.state = 'ended';
   }
 
-  /**
-   * Process a word submission.
-   * Returns true if accepted (i.e. contains the active fragment) or false otherwise.
-   */
-  public submitWord(playerId: string, word: string): boolean {
-    const currentPlayer = this.getCurrentPlayer();
-    if (!currentPlayer || currentPlayer.id !== playerId) return false; // not the player's turn.
-
-    // Check that the word contains the fragment (case-insensitive).
-    if (word.toLowerCase().includes(this.fragment.toLowerCase())) {
-      for (const letter of word) {
-        currentPlayer.tryBonusLetter(letter, this.rules.maxLives, this.rules.bonusTemplate);
-      }
-      return true;
-    }
-    return false;
+  setFragment(fragment: string) {
+    this.fragment = fragment;
   }
 }

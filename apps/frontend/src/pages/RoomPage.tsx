@@ -18,13 +18,11 @@ import type {
 export default function RoomPage() {
   const navigate = useNavigate();
   const { roomCode } = useParams<{ roomCode: string }>();
+
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [inputWord, setInputWord] = useState('');
   const [leaderId, setLeaderId] = useState<string | null>(null);
-  const [countdownDeadline, setCountdownDeadline] = useState<number | null>(null);
-  const [timeLeftSec, setTimeLeftSec] = useState(0);
-  const { id: playerId, name: playerName } = getOrCreatePlayerProfile();
   const [players, setPlayers] = useState<
     {
       id: string;
@@ -32,11 +30,25 @@ export default function RoomPage() {
       isSeated: boolean;
     }[]
   >([]);
+
+  const [countdownDeadline, setCountdownDeadline] = useState<number | null>(null);
+  const [timeLeftSec, setTimeLeftSec] = useState<number>(0);
+
+  const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
+  const [bombCountdown, setBombCountdown] = useState<number>(0);
+  const [liveInputs, setLiveInputs] = useState<Record<string, string>>({});
+  const [rejected, setRejected] = useState(false);
+
+  const [gameStartedAt, setGameStartedAt] = useState<number | null>(null);
+  const [elapsedGameTime, setElapsedGameTime] = useState<number>(0);
+
+  const { id: playerId, name: playerName } = getOrCreatePlayerProfile();
   const me = useMemo(() => players.find((p) => p.id === playerId), [players, playerId]);
 
   if (!roomCode) {
     throw new Error('roomCode missing from URL');
   }
+  useGameRoom(roomCode);
 
   useEffect(() => {
     function handlePlayersUpdated(data: PlayersUpdatedPayload) {
@@ -55,8 +67,6 @@ export default function RoomPage() {
       return;
     }
   }, [roomCode, navigate, playerId, playerName]);
-
-  useGameRoom(roomCode);
 
   useEffect(() => {
     function handleGameCountdownStarted(data: GameCountdownStartedPayload) {
@@ -77,9 +87,15 @@ export default function RoomPage() {
       });
       setLeaderId(data.leaderId || null);
       setCountdownDeadline(null);
+      setGameStartedAt(Date.now());
     }
 
     function handleTurnStarted(data: TurnStartedPayload) {
+      const newDeadline = Date.now() + data.bombDuration * 1000;
+      setTurnDeadline(newDeadline);
+
+      setLiveInputs({}); // 👈 clear previous inputs
+
       setGameState((prev) =>
         prev
           ? {
@@ -91,6 +107,13 @@ export default function RoomPage() {
             }
           : null,
       );
+    }
+
+    function handlePlayerTypingUpdate(data: { playerId: string; input: string }) {
+      setLiveInputs((prev) => ({
+        ...prev,
+        [data.playerId]: data.input,
+      }));
     }
 
     function handlePlayerUpdated(data: PlayerUpdatedPayload) {
@@ -107,6 +130,7 @@ export default function RoomPage() {
     socket.on('gameCountdownStopped', handleGameCountdownStopped);
     socket.on('gameStarted', handleGameStarted);
     socket.on('turnStarted', handleTurnStarted);
+    socket.on('playerTypingUpdate', handlePlayerTypingUpdate);
     socket.on('playerUpdated', handlePlayerUpdated);
 
     return () => {
@@ -114,6 +138,7 @@ export default function RoomPage() {
       socket.off('gameCountdownStopped', handleGameCountdownStopped);
       socket.off('gameStarted', handleGameStarted);
       socket.off('turnStarted', handleTurnStarted);
+      socket.off('playerTypingUpdate', handlePlayerTypingUpdate);
       socket.off('playerUpdated', handlePlayerUpdated);
     };
   }, []);
@@ -136,12 +161,24 @@ export default function RoomPage() {
     return () => clearInterval(timer);
   }, [countdownDeadline]);
 
-  const handleSubmitWord = useCallback(() => {
-    socket.emit('submitWord', { roomCode, playerId, word: inputWord }, (res) => {
-      if (res.success) setInputWord('');
-      else console.log(res.error);
-    });
-  }, [roomCode, playerId, inputWord]);
+  useEffect(() => {
+    if (!gameStartedAt) return;
+
+    const interval = setInterval(() => {
+      setElapsedGameTime(Math.floor((Date.now() - gameStartedAt) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [gameStartedAt]);
+
+  useEffect(() => {
+    if (!turnDeadline) return;
+    const interval = setInterval(() => {
+      const left = Math.ceil((turnDeadline - Date.now()) / 1000);
+      setBombCountdown(Math.max(left, 0));
+    }, 250);
+    return () => clearInterval(interval);
+  }, [turnDeadline]);
 
   const handleStartGame = useCallback(() => {
     socket.emit('startGame', { roomCode }, (res) => {
@@ -156,6 +193,26 @@ export default function RoomPage() {
     });
   }, [roomCode, playerId, me?.isSeated]);
 
+  const handleInputChange = (value: string) => {
+    setInputWord(value);
+
+    if (gameState?.currentPlayerId === playerId) {
+      socket.emit('playerTyping', { roomCode, playerId, input: value });
+    }
+  };
+
+  const handleSubmitWord = useCallback(() => {
+    socket.emit('submitWord', { roomCode, playerId, word: inputWord }, (res) => {
+      if (res.success) {
+        setInputWord('');
+      } else {
+        setRejected(true);
+        setTimeout(() => setRejected(false), 300);
+        setInputWord('');
+      }
+    });
+  }, [roomCode, playerId, inputWord]);
+
   useEffect(() => {
     const handleDisconnect = () => {
       void navigate('/disconnected');
@@ -164,16 +221,31 @@ export default function RoomPage() {
     return () => window.removeEventListener('offline', handleDisconnect);
   }, [navigate]);
 
+  useEffect(() => {
+    const handleGameEnded = () => {
+      setGameStartedAt(null);
+      setElapsedGameTime(0);
+    };
+
+    socket.on('gameEnded', handleGameEnded);
+
+    return () => {
+      socket.off('gameEnded', handleGameEnded);
+    };
+  }, []);
+
   const statusMessage = gameState
-    ? '🧠 Word Bomb – Game in Progress'
+    ? `🧠 Word Bomb – ${Math.floor(elapsedGameTime / 60)
+        .toString()
+        .padStart(2, '0')}:${(elapsedGameTime % 60).toString().padStart(2, '0')}`
     : countdownDeadline !== null
       ? `⏳ Game starts in ${timeLeftSec}s...`
       : '🕐 Waiting for more players...';
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-[#12101C] text-white">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-gray-900 text-white">
       {/* Top Bar */}
-      <div className="relative flex items-center justify-center bg-gradient-to-r from-[#2D1C5A] to-[#3C1C80] px-4 py-2 text-sm font-medium md:text-base">
+      <div className="relative flex items-center justify-center bg-gradient-to-r from-indigo-800 to-purple-800 px-4 py-2 text-sm font-medium md:text-base">
         <div className="truncate">{statusMessage}</div>
 
         {/* Chat Toggle Button */}
@@ -199,8 +271,11 @@ export default function RoomPage() {
           <GameBoard
             gameState={gameState}
             inputWord={inputWord}
-            setInputWord={setInputWord}
+            setInputWord={handleInputChange}
             handleSubmitWord={handleSubmitWord}
+            bombCountdown={bombCountdown}
+            rejected={rejected}
+            liveInputs={liveInputs}
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center px-4 text-center">
@@ -229,16 +304,16 @@ export default function RoomPage() {
         )}
       </div>
 
-      {/* Bottom Bar */}
+      {/* Bottom Bar (Join/Start) */}
       {!gameState && (
-        <div className="z-10 flex w-full justify-center gap-4 border-t border-[#3F3C58] bg-[#1A1828] py-4 shadow-inner">
+        <div className="z-10 flex w-full justify-center gap-4 border-t border-gray-700 bg-gray-800 py-4 shadow-inner">
           <button
             onClick={toggleSeated}
             className={`rounded-lg px-6 py-2 font-bold transition-colors ${
               me?.isSeated
                 ? 'bg-rose-500 text-white hover:bg-rose-400'
                 : 'bg-emerald-500 text-black hover:bg-emerald-400'
-            } `}
+            }`}
           >
             {me?.isSeated ? 'Leave' : 'Join Game'}
           </button>
@@ -254,13 +329,13 @@ export default function RoomPage() {
       )}
 
       {/* Chat Panel */}
-      {isChatOpen && (
-        <div
-          className={`z-40 flex h-[33vh] flex-col border-t border-[#3F3C58] bg-[#1A1828] shadow-[0_0_10px_#00000033] md:fixed md:right-0 md:top-0 md:h-full md:w-80 md:border-l md:border-t-0`}
-        >
-          <Chat roomCode={roomCode} />
-        </div>
-      )}
+      <div
+        className={`z-40 flex h-[33vh] flex-col border-t border-gray-700 bg-gray-800 shadow-[0_0_10px_#00000033] transition-opacity duration-200 md:fixed md:right-0 md:top-0 md:h-full md:w-80 md:border-l md:border-t-0 ${
+          isChatOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+      >
+        <Chat roomCode={roomCode} />
+      </div>
     </div>
   );
 }
