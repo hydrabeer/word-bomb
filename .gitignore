@@ -32,4 +32,4 @@ Thumbs.db
 *.sln
 
 # Don't commit dictionary
-apps/backend/src/dictionary/
+apps/backend/src/dictionary/words.txt
