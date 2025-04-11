@@ -66,14 +66,7 @@ You'll need to define a .env file containing:
 VITE_BACKEND_URL=http://localhost:3001
 ```
 
-for the backend server to work. You'll also need to add localhost URLs to
-the CSP in the frontends' `index.html` file.
-
-```html
-
-<meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; connect-src 'self' https://word-bomb-backend.onrender.com wss://word-bomb-backend.onrender.com http://localhost:3001 ws://localhost:3001; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';">
-```
+for the backend server to work.
 
 ### 4. Start the server
 
