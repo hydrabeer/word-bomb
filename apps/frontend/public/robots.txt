@@ -5,4 +5,4 @@ User-agent: *
 Disallow: /disconnected
 
 # Sitemap (if applicable)
-Sitemap: https://yourdomain.com/sitemap.xml
+Sitemap: https://word-bomb.pages.dev/sitemap.xml
