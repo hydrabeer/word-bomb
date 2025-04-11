@@ -7,5 +7,3 @@ export const ChatMessageSchema = z.object({
   timestamp: z.number().nonnegative(),
   type: z.enum(['user', 'system']).optional(),
 });
-
-export type ChatMessage = z.infer<typeof ChatMessageSchema>;

@@ -22,15 +22,6 @@ export class BonusProgress {
     for (let i = 0; i < 26; i++) this.progress[i] = template[i];
   }
 
-  getRemaining(letter: string): number {
-    const index = this.getIndex(letter);
-    return index >= 0 ? this.progress[index] : 0;
-  }
-
-  toArray(): number[] {
-    return [...this.progress];
-  }
-
   private getIndex(letter: string): number {
     const code = letter.toLowerCase().charCodeAt(0);
     return code >= 97 && code <= 122 ? code - 97 : -1;

@@ -42,10 +42,6 @@ export class Game {
     return this.bombDuration;
   }
 
-  public resetBombTimer(): void {
-    this.bombDuration = this.rollInitialBombDuration();
-  }
-
   public adjustBombTimerAfterValidWord(): void {
     if (this.bombDuration < this.rules.minTurnDuration) {
       this.bombDuration = this.rules.minTurnDuration;
@@ -64,10 +60,6 @@ export class Game {
     if (active.length > 1) {
       this.currentTurnIndex = (this.currentTurnIndex + 1) % active.length;
     }
-  }
-
-  public end(): void {
-    this.state = 'ended';
   }
 
   setFragment(fragment: string) {

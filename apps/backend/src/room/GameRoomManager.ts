@@ -21,12 +21,4 @@ export class GameRoomManager {
     this.rooms.set(code, room);
     return room;
   }
-
-  delete(code: string): void {
-    this.rooms.delete(code);
-  }
-
-  all(): GameRoom[] {
-    return [...this.rooms.values()];
-  }
 }
