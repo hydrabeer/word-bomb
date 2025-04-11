@@ -10,21 +10,42 @@ export const GameRoomSchema = z.object({
 
 export type GameRoomProps = z.infer<typeof GameRoomSchema>;
 
+/**
+ * Represents a game room where players can gather, configure rules,
+ * and play a game of Word Bomb. Manages player state, seating, leadership,
+ * game lifecycle, and game start timers.
+ */
 export class GameRoom {
+  /** 4-letter uppercase room code */
   public readonly code: string;
+
+  /** Custom rules for this room */
   public rules: GameRoomRules;
+
+  /** Active game instance if a game is in progress */
+  public game?: Game;
+
   private players = new Map<string, Player>();
   private state: 'seating' | 'playing' = 'seating';
   private leaderId: string | null = null;
-  public game?: Game; // Active game instance, if any.
   private startGameTimerHandle?: ReturnType<typeof setTimeout>;
 
+  /**
+   * Creates a new game room with a specific room code and rules.
+   * @param props The room's identifying code
+   * @param rules The rules that apply to this room
+   */
   constructor(props: GameRoomProps, rules: GameRoomRules) {
     const parsed = GameRoomSchema.parse(props);
     this.code = parsed.code;
     this.rules = rules;
   }
 
+  /**
+   * Adds a player to the room and designates them as leader if they are first.
+   * @param props The player's initial properties
+   * @throws If a player with the same ID already exists
+   */
   addPlayer(props: PlayerProps): void {
     if (this.players.has(props.id)) throw new Error('Player already in room.');
 
@@ -44,6 +65,10 @@ export class GameRoom {
     }
   }
 
+  /**
+   * Removes a player from the room. If they were the leader, assigns a new one.
+   * @param playerId The ID of the player to remove
+   */
   removePlayer(playerId: string): void {
     this.players.delete(playerId);
     if (playerId === this.leaderId) {
@@ -51,14 +76,27 @@ export class GameRoom {
     }
   }
 
+  /**
+   * Checks whether a player is in the room.
+   * @param playerId The ID to check for
+   * @returns True if the player exists in the room
+   */
   hasPlayer(playerId: string): boolean {
     return this.players.has(playerId);
   }
 
+  /**
+   * Retrieves a player object by ID, if they exist.
+   * @param playerId The ID of the player to retrieve
+   * @returns The player, or undefined if not found
+   */
   getPlayer(playerId: string): Player | undefined {
     return this.players.get(playerId);
   }
 
+  /**
+   * Assigns leadership to the first remaining player in the room, if any.
+   */
   assignNewLeader(): void {
     const remaining = Array.from(this.players.values());
     if (remaining.length === 0) {
@@ -69,15 +107,25 @@ export class GameRoom {
     }
   }
 
+  /**
+   * Gets the current leader's player ID, or null if there is no leader.
+   */
   public getLeaderId(): string | null {
     return this.leaderId;
   }
 
+  /**
+   * Returns an array of all players currently in the room.
+   */
   getAllPlayers(): Player[] {
     return Array.from(this.players.values());
   }
 
-  // Set a player's seating state (true = joins game, false = spectator)
+  /**
+   * Sets a player’s intent to join the next game.
+   * @param playerId The ID of the player
+   * @param seated Whether they are joining (true) or spectating (false)
+   */
   setPlayerSeated(playerId: string, seated: boolean): void {
     const player = this.players.get(playerId);
     if (player) {
@@ -85,7 +133,10 @@ export class GameRoom {
     }
   }
 
-  // Starts the game once enough players are seated.
+  /**
+   * Starts a new game with all seated players.
+   * @throws If fewer than 2 players are seated
+   */
   startGame(): void {
     const playersInGame = this.getAllPlayers().filter((p) => p.isSeated);
     if (playersInGame.length < 2)
@@ -97,11 +148,13 @@ export class GameRoom {
       p.resetForNextGame(this.rules.maxLives, this.rules.bonusTemplate);
     });
 
-    // Optionally, cancel any pending start timer.
     this.cancelGameStartTimer();
   }
 
-  // Ends the game and reverts the room to seating.
+  /**
+   * Ends the current game and returns the room to the seating phase.
+   * Also clears seated state for all players.
+   */
   endGame(): void {
     this.state = 'seating';
     this.game = undefined;
@@ -110,8 +163,12 @@ export class GameRoom {
     });
   }
 
-  // Starts a 15-second timer that, when elapsed, will trigger the game start.
-  // The callback should start the game.
+  /**
+   * Begins a countdown to automatically start the game after a given duration.
+   * If already running, this has no effect.
+   * @param callback Function to call when the timer elapses
+   * @param duration Time in milliseconds before starting the game
+   */
   startGameStartTimer(callback: () => void, duration: number): void {
     if (!this.startGameTimerHandle) {
       this.startGameTimerHandle = setTimeout(() => {
@@ -124,7 +181,9 @@ export class GameRoom {
     }
   }
 
-  // Cancels the start game timer if it's running.
+  /**
+   * Cancels the pending game start timer, if active.
+   */
   cancelGameStartTimer(): void {
     if (this.startGameTimerHandle) {
       clearTimeout(this.startGameTimerHandle);
@@ -133,6 +192,10 @@ export class GameRoom {
     }
   }
 
+  /**
+   * Indicates whether the room's game-start timer is currently active.
+   * @returns True if the timer is running
+   */
   public isGameTimerRunning(): boolean {
     return !!this.startGameTimerHandle;
   }
