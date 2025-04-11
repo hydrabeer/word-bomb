@@ -65,11 +65,11 @@ function downloadDictionaryFile(url: string, dest: string): Promise<void> {
 /**
  * Builds the fragment count index from the provided list of words.
  */
-function buildFragmentIndex(words: string[]): void {
+function buildFragmentIndex(words: string[], minLength = 2, maxLength = 3): void {
   fragmentCounts = new Map();
 
   for (const word of words) {
-    for (let len = 2; len <= 3; len++) {
+    for (let len = minLength; len <= maxLength; len++) {
       if (word.length < len) continue;
       for (let i = 0; i <= word.length - len; i++) {
         const frag = word.slice(i, i + len);
