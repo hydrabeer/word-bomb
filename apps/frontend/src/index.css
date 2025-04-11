@@ -40,20 +40,6 @@ a {
   will-change: transform;
 }
 
-@keyframes ping-fast {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.15);
-  }
-}
-
-.animate-ping-fast {
-  animation: ping-fast 0.4s ease-in-out infinite;
-}
-
 @keyframes flash-ring {
   0% {
     opacity: 0.7;
@@ -80,24 +66,10 @@ a {
   }
 }
 
-.animate-bomb-pulse {
-  animation: bomb-pulse 0.33s ease-out infinite;
-  will-change: transform;
-}
-
-@keyframes ripple {
-  to {
-    transform: scale(4);
-    opacity: 0;
-  }
-}
-
-.ripple {
-  @apply absolute rounded-full;
-  transform: scale(0);
-  animation: ripple 0.6s linear;
-  background-color: rgba(255, 255, 255, 0.2);
-}
+/*.animate-bomb-pulse {*/
+/*  animation: bomb-pulse 0.33s ease-out infinite;*/
+/*  will-change: transform;*/
+/*}*/
 
 @keyframes pulse-fast {
   0%,
@@ -106,38 +78,6 @@ a {
   }
   50% {
     opacity: 0.8;
-  }
-}
-
-@keyframes bounce-small {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes slide-in-down {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slide-in-up {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
   }
 }
 
@@ -164,18 +104,6 @@ a {
   animation: pulse-fast 0.5s ease-in-out infinite;
 }
 
-.animate-bounce-small {
-  animation: bounce-small 0.5s ease-in-out;
-}
-
-.animate-slide-in-down {
-  animation: slide-in-down 0.3s ease-out forwards;
-}
-
-.animate-slide-in-up {
-  animation: slide-in-up 0.3s ease-out forwards;
-}
-
 .animate-typing {
   animation: typing 0.5s ease-out infinite alternate;
 }
@@ -184,6 +112,6 @@ a {
   animation: glow 1.5s ease-in-out infinite;
 }
 
-.animate-bomb-pulse-fast {
-  animation: bomb-pulse 0.8s ease-in-out infinite;
-}
+/*.animate-bomb-pulse-fast {*/
+/*  animation: bomb-pulse 0.8s ease-in-out infinite;*/
+/*}*/
