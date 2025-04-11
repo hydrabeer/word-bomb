@@ -3,9 +3,11 @@ import path from 'path';
 import https from 'https';
 
 let dictionary = new Set<string>();
+let fragmentCounts = new Map<string, number>();
 
 /**
  * Loads the dictionary into memory from a local file or a remote source (if in production).
+ * Also builds the fragment count index for fast lookup.
  */
 export async function loadDictionary(): Promise<void> {
   const isProd = process.env.NODE_ENV === 'production';
@@ -29,7 +31,9 @@ export async function loadDictionary(): Promise<void> {
       .map((w) => w.trim())
       .filter(Boolean);
     dictionary = new Set(words);
-    console.log(`✅ Loaded ${dictionary.size.toLocaleString()} words`);
+    console.log(`✅ Loaded ${dictionary.size.toString()} words`);
+
+    buildFragmentIndex(words);
   } catch (err) {
     console.error(`❌ Failed to load dictionary from ${filePath}:`, err);
   }
@@ -59,6 +63,25 @@ function downloadDictionaryFile(url: string, dest: string): Promise<void> {
 }
 
 /**
+ * Builds the fragment count index from the provided list of words.
+ */
+function buildFragmentIndex(words: string[]): void {
+  fragmentCounts = new Map();
+
+  for (const word of words) {
+    for (let len = 2; len <= 3; len++) {
+      if (word.length < len) continue;
+      for (let i = 0; i <= word.length - len; i++) {
+        const frag = word.slice(i, i + len);
+        fragmentCounts.set(frag, (fragmentCounts.get(frag) ?? 0) + 1);
+      }
+    }
+  }
+
+  console.log(`✅ Indexed ${fragmentCounts.size.toString()} unique fragments`);
+}
+
+/**
  * Checks if a word is valid.
  */
 export function isValidWord(word: string): boolean {
@@ -66,12 +89,19 @@ export function isValidWord(word: string): boolean {
 }
 
 /**
- * Generates a random word fragment from the dictionary.
+ * Generates a random word fragment from the precomputed fragmentCounts map
+ * that has at least `minWordsPerPrompt` matches in the dictionary.
  */
-export function getRandomFragment(minLen = 2, maxLen = 3): string {
-  const words = Array.from(dictionary).filter((w) => w.length >= maxLen);
-  const word = words[Math.floor(Math.random() * words.length)];
-  const start = Math.floor(Math.random() * (word.length - minLen));
-  const len = Math.floor(Math.random() * (maxLen - minLen + 1)) + minLen;
-  return word.slice(start, start + len);
+export function getRandomFragment(minWordsPerPrompt: number): string {
+  const candidates = Array.from(fragmentCounts.entries())
+    .filter(([, count]) => count >= minWordsPerPrompt)
+    .map(([fragment]) => fragment);
+
+  if (candidates.length === 0) {
+    throw new Error(
+      `No fragments meet the minWordsPerPrompt requirement of ${minWordsPerPrompt.toString()}`,
+    );
+  }
+
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }

@@ -48,7 +48,7 @@ function formatPlayers(game: Game) {
 function startGameForRoom(io: Server, room: GameRoom) {
   room.startGame();
 
-  const fragment = getRandomFragment();
+  const fragment = getRandomFragment(room.rules.minWordsPerPrompt);
   const game = new Game({
     roomCode: room.code,
     players: room.getAllPlayers(),
@@ -100,9 +100,6 @@ function startGameForRoom(io: Server, room: GameRoom) {
 }
 
 function broadcastTurnState(io: Server, roomCode: string, game: Game) {
-  console.log(
-    `[BROADCAST TURN STATE] roomCode=${roomCode}, nextPlayer=${game.getCurrentPlayer()?.id ?? 'none'}`,
-  );
   io.to(socketRoomId(roomCode)).emit('turnStarted', {
     playerId: game.getCurrentPlayer()?.id ?? null,
     fragment: game.fragment,
@@ -229,7 +226,6 @@ export function registerRoomHandlers(
     }
 
     room.setPlayerSeated(playerId, seated);
-    console.log(`[SET SEATED] Updated seating for playerId=${playerId} to ${String(seated)}`);
 
     const seatedPlayers = room.getAllPlayers().filter((p: Player) => p.isSeated);
     if (seatedPlayers.length >= 2) {

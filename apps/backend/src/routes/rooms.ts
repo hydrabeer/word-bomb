@@ -12,6 +12,7 @@ router.post('/', (_: Request, res: Response) => {
       maxLives: 3,
       bonusTemplate: Array(26).fill(1),
       minTurnDuration: 5,
+      minWordsPerPrompt: 500,
     };
 
     roomManager.create(code, rules);

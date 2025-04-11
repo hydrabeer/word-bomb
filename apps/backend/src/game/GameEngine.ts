@@ -70,7 +70,7 @@ export class GameEngine {
   private advanceTurn(): void {
     // Domain-level
     this.game.nextTurn();
-    this.game.setFragment(getRandomFragment());
+    this.game.setFragment(getRandomFragment(this.game.rules.minWordsPerPrompt));
 
     // Application-level
     this.startTurn();
