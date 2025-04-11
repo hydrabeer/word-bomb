@@ -1,0 +1,8 @@
+# Allow all bots to access everything
+User-agent: *
+
+# Disallow access to the /disconnected page
+Disallow: /disconnected
+
+# Sitemap (if applicable)
+Sitemap: https://yourdomain.com/sitemap.xml
