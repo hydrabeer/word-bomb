@@ -15,7 +15,10 @@ interface ChatMessageItemProps {
   isCurrentUser?: boolean;
 }
 
-export function ChatMessageItem({ msg, isCurrentUser = false }: ChatMessageItemProps) {
+export function ChatMessageItem({
+  msg,
+  isCurrentUser = false,
+}: ChatMessageItemProps) {
   const timeFormatted = dayjs(msg.timestamp).format('HH:mm');
   const formattedMessage = formatMessage(msg.message);
 

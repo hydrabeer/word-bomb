@@ -2,7 +2,8 @@ export class BonusProgress {
   private readonly progress: number[];
 
   constructor(initial: number[]) {
-    if (initial.length !== 26) throw new Error('BonusProgress must have 26 entries.');
+    if (initial.length !== 26)
+      throw new Error('BonusProgress must have 26 entries.');
     this.progress = [...initial];
   }
 

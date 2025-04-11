@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaChevronRight, FaChevronLeft, FaChevronUp, FaChevronDown } from 'react-icons/fa';
+import {
+  FaChevronRight,
+  FaChevronLeft,
+  FaChevronUp,
+  FaChevronDown,
+} from 'react-icons/fa';
 import Chat from '../components/Chat';
 import { useGameRoom } from '../hooks/useGameRoom';
 import { GameBoard } from '../components/GameBoard';
@@ -30,10 +35,8 @@ export default function RoomPage() {
   const { players, leaderId, playerId, me, toggleSeated, startGame } =
     usePlayerManagement(roomCode);
 
-  const { inputWord, setInputWord, rejected, handleSubmitWord } = useWordSubmission(
-    roomCode,
-    playerId,
-  );
+  const { inputWord, setInputWord, rejected, handleSubmitWord } =
+    useWordSubmission(roomCode, playerId);
 
   // Handle navigation if no room code
   useEffect(() => {
@@ -158,7 +161,9 @@ export default function RoomPage() {
 
               {/* Seated Players */}
               <div className="mb-8">
-                <h3 className="mb-4 text-lg font-medium text-indigo-100">Players</h3>
+                <h3 className="mb-4 text-lg font-medium text-indigo-100">
+                  Players
+                </h3>
                 <div
                   className="flex max-w-full flex-wrap justify-center gap-3 px-6"
                   role="list"
@@ -202,9 +207,13 @@ export default function RoomPage() {
 
               {/* Game Instructions */}
               <div className="mb-8 rounded-xl border border-white/10 bg-white/5 p-6 shadow-sm">
-                <h3 className="mb-3 text-lg font-medium text-indigo-100">How to Play</h3>
+                <h3 className="mb-3 text-lg font-medium text-indigo-100">
+                  How to Play
+                </h3>
                 <ul className="list-disc space-y-2 pl-5 text-left text-base leading-relaxed text-indigo-200">
-                  <li>Take turns creating words containing the given pattern</li>
+                  <li>
+                    Take turns creating words containing the given pattern
+                  </li>
                   <li>Think fast! The bomb timer gets shorter each round</li>
                   <li>Words must be valid and not used previously</li>
                   <li>Last player standing wins the game</li>

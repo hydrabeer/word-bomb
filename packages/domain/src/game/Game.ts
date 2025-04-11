@@ -51,7 +51,9 @@ export class Game {
   // Returns the active player whose turn it is.
   public getCurrentPlayer(): Player | undefined {
     const active = this.players.filter((p) => !p.isEliminated);
-    return active.length > 0 ? active[this.currentTurnIndex % active.length] : undefined;
+    return active.length > 0
+      ? active[this.currentTurnIndex % active.length]
+      : undefined;
   }
 
   // Advance to the next non‑eliminated player.

@@ -119,7 +119,9 @@ export function registerRoomHandlers(
     const { roomCode, playerId, name } = data;
 
     if (!name || name.length > 20) {
-      console.log(`[JOIN ROOM] Invalid name for playerId=${playerId}, name='${name}'`);
+      console.log(
+        `[JOIN ROOM] Invalid name for playerId=${playerId}, name='${name}'`,
+      );
       callback({ success: false, error: 'Invalid player name' });
       return;
     }
@@ -182,7 +184,9 @@ export function registerRoomHandlers(
   // leaveRoom event
   socket.on('leaveRoom', (data) => {
     const { roomCode, playerId } = data;
-    console.log(`[LEAVE ROOM] socketId=${socket.id}, playerId=${playerId}, roomCode=${roomCode}`);
+    console.log(
+      `[LEAVE ROOM] socketId=${socket.id}, playerId=${playerId}, roomCode=${roomCode}`,
+    );
     const room = roomManager.get(roomCode);
     if (!room) return;
     room.removePlayer(playerId);
@@ -211,7 +215,9 @@ export function registerRoomHandlers(
       return;
     }
     const chatMessage = result.data;
-    console.log(`[CHAT] Broadcasting message in roomCode=${chatMessage.roomCode}`);
+    console.log(
+      `[CHAT] Broadcasting message in roomCode=${chatMessage.roomCode}`,
+    );
     io.to(socketRoomId(chatMessage.roomCode)).emit('chatMessage', chatMessage);
   });
 
@@ -228,7 +234,9 @@ export function registerRoomHandlers(
 
     room.setPlayerSeated(playerId, seated);
 
-    const seatedPlayers = room.getAllPlayers().filter((p: Player) => p.isSeated);
+    const seatedPlayers = room
+      .getAllPlayers()
+      .filter((p: Player) => p.isSeated);
     if (seatedPlayers.length >= 2) {
       if (!room.isGameTimerRunning()) {
         const timeLeft = 15000;
@@ -241,7 +249,9 @@ export function registerRoomHandlers(
             console.error('[AUTO START] Error starting game:', err);
           }
         }, timeLeft);
-        io.to(socketRoomId(roomCode)).emit('gameCountdownStarted', { deadline });
+        io.to(socketRoomId(roomCode)).emit('gameCountdownStarted', {
+          deadline,
+        });
         console.log(
           `[SET SEATED] Started game timer for roomCode=${roomCode}, deadline=${deadline.toString()}`,
         );
@@ -293,7 +303,10 @@ export function registerRoomHandlers(
     if (currentPlayer?.id !== playerId) return;
 
     // Broadcast to all players in the room
-    io.to(socketRoomId(roomCode)).emit('playerTypingUpdate', { playerId, input });
+    io.to(socketRoomId(roomCode)).emit('playerTypingUpdate', {
+      playerId,
+      input,
+    });
   });
 
   // submitWord event

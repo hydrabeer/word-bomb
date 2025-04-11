@@ -1,6 +1,9 @@
 import { useState, ChangeEvent, KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getOrCreatePlayerProfile, updatePlayerName } from '../utils/playerProfile';
+import {
+  getOrCreatePlayerProfile,
+  updatePlayerName,
+} from '../utils/playerProfile';
 import { useRoomActions } from '../hooks/useRoomActions';
 
 export default function HomePage() {
@@ -48,7 +51,8 @@ export default function HomePage() {
           Word Bomb
         </h1>
         <p className="mx-auto max-w-2xl text-lg leading-relaxed text-indigo-200">
-          Challenge your friends with words and quick thinking in this fast-paced word game
+          Challenge your friends with words and quick thinking in this
+          fast-paced word game
         </p>
       </div>
 
@@ -72,7 +76,9 @@ export default function HomePage() {
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <input
                     value={name}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setName(e.target.value)
+                    }
                     onKeyDown={(e: KeyboardEvent<HTMLInputElement>) =>
                       e.key === 'Enter' && handleSaveName()
                     }
@@ -92,7 +98,9 @@ export default function HomePage() {
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
-                  <span className="text-xl font-medium text-indigo-100">{name}</span>
+                  <span className="text-xl font-medium text-indigo-100">
+                    {name}
+                  </span>
                   <button
                     onClick={() => setEditing(true)}
                     className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium transition-all hover:bg-white/20 focus:ring-2 focus:ring-emerald-400 active:scale-95"
@@ -176,7 +184,9 @@ export default function HomePage() {
                     id="joinCode"
                     value={joinCode}
                     onChange={(e) => {
-                      const filtered = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                      const filtered = e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z]/g, '');
                       setJoinCode(filtered);
                     }}
                     placeholder="Enter 4-letter code"

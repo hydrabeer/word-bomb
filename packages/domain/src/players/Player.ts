@@ -49,7 +49,11 @@ export class Player {
     if (this.lives < maxLives) this.lives++;
   }
 
-  tryBonusLetter(letter: string, maxLives: number, resetTemplate: number[]): boolean {
+  tryBonusLetter(
+    letter: string,
+    maxLives: number,
+    resetTemplate: number[],
+  ): boolean {
     const used = this.bonusProgress.useLetter(letter);
     if (used && this.bonusProgress.isComplete()) {
       this.gainLife(maxLives);

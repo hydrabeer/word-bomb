@@ -48,7 +48,11 @@ function downloadDictionaryFile(url: string, dest: string): Promise<void> {
     https
       .get(url, (res) => {
         if (res.statusCode !== 200) {
-          reject(new Error(`Request failed with status ${String(res.statusCode ?? 'unknown')}`));
+          reject(
+            new Error(
+              `Request failed with status ${String(res.statusCode ?? 'unknown')}`,
+            ),
+          );
         }
 
         res.pipe(file);
@@ -65,7 +69,11 @@ function downloadDictionaryFile(url: string, dest: string): Promise<void> {
 /**
  * Builds the fragment count index from the provided list of words.
  */
-function buildFragmentIndex(words: string[], minLength = 2, maxLength = 3): void {
+function buildFragmentIndex(
+  words: string[],
+  minLength = 2,
+  maxLength = 3,
+): void {
   fragmentCounts = new Map();
 
   for (const word of words) {

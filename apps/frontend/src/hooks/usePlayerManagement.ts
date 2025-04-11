@@ -15,7 +15,10 @@ export function usePlayerManagement(roomCode: string) {
   const [leaderId, setLeaderId] = useState<string | null>(null);
 
   const { id: playerId, name: playerName } = getOrCreatePlayerProfile();
-  const me = useMemo(() => players.find((p) => p.id === playerId), [players, playerId]);
+  const me = useMemo(
+    () => players.find((p) => p.id === playerId),
+    [players, playerId],
+  );
 
   useEffect(() => {
     function handlePlayersUpdated(data: PlayersUpdatedPayload) {

@@ -40,5 +40,8 @@ export default router;
 // Generate a room code (e.g. 4 uppercase letters)
 function generateRoomCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return Array.from(
+    { length: 4 },
+    () => chars[Math.floor(Math.random() * chars.length)],
+  ).join('');
 }

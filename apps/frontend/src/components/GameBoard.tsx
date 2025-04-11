@@ -37,7 +37,9 @@ export function GameBoard({
   lastSubmittedWords,
 }: GameBoardProps) {
   const localProfileRaw = localStorage.getItem('wordbomb:profile:v1');
-  const localPlayerId = localProfileRaw ? (JSON.parse(localProfileRaw) as { id: string }).id : null;
+  const localPlayerId = localProfileRaw
+    ? (JSON.parse(localProfileRaw) as { id: string }).id
+    : null;
   const inputRef = useRef<HTMLInputElement>(null);
   const isMyTurn = gameState && localPlayerId === gameState.currentPlayerId;
   const highlightCacheRef = useRef<Record<string, JSX.Element>>({});
@@ -89,7 +91,10 @@ export function GameBoard({
 
   const playerViews = useMemo(() => {
     if (!gameState) return [];
-    const highlightWithCache = (word: string, fragment: string): JSX.Element => {
+    const highlightWithCache = (
+      word: string,
+      fragment: string,
+    ): JSX.Element => {
       const key = `${word.toLowerCase()}::${fragment.toLowerCase()}`;
       const cached = highlightCacheRef.current[key];
       if (cached) return cached;
@@ -108,7 +113,8 @@ export function GameBoard({
         4: [225, 315, 45, 135],
       };
 
-      const angleDeg = count <= 4 ? predefinedAngles[count][index] : (index / count) * 360;
+      const angleDeg =
+        count <= 4 ? predefinedAngles[count][index] : (index / count) * 360;
       const angleRad = (angleDeg * Math.PI) / 180;
 
       const isMobile = window.innerWidth < 640;
@@ -147,7 +153,9 @@ export function GameBoard({
     return (
       <div className="flex flex-1 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950/50 to-purple-900/50 p-8 text-xl text-white backdrop-blur-sm">
         <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center shadow-sm backdrop-blur-sm">
-          <p className="text-xl leading-relaxed text-indigo-200">Waiting for game to start...</p>
+          <p className="text-xl leading-relaxed text-indigo-200">
+            Waiting for game to start...
+          </p>
         </div>
       </div>
     );
@@ -163,11 +171,17 @@ export function GameBoard({
       {/* Game Stats Bar */}
       <div className="flex items-center justify-between border-b border-white/10 bg-black/20 px-4 py-2 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <span className="text-xs uppercase tracking-wider text-indigo-300">Fragment</span>
-          <span className="text-lg font-bold text-emerald-400">{gameState.fragment}</span>
+          <span className="text-xs uppercase tracking-wider text-indigo-300">
+            Fragment
+          </span>
+          <span className="text-lg font-bold text-emerald-400">
+            {gameState.fragment}
+          </span>
         </div>
         <div className="text-center">
-          <span className="text-xs uppercase tracking-wider text-indigo-300">Time</span>
+          <span className="text-xs uppercase tracking-wider text-indigo-300">
+            Time
+          </span>
           <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-white/10">
             <div
               className={`h-full transition-all duration-100 ease-linear ${
@@ -180,7 +194,9 @@ export function GameBoard({
           </div>
         </div>
         <div>
-          <span className="text-xs uppercase tracking-wider text-indigo-300">Players</span>
+          <span className="text-xs uppercase tracking-wider text-indigo-300">
+            Players
+          </span>
           <div className="mt-1 flex gap-1">
             {gameState.players.map((p) => (
               <div
@@ -204,7 +220,9 @@ export function GameBoard({
         <div className="absolute inset-0 flex items-center justify-center">
           <div
             className={`absolute h-[120px] w-[120px] rounded-full border-4 transition-all duration-100 sm:h-[180px] sm:w-[180px] ${
-              isUrgent ? 'border-red-600/50 shadow-lg shadow-red-500/20' : 'border-pink-600/30'
+              isUrgent
+                ? 'border-red-600/50 shadow-lg shadow-red-500/20'
+                : 'border-pink-600/30'
             }`}
             style={{
               transform: `scale(${1 + (1 - countdownPercentage / 100) * 0.4})`,
@@ -226,7 +244,9 @@ export function GameBoard({
         {/* Central Bomb */}
         <div
           className={`sm:h-18 sm:w-18 flex h-16 w-16 items-center justify-center rounded-full backdrop-blur-sm transition-all duration-300 ${
-            isUrgent ? 'bg-red-950/50 shadow-lg shadow-red-500/20' : 'bg-black/40'
+            isUrgent
+              ? 'bg-red-950/50 shadow-lg shadow-red-500/20'
+              : 'bg-black/40'
           }`}
         >
           <span className="text-center text-2xl font-extrabold uppercase text-white drop-shadow-lg transition-all sm:text-3xl">
@@ -242,7 +262,11 @@ export function GameBoard({
             >
               <span className="mr-2 text-indigo-300">Turn:</span>
               <span className="font-semibold text-emerald-400">
-                {gameState.players.find((p) => p.id === gameState.currentPlayerId)?.name}
+                {
+                  gameState.players.find(
+                    (p) => p.id === gameState.currentPlayerId,
+                  )?.name
+                }
               </span>
             </div>
           </div>
@@ -250,81 +274,93 @@ export function GameBoard({
 
         {/* Player positions around bomb */}
         <div className="pointer-events-none absolute inset-0">
-          {playerViews.map(({ player, isActive, isEliminated, x, y, highlighted }) => (
-            <div
-              key={player.id}
-              className="absolute left-1/2 top-1/2 flex flex-col items-center transition-all duration-300"
-              style={{
-                transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-              }}
-            >
-              {/* Player Platform */}
+          {playerViews.map(
+            ({ player, isActive, isEliminated, x, y, highlighted }) => (
               <div
-                className={`absolute -inset-3 -z-10 rounded-xl transition-all duration-300 ${
-                  isActive
-                    ? 'border border-emerald-500/30 bg-emerald-500/10'
-                    : isEliminated
-                      ? 'border border-red-500/10 bg-red-500/5'
-                      : 'bg-indigo-500/5'
-                } backdrop-blur-sm ${isActive ? 'scale-110' : 'scale-100'} ${
-                  isActive && isUrgent ? 'animate-pulse' : ''
-                }`}
-              />
-
-              {/* Success Flash */}
-              {lastWordAcceptedBy === player.id && <div className="flash-ring bg-emerald-500/30" />}
-
-              {/* Player Name & Lives */}
-              <div
-                className={`rounded-full px-3 py-1 transition-all ${
-                  isEliminated ? 'line-through opacity-40' : isActive ? 'font-semibold' : ''
-                } ${
-                  isActive
-                    ? 'border border-emerald-500/30 bg-emerald-950/30 text-emerald-300'
-                    : isEliminated
-                      ? 'border border-red-500/30 bg-red-950/30 text-red-300'
-                      : 'border border-indigo-500/30 bg-indigo-950/30 text-indigo-200'
-                } shadow-lg backdrop-blur-sm`}
+                key={player.id}
+                className="absolute left-1/2 top-1/2 flex flex-col items-center transition-all duration-300"
+                style={{
+                  transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+                }}
               >
-                <div className="flex items-center gap-1.5">
-                  <span className="whitespace-nowrap text-center text-sm sm:text-base">
-                    {player.name}
-                  </span>
-                  <span className="text-xs">
-                    {isEliminated
-                      ? '💀'
-                      : Array(player.lives)
-                          .fill('❤️')
-                          .map((heart, i) => (
-                            <span
-                              key={i}
-                              className={`inline-block scale-75 transform ${
-                                isActive && isUrgent ? 'animate-pulse' : ''
-                              }`}
-                            >
-                              {heart}
-                            </span>
-                          ))}
+                {/* Player Platform */}
+                <div
+                  className={`absolute -inset-3 -z-10 rounded-xl transition-all duration-300 ${
+                    isActive
+                      ? 'border border-emerald-500/30 bg-emerald-500/10'
+                      : isEliminated
+                        ? 'border border-red-500/10 bg-red-500/5'
+                        : 'bg-indigo-500/5'
+                  } backdrop-blur-sm ${isActive ? 'scale-110' : 'scale-100'} ${
+                    isActive && isUrgent ? 'animate-pulse' : ''
+                  }`}
+                />
+
+                {/* Success Flash */}
+                {lastWordAcceptedBy === player.id && (
+                  <div className="flash-ring bg-emerald-500/30" />
+                )}
+
+                {/* Player Name & Lives */}
+                <div
+                  className={`rounded-full px-3 py-1 transition-all ${
+                    isEliminated
+                      ? 'line-through opacity-40'
+                      : isActive
+                        ? 'font-semibold'
+                        : ''
+                  } ${
+                    isActive
+                      ? 'border border-emerald-500/30 bg-emerald-950/30 text-emerald-300'
+                      : isEliminated
+                        ? 'border border-red-500/30 bg-red-950/30 text-red-300'
+                        : 'border border-indigo-500/30 bg-indigo-950/30 text-indigo-200'
+                  } shadow-lg backdrop-blur-sm`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="whitespace-nowrap text-center text-sm sm:text-base">
+                      {player.name}
+                    </span>
+                    <span className="text-xs">
+                      {isEliminated
+                        ? '💀'
+                        : Array(player.lives)
+                            .fill('❤️')
+                            .map((heart, i) => (
+                              <span
+                                key={i}
+                                className={`inline-block scale-75 transform ${
+                                  isActive && isUrgent ? 'animate-pulse' : ''
+                                }`}
+                              >
+                                {heart}
+                              </span>
+                            ))}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Word Display */}
+                <div
+                  className={`mt-2 rounded px-2 py-1 text-center backdrop-blur-sm transition-all ${
+                    isActive
+                      ? 'border border-white/10 bg-black/20'
+                      : 'bg-black/10'
+                  }`}
+                >
+                  <span
+                    className={`text-lg font-bold uppercase tracking-wide text-white shadow-sm sm:text-xl ${
+                      isActive && gameState.fragment.length > 0
+                        ? 'animate-typing'
+                        : ''
+                    }`}
+                  >
+                    {highlighted}
                   </span>
                 </div>
               </div>
-
-              {/* Word Display */}
-              <div
-                className={`mt-2 rounded px-2 py-1 text-center backdrop-blur-sm transition-all ${
-                  isActive ? 'border border-white/10 bg-black/20' : 'bg-black/10'
-                }`}
-              >
-                <span
-                  className={`text-lg font-bold uppercase tracking-wide text-white shadow-sm sm:text-xl ${
-                    isActive && gameState.fragment.length > 0 ? 'animate-typing' : ''
-                  }`}
-                >
-                  {highlighted}
-                </span>
-              </div>
-            </div>
-          ))}
+            ),
+          )}
         </div>
       </div>
 
@@ -343,7 +379,9 @@ export function GameBoard({
                 className={`peer w-full rounded-lg border ${
                   rejected
                     ? 'animate-shake border-red-500 bg-red-500/10'
-                    : inputWord.toLowerCase().includes(gameState.fragment.toLowerCase())
+                    : inputWord
+                          .toLowerCase()
+                          .includes(gameState.fragment.toLowerCase())
                       ? 'border-emerald-500 bg-emerald-900/10'
                       : 'border-indigo-600/30 focus:border-emerald-400'
                 } bg-indigo-900/50 px-4 py-3 pt-5 text-base text-white placeholder-transparent transition-all focus:outline-none focus:ring-2 focus:ring-emerald-400`}
@@ -355,7 +393,9 @@ export function GameBoard({
             <button
               onClick={handleSubmitWord}
               className={`rounded-lg px-4 py-3 font-medium text-white shadow-lg transition-all ${
-                inputWord.toLowerCase().includes(gameState.fragment.toLowerCase())
+                inputWord
+                  .toLowerCase()
+                  .includes(gameState.fragment.toLowerCase())
                   ? 'bg-emerald-600 shadow-emerald-600/20 hover:bg-emerald-500'
                   : 'bg-indigo-600 shadow-indigo-600/20 hover:bg-indigo-500'
               } disabled:opacity-50`}

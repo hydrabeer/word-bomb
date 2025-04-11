@@ -115,10 +115,19 @@ export interface ClientToServerEvents {
   joinRoom: (data: JoinRoomPayload, cb?: (res: BasicResponse) => void) => void;
   leaveRoom: (data: LeaveRoomPayload) => void;
   chatMessage: (data: ChatMessagePayload) => void;
-  setPlayerSeated: (data: SetPlayerSeatedPayload, cb?: (res: BasicResponse) => void) => void;
-  startGame: (data: StartGamePayload, cb?: (res: BasicResponse) => void) => void;
+  setPlayerSeated: (
+    data: SetPlayerSeatedPayload,
+    cb?: (res: BasicResponse) => void,
+  ) => void;
+  startGame: (
+    data: StartGamePayload,
+    cb?: (res: BasicResponse) => void,
+  ) => void;
   playerTyping: (data: PlayerTypingPayload) => void;
-  submitWord: (data: SubmitWordPayload, cb?: (res: BasicResponse) => void) => void;
+  submitWord: (
+    data: SubmitWordPayload,
+    cb?: (res: BasicResponse) => void,
+  ) => void;
 }
 
 export interface ServerToClientEvents {

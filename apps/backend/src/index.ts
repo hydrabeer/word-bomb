@@ -44,6 +44,12 @@ app.use('/api/rooms', roomsRouter);
 
 // eslint-disable-next-line @typescript-eslint/no-misused-promises
 const server = createServer(app);
+const io = new Server<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  never,
+  SocketData
+>(server, {
 
 // Sets up the Socket.IO server. CORS (Cross-Origin Resource Sharing) just
 // lets our backend and our frontend talk to each other from different domains

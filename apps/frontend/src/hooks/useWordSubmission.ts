@@ -7,15 +7,19 @@ export function useWordSubmission(roomCode: string, playerId: string) {
   const [rejected, setRejected] = useState(false);
 
   const handleSubmitWord = useCallback(() => {
-    socket.emit('submitWord', { roomCode, playerId, word: inputWord }, (res) => {
-      if (res.success) {
-        setInputWord('');
-      } else {
-        setRejected(true);
-        setTimeout(() => setRejected(false), 300);
-        setInputWord('');
-      }
-    });
+    socket.emit(
+      'submitWord',
+      { roomCode, playerId, word: inputWord },
+      (res) => {
+        if (res.success) {
+          setInputWord('');
+        } else {
+          setRejected(true);
+          setTimeout(() => setRejected(false), 300);
+          setInputWord('');
+        }
+      },
+    );
   }, [roomCode, playerId, inputWord]);
 
   return {

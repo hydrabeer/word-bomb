@@ -11,7 +11,9 @@ import type { GameState } from '../components/GameBoard';
 
 export function useGameState(roomCode: string) {
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [countdownDeadline, setCountdownDeadline] = useState<number | null>(null);
+  const [countdownDeadline, setCountdownDeadline] = useState<number | null>(
+    null,
+  );
   const [timeLeftSec, setTimeLeftSec] = useState<number>(0);
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
   const [bombCountdown, setBombCountdown] = useState<number>(0);
@@ -21,7 +23,9 @@ export function useGameState(roomCode: string) {
   const [lastSubmittedWords, setLastSubmittedWords] = useState<
     Record<string, { word: string; fragment: string }>
   >({});
-  const [lastWordAcceptedBy, setLastWordAcceptedBy] = useState<string | null>(null);
+  const [lastWordAcceptedBy, setLastWordAcceptedBy] = useState<string | null>(
+    null,
+  );
 
   // Countdown timer effect
   useEffect(() => {
@@ -118,7 +122,10 @@ export function useGameState(roomCode: string) {
       );
     }
 
-    function handlePlayerTypingUpdate(data: { playerId: string; input: string }) {
+    function handlePlayerTypingUpdate(data: {
+      playerId: string;
+      input: string;
+    }) {
       setLiveInputs((prev) => ({
         ...prev,
         [data.playerId]: data.input,
@@ -129,7 +136,9 @@ export function useGameState(roomCode: string) {
       setGameState((prev) => {
         if (!prev) return prev;
         const updatedPlayers = prev.players.map((p) =>
-          p.id === data.playerId ? { ...p, lives: data.lives, isEliminated: data.lives <= 0 } : p,
+          p.id === data.playerId
+            ? { ...p, lives: data.lives, isEliminated: data.lives <= 0 }
+            : p,
         );
         return { ...prev, players: updatedPlayers };
       });

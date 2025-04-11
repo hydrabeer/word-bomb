@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef, useState, DependencyList } from 'react';
 
-export function useAutoScroll<T extends HTMLElement>(dependencies: DependencyList) {
+export function useAutoScroll<T extends HTMLElement>(
+  dependencies: DependencyList,
+) {
   const containerRef = useRef<T>(null);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
 

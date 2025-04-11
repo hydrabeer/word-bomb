@@ -1,5 +1,11 @@
 // Chat.tsx
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { socket } from '../socket';
 import { useAutoScroll } from '../hooks/useAutoScroll';
 import { ChatMessageItem, ChatMessage } from './ChatMessageItem';
@@ -20,7 +26,10 @@ export default function Chat({ roomCode, className }: ChatProps) {
   const containerRef = useAutoScroll<HTMLDivElement>([messages]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { name: currentUsername } = useMemo(() => getOrCreatePlayerProfile(), []);
+  const { name: currentUsername } = useMemo(
+    () => getOrCreatePlayerProfile(),
+    [],
+  );
 
   // Auto-resize function
   const adjustTextareaHeight = useCallback(() => {
@@ -116,7 +125,9 @@ export default function Chat({ roomCode, className }: ChatProps) {
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-indigo-300">
             <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center shadow-sm backdrop-blur-sm">
-              <p className="text-base leading-relaxed">No messages yet. Say hello!</p>
+              <p className="text-base leading-relaxed">
+                No messages yet. Say hello!
+              </p>
             </div>
           </div>
         ) : (

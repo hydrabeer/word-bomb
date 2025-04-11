@@ -44,7 +44,10 @@ export class GameEngine {
       if (!currentPlayer) return;
 
       currentPlayer.loseLife();
-      this.emit('playerUpdated', { playerId: currentPlayer.id, lives: currentPlayer.lives });
+      this.emit('playerUpdated', {
+        playerId: currentPlayer.id,
+        lives: currentPlayer.lives,
+      });
 
       this.onTurnTimeout(currentPlayer);
 
@@ -76,11 +79,16 @@ export class GameEngine {
     this.startTurn();
   }
 
-  public submitWord(playerId: string, word: string): { success: boolean; error?: string } {
+  public submitWord(
+    playerId: string,
+    word: string,
+  ): { success: boolean; error?: string } {
     const player = this.game.getCurrentPlayer();
-    if (!player || player.id !== playerId) return { success: false, error: 'Not your turn.' };
+    if (!player || player.id !== playerId)
+      return { success: false, error: 'Not your turn.' };
 
-    if (word.trim().length < 2) return { success: false, error: 'Invalid word (too short).' };
+    if (word.trim().length < 2)
+      return { success: false, error: 'Invalid word (too short).' };
 
     if (!word.toLowerCase().includes(this.game.fragment.toLowerCase())) {
       return { success: false, error: "Word doesn't contain the fragment." };
@@ -91,7 +99,11 @@ export class GameEngine {
     }
 
     for (const letter of word) {
-      player.tryBonusLetter(letter, this.game.rules.maxLives, this.game.rules.bonusTemplate);
+      player.tryBonusLetter(
+        letter,
+        this.game.rules.maxLives,
+        this.game.rules.bonusTemplate,
+      );
     }
 
     this.emit('wordAccepted', { playerId, word });
