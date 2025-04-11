@@ -51,6 +51,7 @@ export interface PlayersUpdatedPayload {
     name: string;
     isSeated: boolean;
   }[];
+  leaderId?: string;
 }
 
 export interface PlayerUpdatedPayload {

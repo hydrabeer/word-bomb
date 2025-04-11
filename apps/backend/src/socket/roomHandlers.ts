@@ -32,6 +32,7 @@ function emitPlayers(io: Server, roomCode: string) {
       name: p.name,
       isSeated: p.isSeated,
     })),
+    leaderId: room.getLeaderId() ?? null,
   });
 }
 
