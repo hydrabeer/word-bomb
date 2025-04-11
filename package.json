@@ -24,17 +24,28 @@
     "dev:backend": "pnpm --filter backend dev",
     "dev:frontend": "pnpm --filter frontend dev",
     "format": "prettier --write .",
-    "lint": "pnpm -r lint"
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r run test",
+    "test:generate": "node scripts/generate-test.js",
+    "test:watch": "vitest watch"
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@vitest/coverage-v8": "^3.1.1",
+    "@vitest/ui": "^3.1.1",
     "concurrently": "^9.1.2",
     "eslint": "^9.24.0",
     "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-vitest": "^0.5.4",
+    "happy-dom": "^17.4.4",
+    "jsdom": "^26.0.0",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.29.1"
+    "typescript-eslint": "^8.29.1",
+    "vitest": "^3.1.1"
   },
   "packageManager": "pnpm@10.8.0"
 }

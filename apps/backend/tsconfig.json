@@ -6,9 +6,10 @@
     "moduleResolution": "node",
     "composite": true,
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "types": ["vitest/globals"]
   },
-  "include": ["src"],
+  "include": ["src", "vitest.config.ts"],
   "references": [
     {
       "path": "../../packages/domain"

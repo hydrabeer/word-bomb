@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "ts-node -r tsconfig-paths/register src/index.ts",
     "lint": "eslint \"src/**/*.ts\"",
-    "start": "ts-node -r tsconfig-paths/register src/index.ts"
+    "start": "ts-node -r tsconfig-paths/register src/index.ts",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",
