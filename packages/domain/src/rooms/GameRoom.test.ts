@@ -1,0 +1,187 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { GameRoom } from './GameRoom';
+import type { GameRoomRules } from './GameRoomRules';
+import { randomUUID } from 'crypto';
+import { PlayerProps } from '../players/Player';
+import { BonusProgress } from '../game/BonusProgress';
+
+const bonusTemplate = new Array(26).fill(1) as number[];
+
+const mockRules: GameRoomRules = {
+  maxLives: 3,
+  bonusTemplate,
+  minTurnDuration: 5,
+  minWordsPerPrompt: 1,
+};
+
+const makePlayerProps = (overrides?: Partial<PlayerProps>): PlayerProps => ({
+  id: randomUUID(),
+  name: 'TestPlayer',
+  isLeader: false,
+  isSeated: false,
+  isEliminated: false,
+  lives: 3,
+  bonusProgress: new BonusProgress([...bonusTemplate]),
+  ...overrides,
+});
+
+describe('GameRoom', () => {
+  let room: GameRoom;
+
+  beforeEach(() => {
+    room = new GameRoom({ code: 'ABCD' }, mockRules);
+  });
+
+  it('creates a new room with code and rules', () => {
+    expect(room.code).toBe('ABCD');
+    expect(room.getAllPlayers()).toHaveLength(0);
+  });
+
+  it('adds a player and assigns leader if first', () => {
+    const playerProps = makePlayerProps();
+    room.addPlayer(playerProps);
+
+    expect(room.hasPlayer(playerProps.id)).toBe(true);
+    expect(room.getLeaderId()).toBe(playerProps.id);
+  });
+
+  it('throws when adding a player with duplicate ID', () => {
+    const playerProps = makePlayerProps();
+    room.addPlayer(playerProps);
+    expect(() => {
+      room.addPlayer(playerProps);
+    }).toThrow('Player already in room.');
+  });
+
+  it('removes a player and assigns new leader', () => {
+    const p1 = makePlayerProps();
+    const p2 = makePlayerProps();
+    room.addPlayer(p1);
+    room.addPlayer(p2);
+
+    room.removePlayer(p1.id);
+
+    expect(room.hasPlayer(p1.id)).toBe(false);
+    expect(room.getLeaderId()).toBe(p2.id);
+  });
+
+  it('sets player seating state', () => {
+    const p = makePlayerProps();
+    room.addPlayer(p);
+    room.setPlayerSeated(p.id, true);
+
+    const result = room.getPlayer(p.id);
+    expect(result?.isSeated).toBe(true);
+  });
+
+  it('throws when starting game with fewer than 2 seated players', () => {
+    const p = makePlayerProps();
+    room.addPlayer(p);
+    room.setPlayerSeated(p.id, true);
+    expect(() => {
+      room.startGame();
+    }).toThrow('Need at least 2 players seated to start the game');
+  });
+
+  it('sets leaderId to null if no players remain after removal', () => {
+    const p1 = makePlayerProps();
+    room.addPlayer(p1);
+
+    room.removePlayer(p1.id); // triggers assignNewLeader()
+
+    expect(room.getLeaderId()).toBeNull();
+  });
+
+  it('starts game with 2+ seated players and resets them', () => {
+    const p1 = makePlayerProps();
+    const p2 = makePlayerProps();
+    room.addPlayer(p1);
+    room.addPlayer(p2);
+
+    room.setPlayerSeated(p1.id, true);
+    room.setPlayerSeated(p2.id, true);
+
+    const player1 = room.getPlayer(p1.id);
+    const player2 = room.getPlayer(p2.id);
+
+    expect(player1).toBeDefined();
+    expect(player2).toBeDefined();
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const spy1 = vi.spyOn(player1!, 'resetForNextGame');
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const spy2 = vi.spyOn(player2!, 'resetForNextGame');
+
+    room.startGame();
+
+    expect(spy1).toHaveBeenCalledOnce();
+    expect(spy2).toHaveBeenCalledOnce();
+  });
+
+  it('ends the game and clears seated flags', () => {
+    const p1 = makePlayerProps({ isSeated: true });
+    const p2 = makePlayerProps({ isSeated: true });
+    room.addPlayer(p1);
+    room.addPlayer(p2);
+
+    room.endGame();
+
+    const player1 = room.getPlayer(p1.id);
+    const player2 = room.getPlayer(p2.id);
+
+    expect(player1?.isSeated).toBe(false);
+    expect(player2?.isSeated).toBe(false);
+  });
+
+  it('starts and cancels game start timer', () => {
+    vi.useFakeTimers();
+    const callback = vi.fn();
+
+    room.startGameStartTimer(() => {
+      callback();
+    }, 1000);
+    expect(room.isGameTimerRunning()).toBe(true);
+
+    vi.advanceTimersByTime(1000);
+    expect(callback).toHaveBeenCalledOnce();
+    expect(room.isGameTimerRunning()).toBe(false);
+
+    vi.useRealTimers();
+  });
+
+  it('does not start duplicate timers', () => {
+    vi.useFakeTimers();
+    const callback = vi.fn();
+
+    room.startGameStartTimer(() => {
+      callback();
+    }, 1000);
+
+    room.startGameStartTimer(() => {
+      callback();
+    }, 1000); // ignored
+
+    vi.advanceTimersByTime(1000);
+    expect(callback).toHaveBeenCalledOnce();
+
+    vi.useRealTimers();
+  });
+
+  it('cancels a running timer', () => {
+    vi.useFakeTimers();
+    const callback = vi.fn();
+
+    room.startGameStartTimer(() => {
+      callback();
+    }, 1000);
+
+    room.cancelGameStartTimer();
+
+    expect(room.isGameTimerRunning()).toBe(false);
+
+    vi.advanceTimersByTime(1000);
+    expect(callback).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+});
