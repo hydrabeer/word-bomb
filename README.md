@@ -57,11 +57,15 @@ pnpm install
 ```
 
 ### 3. Make a .env in frontend
+
 You'll need to define a .env file containing:
+
 ```
 VITE_BACKEND_URL=http://localhost:3001
 ```
+
 for the backend server to work.
+
 ### 4. Start the server
 
 ```bash
