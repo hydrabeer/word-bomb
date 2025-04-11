@@ -31,5 +31,11 @@ Thumbs.db
 *.njsproj
 *.sln
 
+# Coverage directories
+**/coverage
+
+# TypeScript build info files
+tsconfig.tsbuildinfo
+
 # Don't commit dictionary
 apps/backend/src/dictionary/words.txt
