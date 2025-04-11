@@ -1,6 +1,10 @@
 // packages/domain/src/game/Game.test.ts
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Game } from './Game';
+import {
+  Game,
+  INITIAL_BOMB_DURATION_MIN,
+  INITIAL_BOMB_DURATION_MAX,
+} from './Game';
 import { Player } from '../players/Player';
 import { BonusProgress } from '../game/BonusProgress';
 import type { GameRoomRules } from '../rooms/GameRoomRules';
@@ -31,7 +35,7 @@ describe('Game', () => {
   let game: Game;
 
   beforeEach(() => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.5); // Always roll 20s
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
 
     const player1 = makeMockPlayer('Alice');
     const player2 = makeMockPlayer('Bob');
@@ -50,7 +54,11 @@ describe('Game', () => {
     expect(game.roomCode).toBe('ABCD');
     expect(game.fragment).toBe('ing');
     expect(game.players).toHaveLength(2);
-    expect(game.getBombDuration()).toBe(20);
+    const expectedDuration =
+      Math.floor(
+        0.5 * (INITIAL_BOMB_DURATION_MAX - INITIAL_BOMB_DURATION_MIN + 1),
+      ) + INITIAL_BOMB_DURATION_MIN;
+    expect(game.getBombDuration()).toBe(expectedDuration);
   });
 
   it('gets the current player', () => {
