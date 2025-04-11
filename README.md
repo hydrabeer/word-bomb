@@ -2,8 +2,10 @@
 
 ## Overview
 
-This monorepo is a reimagining of the classic game _Bomb Party_, built with modern web tech.  
-Players race against the bomb timer to type real words containing a given fragment — miss it, and
+This monorepo is a reimagining of the classic game _Bomb Party_, built with
+modern web tech.  
+Players race against the bomb timer to type real words containing a given
+fragment — miss it, and
 you lose a life! Last player standing wins.
 
 Built with:
@@ -56,15 +58,22 @@ cd word-bomb
 pnpm install
 ```
 
-### 3. Make a .env in frontend
+### 3. Setup dev environment
 
 You'll need to define a .env file containing:
 
-```
+```.dotenv
 VITE_BACKEND_URL=http://localhost:3001
 ```
 
-for the backend server to work.
+for the backend server to work. You'll also need to add localhost URLs to
+the CSP in the frontends' `index.html` file.
+
+```html
+
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' https://word-bomb-backend.onrender.com wss://word-bomb-backend.onrender.com http://localhost:3001 ws://localhost:3001; script-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';">
+```
 
 ### 4. Start the server
 
