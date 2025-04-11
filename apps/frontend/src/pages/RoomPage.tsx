@@ -39,6 +39,9 @@ export default function RoomPage() {
   const [liveInputs, setLiveInputs] = useState<Record<string, string>>({});
   const [rejected, setRejected] = useState(false);
   const [lastWordAcceptedBy, setLastWordAcceptedBy] = useState<string | null>(null);
+  const [lastSubmittedWords, setLastSubmittedWords] = useState<
+    Record<string, { word: string; fragment: string }>
+  >({});
 
   const [gameStartedAt, setGameStartedAt] = useState<number | null>(null);
   const [elapsedGameTime, setElapsedGameTime] = useState<number>(0);
@@ -54,6 +57,7 @@ export default function RoomPage() {
   useEffect(() => {
     function handlePlayersUpdated(data: PlayersUpdatedPayload) {
       setPlayers(data.players);
+      setLeaderId(data.leaderId ?? null);
     }
 
     socket.on('playersUpdated', handlePlayersUpdated);
@@ -95,7 +99,23 @@ export default function RoomPage() {
       const newDeadline = Date.now() + data.bombDuration * 1000;
       setTurnDeadline(newDeadline);
 
-      setLiveInputs({}); // 👈 clear previous inputs
+      setLiveInputs((prev) => {
+        const newState = { ...prev };
+        if (data.playerId) {
+          delete newState[data.playerId];
+        }
+
+        return newState;
+      });
+
+      setLastSubmittedWords((prev) => {
+        const newState = { ...prev };
+        if (data.playerId) {
+          delete newState[data.playerId];
+        }
+
+        return newState;
+      });
 
       setGameState((prev) =>
         prev
@@ -215,7 +235,15 @@ export default function RoomPage() {
   }, [roomCode, playerId, inputWord]);
 
   useEffect(() => {
-    const handleWordAccepted = (data: { playerId: string }) => {
+    const handleWordAccepted = (data: { playerId: string; word: string }) => {
+      setLastSubmittedWords((prev) => ({
+        ...prev,
+        [data.playerId]: {
+          word: data.word.trim(),
+          fragment: gameState?.fragment ?? '', // ✅ capture fragment at submit time
+        },
+      }));
+
       setLastWordAcceptedBy(data.playerId);
       setTimeout(() => setLastWordAcceptedBy(null), 500);
     };
@@ -224,7 +252,7 @@ export default function RoomPage() {
     return () => {
       socket.off('wordAccepted', handleWordAccepted);
     };
-  }, []);
+  }, [gameState?.fragment]);
 
   useEffect(() => {
     const handleDisconnect = () => {
@@ -255,24 +283,45 @@ export default function RoomPage() {
       ? `⏳ Game starts in ${timeLeftSec}s...`
       : '🕐 Waiting for more players...';
 
+  function JoinGameButtons() {
+    return (
+      <>
+        <button
+          onClick={toggleSeated}
+          className={`rounded-lg px-6 py-2 font-bold transition-colors ${
+            me?.isSeated
+              ? 'bg-rose-500 text-white hover:bg-rose-400'
+              : 'bg-emerald-500 text-black hover:bg-emerald-400'
+          }`}
+        >
+          {me?.isSeated ? 'Leave' : 'Join Game'}
+        </button>
+      </>
+    );
+  }
+
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-gray-900 text-white">
       {/* Top Bar */}
       <div className="relative flex items-center justify-center bg-gradient-to-r from-indigo-800 to-purple-800 px-4 py-2 text-sm font-medium md:text-base">
-        <div className="truncate">{statusMessage}</div>
-
-        {/* Chat Toggle Button */}
+        <div className="truncate">
+          {statusMessage}
+          {leaderId && playerId === leaderId && countdownDeadline && (
+            <button
+              onClick={handleStartGame}
+              className="ml-2 text-white/80 underline transition-colors hover:text-white"
+            >
+              Start now
+            </button>
+          )}
+        </div>
+        {/* Chat Toggle Button – desktop */}
         <button
           onClick={() => setIsChatOpen(!isChatOpen)}
-          className={`fixed right-4 z-50 rounded-full bg-white/10 p-2 transition-colors hover:bg-white/20 md:absolute md:right-4 md:top-1/2 md:-translate-y-1/2 ${isChatOpen ? 'bottom-[calc(33vh+1.4rem)]' : 'bottom-5'} md:bottom-auto`}
+          className="z-50 hidden rounded-full bg-white/10 p-2 transition-colors hover:bg-white/20 md:absolute md:right-4 md:top-1/2 md:flex md:-translate-y-1/2"
           aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
         >
-          <span className="block md:hidden">
-            {isChatOpen ? <FaChevronDown /> : <FaChevronUp />}
-          </span>
-          <span className="hidden md:block">
-            {isChatOpen ? <FaChevronRight /> : <FaChevronLeft />}
-          </span>
+          {isChatOpen ? <FaChevronRight /> : <FaChevronLeft />}
         </button>
       </div>
 
@@ -290,6 +339,7 @@ export default function RoomPage() {
             rejected={rejected}
             liveInputs={liveInputs}
             lastWordAcceptedBy={lastWordAcceptedBy}
+            lastSubmittedWords={lastSubmittedWords}
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center px-4 text-center">
@@ -318,35 +368,44 @@ export default function RoomPage() {
         )}
       </div>
 
-      {/* Bottom Bar (Join/Start) */}
+      {/* Bottom Join + Chat container (mobile only) */}
       {!gameState && (
-        <div className="z-10 flex w-full justify-center gap-4 border-t border-gray-700 bg-gray-800 py-4 shadow-inner">
-          <button
-            onClick={toggleSeated}
-            className={`rounded-lg px-6 py-2 font-bold transition-colors ${
-              me?.isSeated
-                ? 'bg-rose-500 text-white hover:bg-rose-400'
-                : 'bg-emerald-500 text-black hover:bg-emerald-400'
-            }`}
-          >
-            {me?.isSeated ? 'Leave' : 'Join Game'}
-          </button>
-          {leaderId && playerId === leaderId && (
+        <div
+          className={`fixed bottom-0 left-0 z-40 w-full transform transition-transform duration-300 ease-in-out md:hidden ${
+            isChatOpen ? 'translate-y-0' : 'translate-y-[calc(33vh-0.25rem)]'
+          }`}
+        >
+          {/* 🔘 Join Game Bar – mobile */}
+          <div className="relative flex w-full justify-center gap-4 border-t border-gray-700 bg-gray-800 py-4 shadow-inner">
+            <JoinGameButtons />
+
+            {/* Chat Toggle Button – mobile */}
             <button
-              onClick={handleStartGame}
-              className="rounded-lg bg-yellow-400 px-6 py-2 font-bold text-black transition-colors hover:bg-yellow-300"
+              onClick={() => setIsChatOpen(!isChatOpen)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 transition-colors hover:bg-white/20"
+              aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
             >
-              Start Now
+              {isChatOpen ? <FaChevronDown /> : <FaChevronUp />}
             </button>
-          )}
+          </div>
+
+          {/* 💬 Chat Panel – mobile */}
+          <div className="h-[33vh] border-t border-gray-700 bg-gray-800 shadow-[0_0_10px_#00000033]">
+            <Chat roomCode={roomCode} />
+          </div>
         </div>
       )}
 
-      {/* Chat Panel */}
+      {/* Join Game Bar – desktop only */}
+      {!gameState && (
+        <div className="z-10 hidden w-full justify-center gap-4 border-t border-gray-700 bg-gray-800 py-4 shadow-inner md:flex">
+          <JoinGameButtons />
+        </div>
+      )}
+
+      {/* Chat Panel – desktop only*/}
       <div
-        className={`z-40 flex h-[33vh] flex-col border-t border-gray-700 bg-gray-800 shadow-[0_0_10px_#00000033] transition-opacity duration-200 md:fixed md:right-0 md:top-0 md:h-full md:w-80 md:border-l md:border-t-0 ${
-          isChatOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
-        }`}
+        className={`z-40 hidden transition-transform duration-300 ease-in-out md:fixed md:right-0 md:top-0 md:flex md:h-full md:w-80 md:flex-col md:border-l md:border-gray-700 md:bg-gray-800 md:shadow-[0_0_10px_#00000033] ${isChatOpen ? 'translate-x-0' : 'translate-x-full'} `}
       >
         <Chat roomCode={roomCode} />
       </div>

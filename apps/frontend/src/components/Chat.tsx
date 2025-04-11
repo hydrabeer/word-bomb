@@ -83,7 +83,7 @@ export default function Chat({ roomCode }: ChatProps) {
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <span className="pointer-events-none absolute left-4 top-2.5 text-sm text-gray-400 transition-all peer-placeholder-shown:top-3 peer-focus:top-0.5 peer-focus:text-xs peer-focus:text-indigo-400">
+          <span className="pointer-events-none absolute left-4 top-2.5 text-sm text-gray-400 opacity-0 transition-all duration-200 peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-placeholder-shown:opacity-100 peer-focus:top-0.5 peer-focus:text-xs peer-focus:text-indigo-400 peer-focus:opacity-100">
             Type your message...
           </span>
         </label>
