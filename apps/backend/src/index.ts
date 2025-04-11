@@ -19,7 +19,10 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        connectSrc: ["'self'", process.env.FRONTEND_URL ?? "http://localhost:5173"],
+        connectSrc: [
+          "'self'",
+          process.env.FRONTEND_URL ?? 'http://localhost:5173',
+        ],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         objectSrc: ["'none'"],
@@ -44,16 +47,15 @@ app.use('/api/rooms', roomsRouter);
 
 // eslint-disable-next-line @typescript-eslint/no-misused-promises
 const server = createServer(app);
+
+// Sets up the Socket.IO server. CORS (Cross-Origin Resource Sharing) just
+// lets our backend and our frontend talk to each other from different domains
 const io = new Server<
   ClientToServerEvents,
   ServerToClientEvents,
   never,
   SocketData
 >(server, {
-
-// Sets up the Socket.IO server. CORS (Cross-Origin Resource Sharing) just
-// lets our backend and our frontend talk to each other from different domains
-const io = new Server<ClientToServerEvents, ServerToClientEvents, never, SocketData>(server, {
   cors: {
     origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
     methods: ['GET', 'POST'],
