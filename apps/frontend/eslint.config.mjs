@@ -6,12 +6,16 @@ import tseslint from 'typescript-eslint';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import vitest from 'eslint-plugin-vitest';
 
 export default tseslint.config(
   // Base ESLint + TypeScript configs
   eslint.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
   tseslint.configs.stylisticTypeChecked,
+
+  // vitest plugin
+  vitest.configs.recommended,
 
   // React plugin
   reactPlugin.configs.flat.recommended,
