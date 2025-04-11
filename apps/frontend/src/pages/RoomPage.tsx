@@ -86,8 +86,9 @@ export default function RoomPage() {
           me?.isSeated
             ? 'border border-pink-400/20 bg-gradient-to-br from-pink-600/90 to-pink-500/90 text-white shadow-pink-500/20 backdrop-blur-sm hover:bg-pink-400/50' +
               ' active:bg-indigo-600/50'
-            : 'border border-emerald-400/20 bg-gradient-to-br from-emerald-600/90 to-emerald-500/90 shadow-emerald-500/20 backdrop-blur-sm hover:bg-emerald-400' +
-              ' active:bg-emerald-600'
+            : 'border border-emerald-400/20 text-black' +
+              ' bg-emerald-500 shadow-emerald-500/20 backdrop-blur-sm' +
+              ' shadow-lg hover:bg-emerald-400 active:bg-emerald-600'
         }`}
         aria-label={me?.isSeated ? 'Leave game' : 'Join game'}
       >
