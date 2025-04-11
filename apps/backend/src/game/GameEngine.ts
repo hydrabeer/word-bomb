@@ -34,14 +34,12 @@ export class GameEngine {
 
   private startTurn(): void {
     const currentPlayer = this.game.getCurrentPlayer();
-    if (!currentPlayer) return;
 
     const duration = this.game.getBombDuration();
     this.clearTimeout();
 
     this.timeout = setTimeout(() => {
       const currentPlayer = this.game.getCurrentPlayer();
-      if (!currentPlayer) return;
 
       currentPlayer.loseLife();
       this.emit('playerUpdated', {
@@ -84,7 +82,7 @@ export class GameEngine {
     word: string,
   ): { success: boolean; error?: string } {
     const player = this.game.getCurrentPlayer();
-    if (!player || player.id !== playerId)
+    if (player.id !== playerId)
       return { success: false, error: 'Not your turn.' };
 
     if (word.trim().length < 2)

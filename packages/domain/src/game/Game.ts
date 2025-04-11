@@ -48,12 +48,17 @@ export class Game {
     }
   }
 
+  public __setBombDurationForTest(duration: number): void {
+    this.bombDuration = duration;
+  }
+
   // Returns the active player whose turn it is.
-  public getCurrentPlayer(): Player | undefined {
+  public getCurrentPlayer(): Player {
     const active = this.players.filter((p) => !p.isEliminated);
-    return active.length > 0
-      ? active[this.currentTurnIndex % active.length]
-      : undefined;
+    if (active.length === 0) {
+      throw new Error('No active players remaining');
+    }
+    return active[this.currentTurnIndex % active.length];
   }
 
   // Advance to the next non‑eliminated player.

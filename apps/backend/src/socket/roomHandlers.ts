@@ -92,7 +92,7 @@ function startGameForRoom(io: Server, room: GameRoom) {
     roomCode: game.roomCode,
     fragment: game.fragment,
     bombDuration: game.getBombDuration(),
-    currentPlayer: game.getCurrentPlayer()?.id ?? null,
+    currentPlayer: game.getCurrentPlayer().id,
     leaderId: room.getLeaderId(),
     players: formatPlayers(game),
   });
@@ -102,7 +102,7 @@ function startGameForRoom(io: Server, room: GameRoom) {
 
 function broadcastTurnState(io: Server, roomCode: string, game: Game) {
   io.to(socketRoomId(roomCode)).emit('turnStarted', {
-    playerId: game.getCurrentPlayer()?.id ?? null,
+    playerId: game.getCurrentPlayer().id,
     fragment: game.fragment,
     bombDuration: game.getBombDuration(),
     players: formatPlayers(game),
@@ -300,7 +300,7 @@ export function registerRoomHandlers(
 
     // Optionally validate that it's their turn
     const currentPlayer = room.game.getCurrentPlayer();
-    if (currentPlayer?.id !== playerId) return;
+    if (currentPlayer.id !== playerId) return;
 
     // Broadcast to all players in the room
     io.to(socketRoomId(roomCode)).emit('playerTypingUpdate', {
