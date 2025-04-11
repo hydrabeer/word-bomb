@@ -1,5 +1,5 @@
 // apps/frontend/src/components/GameBoard.tsx
-import { KeyboardEvent, useEffect, useRef } from 'react';
+import { JSX, KeyboardEvent, useEffect, useRef } from 'react';
 
 export interface GameState {
   fragment: string;
@@ -21,6 +21,7 @@ export interface GameBoardProps {
   bombCountdown: number;
   rejected: boolean;
   liveInputs: Record<string, string>;
+  lastWordAcceptedBy: string | null;
 }
 
 export function GameBoard({
@@ -30,6 +31,7 @@ export function GameBoard({
   handleSubmitWord,
   rejected,
   liveInputs,
+  lastWordAcceptedBy,
 }: GameBoardProps) {
   const localProfileRaw = localStorage.getItem('wordbomb:profile:v1');
   const localPlayerId = localProfileRaw ? (JSON.parse(localProfileRaw) as { id: string }).id : null;
@@ -59,6 +61,26 @@ export function GameBoard({
       <div className="flex flex-1 items-center justify-center text-xl text-white">
         Waiting for game to start...
       </div>
+    );
+  }
+
+  function highlightFragment(word: string, fragment: string): JSX.Element {
+    const lowerWord = word.toLowerCase();
+    const lowerFragment = fragment.toLowerCase();
+    const index = lowerWord.indexOf(lowerFragment);
+
+    if (index === -1) return <>{word}</>; // no match
+
+    const before = word.slice(0, index);
+    const match = word.slice(index, index + fragment.length);
+    const after = word.slice(index + fragment.length);
+
+    return (
+      <>
+        {before}
+        <span className="text-green-400">{match}</span>
+        {after}
+      </>
     );
   }
 
@@ -106,6 +128,8 @@ export function GameBoard({
                   transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
                 }}
               >
+                {lastWordAcceptedBy === player.id && <div className="flash-ring" />}
+
                 <div
                   className={`text-center text-sm sm:text-base ${
                     isEliminated
@@ -119,7 +143,7 @@ export function GameBoard({
                 </div>
                 {input && isActive && (
                   <div className="mt-1 text-xl font-bold uppercase tracking-wide text-white sm:text-2xl">
-                    {input}
+                    {highlightFragment(input, gameState.fragment)}
                   </div>
                 )}
               </div>

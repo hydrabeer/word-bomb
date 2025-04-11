@@ -38,6 +38,7 @@ export default function RoomPage() {
   const [bombCountdown, setBombCountdown] = useState<number>(0);
   const [liveInputs, setLiveInputs] = useState<Record<string, string>>({});
   const [rejected, setRejected] = useState(false);
+  const [lastWordAcceptedBy, setLastWordAcceptedBy] = useState<string | null>(null);
 
   const [gameStartedAt, setGameStartedAt] = useState<number | null>(null);
   const [elapsedGameTime, setElapsedGameTime] = useState<number>(0);
@@ -214,6 +215,18 @@ export default function RoomPage() {
   }, [roomCode, playerId, inputWord]);
 
   useEffect(() => {
+    const handleWordAccepted = (data: { playerId: string }) => {
+      setLastWordAcceptedBy(data.playerId);
+      setTimeout(() => setLastWordAcceptedBy(null), 500);
+    };
+
+    socket.on('wordAccepted', handleWordAccepted);
+    return () => {
+      socket.off('wordAccepted', handleWordAccepted);
+    };
+  }, []);
+
+  useEffect(() => {
     const handleDisconnect = () => {
       void navigate('/disconnected');
     };
@@ -276,6 +289,7 @@ export default function RoomPage() {
             bombCountdown={bombCountdown}
             rejected={rejected}
             liveInputs={liveInputs}
+            lastWordAcceptedBy={lastWordAcceptedBy}
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center px-4 text-center">
