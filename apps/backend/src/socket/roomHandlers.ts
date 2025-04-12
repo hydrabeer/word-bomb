@@ -47,6 +47,8 @@ function formatPlayers(game: Game) {
 }
 
 function startGameForRoom(io: Server, room: GameRoom) {
+  if (room.game) return; // prevent double starts
+
   room.startGame();
 
   const fragment = getRandomFragment(room.rules.minWordsPerPrompt);
@@ -69,20 +71,20 @@ function startGameForRoom(io: Server, room: GameRoom) {
     onTurnStarted: () => {
       broadcastTurnState(io, room.code, game);
     },
-    onTurnTimeout: (player) => {
-      io.to(socketRoomId(room.code)).emit('chatMessage', {
-        roomCode: room.code,
-        sender: 'System',
-        message: `${player.name} ran out of time!`,
-        timestamp: Date.now(),
-        type: 'system',
-      });
-    },
     onGameEnded: (winnerId) => {
       io.to(socketRoomId(room.code)).emit('gameEnded', { winnerId });
       room.endGame();
       room.game = undefined;
       gameEngines.delete(room);
+
+      io.to(socketRoomId(room.code)).emit('playersUpdated', {
+        players: room.getAllPlayers().map((p) => ({
+          id: p.id,
+          name: p.name,
+          isSeated: p.isSeated,
+        })),
+        leaderId: room.getLeaderId(),
+      });
     },
   });
 
