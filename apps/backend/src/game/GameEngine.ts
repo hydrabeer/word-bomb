@@ -6,7 +6,7 @@ type EmitFn<T = unknown> = (event: string, payload: T) => void;
 
 interface GameEngineOptions {
   game: Game;
-  onTurnTimeout: (player: Player) => void;
+  onTurnTimeout?: (player: Player) => void;
   onTurnStarted: () => void;
   onGameEnded: (winnerId: string) => void;
   emit: EmitFn;
@@ -16,7 +16,7 @@ export class GameEngine {
   private game: Game;
   private timeout: ReturnType<typeof setTimeout> | null = null;
   private readonly emit: EmitFn;
-  private readonly onTurnTimeout: (player: Player) => void;
+  private readonly onTurnTimeout: ((player: Player) => void) | undefined;
   private readonly onTurnStarted: () => void;
   private readonly onGameEnded: (winnerId: string) => void;
 
@@ -47,7 +47,9 @@ export class GameEngine {
         lives: currentPlayer.lives,
       });
 
-      this.onTurnTimeout(currentPlayer);
+      if (this.onTurnTimeout) {
+        this.onTurnTimeout(currentPlayer);
+      }
 
       if (this.checkGameOver()) return;
 
