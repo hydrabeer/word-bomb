@@ -5,6 +5,7 @@ import {
   FaChevronLeft,
   FaChevronUp,
   FaChevronDown,
+  FaLink,
 } from 'react-icons/fa';
 import Chat from '../components/Chat';
 import { useGameRoom } from '../hooks/useGameRoom';
@@ -12,12 +13,14 @@ import { GameBoard } from '../components/GameBoard';
 import { useGameState } from '../hooks/useGameState';
 import { usePlayerManagement } from '../hooks/usePlayerManagement';
 import { useWordSubmission } from '../hooks/useWordSubmission';
+import { useVisualState } from '../hooks/useVisualState.ts';
 
 export default function RoomPage() {
   const navigate = useNavigate();
   const { roomCode = '' } = useParams<{ roomCode: string }>();
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   // Custom hooks
   useGameRoom(roomCode);
@@ -29,6 +32,7 @@ export default function RoomPage() {
     liveInputs,
     lastSubmittedWords,
     lastWordAcceptedBy,
+    winnerId,
     updateLiveInput,
   } = useGameState(roomCode);
 
@@ -37,6 +41,17 @@ export default function RoomPage() {
 
   const { inputWord, setInputWord, rejected, handleSubmitWord } =
     useWordSubmission(roomCode, playerId);
+
+  useEffect(() => {
+    setInputWord('');
+  }, [gameState, setInputWord]);
+
+  const visualState = useVisualState({
+    seatedCount: players.filter((p) => p.isSeated).length,
+    gameState,
+  });
+
+  const winner = players.find((p) => p.id === winnerId);
 
   // Handle navigation if no room code
   useEffect(() => {
@@ -103,22 +118,42 @@ export default function RoomPage() {
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-gradient-to-br from-indigo-950 to-purple-900 text-white">
       {/* Top Bar */}
-      <div className="relative flex items-center justify-between bg-gradient-to-r from-indigo-800/70 to-purple-800/70 px-4 py-3 text-base font-medium backdrop-blur-sm">
-        <div className="flex items-center">
-          <span className="text-lg font-medium">Room {roomCode}</span>
-          {gameState && (
-            <span className="ml-3 rounded-full bg-white/10 px-3 py-1 text-sm">
+      <div className="relative flex -translate-y-[7px] items-center justify-between border-b border-white/10 bg-gradient-to-r from-indigo-800/70 to-purple-800/70 p-3 text-base text-white backdrop-blur-sm">
+        <div className="flex translate-y-1 items-center gap-3">
+          <button
+            onClick={() => {
+              void navigator.clipboard
+                .writeText(window.location.href)
+                .then(() => {
+                  setInviteCopied(true);
+                  setTimeout(() => setInviteCopied(false), 2000);
+                });
+            }}
+            className="flex h-9 cursor-copy items-center gap-2 rounded-md bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
+            title="Click to copy room link"
+          >
+            <FaLink className="h-4 w-4 text-white/80" />
+            {inviteCopied ? 'Copied!' : `Room ${roomCode}`}
+          </button>
+        </div>
+
+        {visualState === 'playing' && (
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform">
+            <span className="rounded-full bg-white/10 px-3 py-1 font-mono text-sm text-indigo-200 shadow-sm">
               {formattedMins}:{formattedSecs}
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Main Area */}
       <div
-        className={`flex-1 overflow-y-auto transition-all duration-300 ${isChatOpen && isMobile ? 'pb-[33vh] md:pb-0' : ''}`}
+        className={`flex-1 overflow-y-auto transition-all duration-300 ${
+          isChatOpen && isMobile ? 'pb-[33vh] md:pb-0' : ''
+        }`}
       >
-        {gameState ? (
+        {/* Active Game */}
+        {visualState === 'playing' && gameState && (
           <GameBoard
             gameState={gameState}
             inputWord={inputWord}
@@ -130,8 +165,38 @@ export default function RoomPage() {
             lastWordAcceptedBy={lastWordAcceptedBy}
             lastSubmittedWords={lastSubmittedWords}
           />
-        ) : (
+        )}
+
+        {/* Lobby with Optional Winner */}
+        {visualState !== 'playing' && (
           <div className="flex h-full flex-col items-center justify-center px-4 text-center">
+            {winner && (
+              <div className="animate-winner-fade-in mb-10 flex flex-col items-center">
+                <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl backdrop-blur-sm transition-all">
+                  {/* Avatar */}
+                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-pink-600 text-3xl font-bold text-white shadow-md">
+                    {winner.name.charAt(0).toUpperCase()}
+                  </div>
+
+                  {/* Name + Medal */}
+                  <div className="sheen-wrapper relative inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-pink-500 to-indigo-500 px-4 py-2 font-semibold text-white shadow-lg">
+                    <span className="relative z-10">{winner.name} 🥇</span>
+                  </div>
+
+                  {/* Subtext */}
+                  <p className="mt-2 text-lg text-indigo-200">
+                    won the last round!
+                  </p>
+
+                  {/*  For screen readers */}
+                  <div role="status" aria-live="polite" className="sr-only">
+                    {winner.name} won the last round
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Lobby Card */}
             <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8 shadow-lg backdrop-blur-sm">
               <h2 className="mb-6 text-2xl font-semibold leading-relaxed text-white md:text-3xl">
                 Room{' '}
@@ -147,7 +212,7 @@ export default function RoomPage() {
                     {leaderId && playerId === leaderId && (
                       <button
                         onClick={startGame}
-                        className="rounded-md bg-emerald-500 px-4 py-1.5 text-base font-medium text-white shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900"
+                        className="rounded-md bg-emerald-500 px-4 py-1.5 text-base font-medium text-black shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900"
                         aria-label="Start game now"
                       >
                         Start now
@@ -205,27 +270,29 @@ export default function RoomPage() {
                 </div>
               </div>
 
-              {/* Game Instructions */}
-              <div className="mb-8 rounded-xl border border-white/10 bg-white/5 p-6 shadow-sm">
-                <h3 className="mb-3 text-lg font-medium text-indigo-100">
-                  How to Play
-                </h3>
-                <ul className="list-disc space-y-2 pl-5 text-left text-base leading-relaxed text-indigo-200">
-                  <li>
-                    Take turns creating words containing the given pattern
-                  </li>
-                  <li>Think fast! The bomb timer gets shorter each round</li>
-                  <li>Words must be valid and not used previously</li>
-                  <li>Last player standing wins the game</li>
-                </ul>
-              </div>
+              {/* Game Instructions (only shown when no winner) */}
+              {!winner && (
+                <div className="mb-8 rounded-xl border border-white/10 bg-white/5 p-6 shadow-sm">
+                  <h3 className="mb-3 text-lg font-medium text-indigo-100">
+                    How to Play
+                  </h3>
+                  <ul className="list-disc space-y-2 pl-5 text-left text-base leading-relaxed text-indigo-200">
+                    <li>
+                      Take turns creating words containing the given pattern
+                    </li>
+                    <li>Think fast! The bomb timer gets shorter each round</li>
+                    <li>Words must be valid and not used previously</li>
+                    <li>Last player standing wins the game</li>
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
 
       {/* Bottom Join + Chat container (mobile only) */}
-      {!gameState && (
+      {visualState !== 'playing' && (
         <div
           className={`fixed bottom-0 left-0 z-40 w-full transform transition-transform duration-300 ease-in-out md:hidden ${
             isChatOpen ? 'translate-y-0' : 'translate-y-[calc(33vh-0.25rem)]'
@@ -257,7 +324,7 @@ export default function RoomPage() {
       )}
 
       {/* Join Game Bar – desktop only */}
-      {!gameState && (
+      {visualState !== 'playing' && (
         <div className="z-10 hidden w-full justify-center gap-4 border-t border-white/10 bg-white/5 py-4 shadow-inner backdrop-blur-sm md:flex">
           <JoinGameButtons />
         </div>

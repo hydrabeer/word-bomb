@@ -1,5 +1,6 @@
 // apps/frontend/src/components/GameBoard.tsx
 import { useRef, useEffect, KeyboardEvent, JSX, useMemo } from 'react';
+import { PlayerBubble } from './PlayerBubble';
 
 export interface GameState {
   fragment: string;
@@ -89,6 +90,8 @@ export function GameBoard({
     );
   }
 
+  const isMobile = useMemo(() => window.innerWidth < 640, []);
+
   const playerViews = useMemo(() => {
     if (!gameState) return [];
     const highlightWithCache = (
@@ -117,7 +120,6 @@ export function GameBoard({
         count <= 4 ? predefinedAngles[count][index] : (index / count) * 360;
       const angleRad = (angleDeg * Math.PI) / 180;
 
-      const isMobile = window.innerWidth < 640;
       const radius = isMobile ? 140 : 280;
 
       const x = Math.cos(angleRad) * radius;
@@ -147,7 +149,21 @@ export function GameBoard({
         highlighted: highlightedInput ?? highlightedLastWord,
       };
     });
-  }, [gameState, liveInputs, lastSubmittedWords]);
+  }, [gameState, isMobile, liveInputs, lastSubmittedWords]);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    const handleFocus = () => {
+      setTimeout(() => {
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+    };
+
+    input.addEventListener('focus', handleFocus);
+    return () => input.removeEventListener('focus', handleFocus);
+  }, []);
 
   if (!gameState) {
     return (
@@ -167,10 +183,14 @@ export function GameBoard({
     : 100;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 shadow-lg">
+    <div
+      className={`flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 shadow-lg ${
+        isMobile ? 'pb-[33vh]' : ''
+      }`}
+    >
       {/* Game Stats Bar */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-black/20 px-4 py-2 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
+      <div className="grid grid-cols-3 items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2 text-center text-sm shadow-inner backdrop-blur-sm">
+        <div className="flex flex-col items-start text-left">
           <span className="text-xs uppercase tracking-wider text-indigo-300">
             Fragment
           </span>
@@ -178,22 +198,25 @@ export function GameBoard({
             {gameState.fragment}
           </span>
         </div>
-        <div className="text-center">
+
+        <div className="flex flex-col items-center">
           <span className="text-xs uppercase tracking-wider text-indigo-300">
             Time
           </span>
-          <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-white/10">
+          <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
             <div
-              className={`h-full transition-all duration-100 ease-linear ${
+              key={gameState.currentPlayerId}
+              className={`h-full origin-left ${
                 isUrgent
-                  ? 'animate-pulse bg-gradient-to-r from-red-500 to-orange-400'
+                  ? 'bg-gradient-to-r from-red-500 to-orange-400'
                   : 'bg-gradient-to-r from-emerald-500 to-emerald-400'
-              }`}
-              style={{ width: `${countdownPercentage}%` }}
+              } animate-bomb-progress`}
+              style={{ animationDuration: `${gameState.bombDuration}s` }}
             />
           </div>
         </div>
-        <div>
+
+        <div className="flex flex-col items-end text-right">
           <span className="text-xs uppercase tracking-wider text-indigo-300">
             Players
           </span>
@@ -201,7 +224,7 @@ export function GameBoard({
             {gameState.players.map((p) => (
               <div
                 key={p.id}
-                className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                className={`h-2 w-2 rounded-full transition-transform duration-300 ${
                   p.isEliminated
                     ? 'bg-red-500/50'
                     : p.id === gameState.currentPlayerId
@@ -219,7 +242,7 @@ export function GameBoard({
         {/* Bomb Pulse Ring - Visual Countdown */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div
-            className={`absolute h-[120px] w-[120px] rounded-full border-4 transition-all duration-100 sm:h-[180px] sm:w-[180px] ${
+            className={`absolute h-[120px] w-[120px] rounded-full border-4 transition-transform duration-100 sm:h-[180px] sm:w-[180px] ${
               isUrgent
                 ? 'border-red-600/50 shadow-lg shadow-red-500/20'
                 : 'border-pink-600/30'
@@ -243,24 +266,82 @@ export function GameBoard({
 
         {/* Central Bomb */}
         <div
-          className={`sm:h-18 sm:w-18 flex h-16 w-16 items-center justify-center rounded-full backdrop-blur-sm transition-all duration-300 ${
+          className={`sm:h-18 sm:w-18 flex h-16 w-16 items-center justify-center rounded-full backdrop-blur-sm transition-transform duration-300 ${
             isUrgent
               ? 'bg-red-950/50 shadow-lg shadow-red-500/20'
               : 'bg-black/40'
           }`}
         >
-          <span className="text-center text-2xl font-extrabold uppercase text-white drop-shadow-lg transition-all sm:text-3xl">
+          <span className="text-center text-2xl font-extrabold uppercase text-white drop-shadow-lg sm:text-3xl">
             {gameState.fragment}
           </span>
         </div>
 
-        {/* Current Turn Indicator */}
-        {gameState?.currentPlayerId && (
-          <div className="absolute left-0 right-0 top-0 py-3 text-center text-base font-medium">
-            <div
-              className={`inline-block rounded-full border border-indigo-700/30 bg-indigo-900/50 px-4 py-1 backdrop-blur-sm transition-all duration-300`}
-            >
-              <span className="mr-2 text-indigo-300">Turn:</span>
+        {/* Player positions around bomb */}
+        <div className="pointer-events-none absolute inset-0">
+          {playerViews.map((view) => (
+            <PlayerBubble
+              key={view.player.id}
+              {...view}
+              lastWordAcceptedBy={lastWordAcceptedBy}
+              isUrgent={isUrgent}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="border-t border-white/10 bg-black/20 px-4 py-4 shadow-inner backdrop-blur-sm transition-transform duration-300">
+        <div className="relative mx-auto flex max-w-xl items-center justify-center gap-3">
+          {isMyTurn ? (
+            <>
+              <label className="relative block flex-1">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputWord}
+                  onChange={(e) => setInputWord(e.target.value)}
+                  onKeyDown={onKeyDownHandler}
+                  placeholder="Type a word..."
+                  inputMode="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  enterKeyHint="done"
+                  className={`peer w-full rounded-lg border ${
+                    rejected
+                      ? 'animate-shake border-red-500 bg-red-500/10'
+                      : inputWord
+                            .toLowerCase()
+                            .includes(gameState.fragment.toLowerCase())
+                        ? 'border-emerald-500 bg-emerald-900/10'
+                        : 'border-indigo-600/30 focus:border-emerald-400'
+                  } bg-indigo-900/50 px-4 py-3 pt-5 text-base text-white placeholder-transparent transition-all focus:outline-none focus:ring-2 focus:ring-emerald-400`}
+                  style={{
+                    fontSize: '16px', // prevents zoom on iOS Safari
+                  }}
+                />
+                <span className="pointer-events-none absolute left-4 top-2 text-sm text-indigo-300 opacity-0 transition-all duration-200 peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-indigo-300 peer-placeholder-shown:opacity-100 peer-focus:top-1 peer-focus:text-xs peer-focus:text-indigo-200 peer-focus:opacity-100">
+                  Type a word containing &ldquo;{gameState.fragment}&rdquo;...
+                </span>
+              </label>
+              <button
+                onClick={handleSubmitWord}
+                className={`rounded-lg px-4 py-3 font-medium text-white shadow-lg transition-transform ${
+                  inputWord
+                    .toLowerCase()
+                    .includes(gameState.fragment.toLowerCase())
+                    ? 'bg-emerald-600 shadow-emerald-600/20 hover:bg-emerald-500'
+                    : 'bg-indigo-600 shadow-indigo-600/20 hover:bg-indigo-500'
+                } disabled:opacity-50`}
+                disabled={inputWord.length < gameState.fragment.length}
+              >
+                Submit
+              </button>
+            </>
+          ) : (
+            <div className="flex w-full items-center justify-center rounded-lg border border-indigo-700/30 bg-indigo-900/50 px-4 py-3 text-center text-base font-medium text-indigo-200 backdrop-blur-sm">
+              <span className="mr-2 text-indigo-300">Waiting for:</span>
               <span className="font-semibold text-emerald-400">
                 {
                   gameState.players.find(
@@ -269,143 +350,9 @@ export function GameBoard({
                 }
               </span>
             </div>
-          </div>
-        )}
-
-        {/* Player positions around bomb */}
-        <div className="pointer-events-none absolute inset-0">
-          {playerViews.map(
-            ({ player, isActive, isEliminated, x, y, highlighted }) => (
-              <div
-                key={player.id}
-                className="absolute left-1/2 top-1/2 flex flex-col items-center transition-all duration-300"
-                style={{
-                  transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                }}
-              >
-                {/* Player Platform */}
-                <div
-                  className={`absolute -inset-3 -z-10 rounded-xl transition-all duration-300 ${
-                    isActive
-                      ? 'border border-emerald-500/30 bg-emerald-500/10'
-                      : isEliminated
-                        ? 'border border-red-500/10 bg-red-500/5'
-                        : 'bg-indigo-500/5'
-                  } backdrop-blur-sm ${isActive ? 'scale-110' : 'scale-100'} ${
-                    isActive && isUrgent ? 'animate-pulse' : ''
-                  }`}
-                />
-
-                {/* Success Flash */}
-                {lastWordAcceptedBy === player.id && (
-                  <div className="flash-ring bg-emerald-500/30" />
-                )}
-
-                {/* Player Name & Lives */}
-                <div
-                  className={`rounded-full px-3 py-1 transition-all ${
-                    isEliminated
-                      ? 'line-through opacity-40'
-                      : isActive
-                        ? 'font-semibold'
-                        : ''
-                  } ${
-                    isActive
-                      ? 'border border-emerald-500/30 bg-emerald-950/30 text-emerald-300'
-                      : isEliminated
-                        ? 'border border-red-500/30 bg-red-950/30 text-red-300'
-                        : 'border border-indigo-500/30 bg-indigo-950/30 text-indigo-200'
-                  } shadow-lg backdrop-blur-sm`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="whitespace-nowrap text-center text-sm sm:text-base">
-                      {player.name}
-                    </span>
-                    <span className="text-xs">
-                      {isEliminated
-                        ? '💀'
-                        : Array(player.lives)
-                            .fill('❤️')
-                            .map((heart, i) => (
-                              <span
-                                key={i}
-                                className={`inline-block scale-75 transform ${
-                                  isActive && isUrgent ? 'animate-pulse' : ''
-                                }`}
-                              >
-                                {heart}
-                              </span>
-                            ))}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Word Display */}
-                <div
-                  className={`mt-2 rounded px-2 py-1 text-center backdrop-blur-sm transition-all ${
-                    isActive
-                      ? 'border border-white/10 bg-black/20'
-                      : 'bg-black/10'
-                  }`}
-                >
-                  <span
-                    className={`text-lg font-bold uppercase tracking-wide text-white shadow-sm sm:text-xl ${
-                      isActive && gameState.fragment.length > 0
-                        ? 'animate-typing'
-                        : ''
-                    }`}
-                  >
-                    {highlighted}
-                  </span>
-                </div>
-              </div>
-            ),
           )}
         </div>
       </div>
-
-      {/* Input Area */}
-      {isMyTurn && (
-        <div className="border-t border-white/10 bg-black/20 px-4 py-4 shadow-inner backdrop-blur-sm transition-all duration-300">
-          <div className="relative mx-auto flex max-w-xl items-center gap-3">
-            <label className="relative block flex-1">
-              <input
-                ref={inputRef}
-                type="text"
-                value={inputWord}
-                onChange={(e) => setInputWord(e.target.value)}
-                onKeyDown={onKeyDownHandler}
-                placeholder="Type a word..."
-                className={`peer w-full rounded-lg border ${
-                  rejected
-                    ? 'animate-shake border-red-500 bg-red-500/10'
-                    : inputWord
-                          .toLowerCase()
-                          .includes(gameState.fragment.toLowerCase())
-                      ? 'border-emerald-500 bg-emerald-900/10'
-                      : 'border-indigo-600/30 focus:border-emerald-400'
-                } bg-indigo-900/50 px-4 py-3 pt-5 text-base text-white placeholder-transparent transition-all focus:outline-none focus:ring-2 focus:ring-emerald-400`}
-              />
-              <span className="pointer-events-none absolute left-4 top-2 text-sm text-indigo-300 opacity-0 transition-all duration-200 peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-indigo-300 peer-placeholder-shown:opacity-100 peer-focus:top-1 peer-focus:text-xs peer-focus:text-indigo-200 peer-focus:opacity-100">
-                Type a word containing &ldquo;{gameState.fragment}&rdquo;...
-              </span>
-            </label>
-            <button
-              onClick={handleSubmitWord}
-              className={`rounded-lg px-4 py-3 font-medium text-white shadow-lg transition-all ${
-                inputWord
-                  .toLowerCase()
-                  .includes(gameState.fragment.toLowerCase())
-                  ? 'bg-emerald-600 shadow-emerald-600/20 hover:bg-emerald-500'
-                  : 'bg-indigo-600 shadow-indigo-600/20 hover:bg-indigo-500'
-              } disabled:opacity-50`}
-              disabled={inputWord.length < gameState.fragment.length}
-            >
-              Submit
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
