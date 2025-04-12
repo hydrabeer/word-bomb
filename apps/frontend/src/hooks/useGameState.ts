@@ -6,6 +6,7 @@ import type {
   GameStartedPayload,
   TurnStartedPayload,
   PlayerUpdatedPayload,
+  GameEndedPayload,
 } from '@game/domain/socket/types';
 import type { GameState } from '../components/GameBoard';
 
@@ -26,6 +27,7 @@ export function useGameState(roomCode: string) {
   const [lastWordAcceptedBy, setLastWordAcceptedBy] = useState<string | null>(
     null,
   );
+  const [winnerId, setWinnerId] = useState<string | null>(null);
 
   // Countdown timer effect
   useEffect(() => {
@@ -79,6 +81,7 @@ export function useGameState(roomCode: string) {
     }
 
     function handleGameStarted(data: GameStartedPayload) {
+      setWinnerId(null);
       setGameState({
         fragment: data.fragment,
         bombDuration: data.bombDuration,
@@ -144,9 +147,16 @@ export function useGameState(roomCode: string) {
       });
     }
 
-    function handleGameEnded() {
+    function handleGameEnded(data: GameEndedPayload) {
       setGameStartedAt(null);
       setElapsedGameTime(0);
+      setLastSubmittedWords({});
+      setLiveInputs({});
+      setLastWordAcceptedBy(null);
+      setTurnDeadline(null);
+      setBombCountdown(0);
+      setWinnerId(data.winnerId);
+      setGameState(null);
     }
 
     socket.on('gameCountdownStarted', handleGameCountdownStarted);
@@ -198,6 +208,7 @@ export function useGameState(roomCode: string) {
     liveInputs,
     lastSubmittedWords,
     lastWordAcceptedBy,
+    winnerId,
     updateLiveInput: (playerId: string, input: string) => {
       socket.emit('playerTyping', { roomCode, playerId, input });
     },
