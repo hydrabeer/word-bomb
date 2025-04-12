@@ -116,7 +116,7 @@ export default function RoomPage() {
   }
 
   return (
-    <div className="flex h-[100svh] w-screen flex-col overflow-hidden bg-gradient-to-br from-indigo-950 to-purple-900 text-white">
+    <div className="flex h-[100svh] w-screen flex-col bg-gradient-to-br from-indigo-950 to-purple-900 text-white">
       {/* Top Bar */}
       <div className="relative flex -translate-y-[7px] items-center justify-between border-b border-white/10 bg-gradient-to-r from-indigo-800/70 to-purple-800/70 p-3 text-base text-white backdrop-blur-sm">
         <div className="flex translate-y-1 items-center gap-3">
@@ -148,7 +148,7 @@ export default function RoomPage() {
 
       {/* Main Area */}
       <div
-        className={`flex-1 overflow-y-auto transition-all duration-300 ${
+        className={`relative flex-1 overflow-y-auto transition-all duration-300 ${
           isChatOpen && isMobile ? 'pb-[33vh] md:pb-0' : 'pb-safe'
         }`}
       >

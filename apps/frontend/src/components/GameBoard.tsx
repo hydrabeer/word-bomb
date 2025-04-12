@@ -102,7 +102,7 @@ export function GameBoard({
 
     const baseAngle = (360 / count) * index;
 
-    return 270 - baseAngle; // Rotate so current player is at bottom (270°)
+    return 90 - baseAngle; // Rotate so current player is at top (90 degrees)
   }, [gameState, isMobile]);
 
   const playerViews = useMemo(() => {
@@ -313,8 +313,8 @@ export function GameBoard({
 
       {/* Bottom bar */}
       <div
-        className={`border-t border-white/10 bg-black/20 px-4 py-4 shadow-inner backdrop-blur-sm transition-transform duration-300 ${
-          isMobile ? 'fixed bottom-0 left-0 z-30 w-full' : ''
+        className={`border-t border-white/10 bg-black/20 px-4 py-4 shadow-inner backdrop-blur-sm transition-all duration-300 ${
+          isMobile ? 'sticky bottom-0 left-0 z-30 w-full' : ''
         }`}
       >
         <div className="relative mx-auto flex max-w-xl items-center justify-center gap-3">
