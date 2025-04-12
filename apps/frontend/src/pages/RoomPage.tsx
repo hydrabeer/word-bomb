@@ -116,7 +116,7 @@ export default function RoomPage() {
   }
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-gradient-to-br from-indigo-950 to-purple-900 text-white">
+    <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-gradient-to-br from-indigo-950 to-purple-900 text-white">
       {/* Top Bar */}
       <div className="relative flex -translate-y-[7px] items-center justify-between border-b border-white/10 bg-gradient-to-r from-indigo-800/70 to-purple-800/70 p-3 text-base text-white backdrop-blur-sm">
         <div className="flex translate-y-1 items-center gap-3">
@@ -169,7 +169,7 @@ export default function RoomPage() {
 
         {/* Lobby with Optional Winner */}
         {visualState !== 'playing' && (
-          <div className="flex h-full flex-col items-center justify-center px-4 text-center">
+          <div className="flex h-[100dvh] flex-col items-center justify-center px-4 text-center">
             {winner && (
               <div className="animate-winner-fade-in mb-10 flex flex-col items-center">
                 <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl backdrop-blur-sm transition-all">
@@ -332,7 +332,7 @@ export default function RoomPage() {
 
       {/* Chat Panel – desktop only*/}
       <div
-        className={`fixed right-0 top-0 z-40 hidden h-full w-96 flex-col border-l border-white/10 bg-white/5 shadow-lg backdrop-blur-sm transition-transform duration-300 ease-in-out md:flex ${
+        className={`fixed right-0 top-0 z-40 hidden h-[100dvh] w-96 flex-col border-l border-white/10 bg-white/5 shadow-lg backdrop-blur-sm transition-transform duration-300 ease-in-out md:flex ${
           isChatOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -359,7 +359,7 @@ export default function RoomPage() {
           } focus:outline-none`}
           aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
         >
-          <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
+          <div className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden">
             <div
               className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
                 isChatOpen ? 'opacity-100' : 'opacity-0'

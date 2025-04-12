@@ -120,7 +120,7 @@ export function GameBoard({
         count <= 4 ? predefinedAngles[count][index] : (index / count) * 360;
       const angleRad = (angleDeg * Math.PI) / 180;
 
-      const radius = isMobile ? 140 : 280;
+      const radius = isMobile ? 140 : 340;
 
       const x = Math.cos(angleRad) * radius;
       const y = Math.sin(angleRad) * radius;
@@ -183,11 +183,7 @@ export function GameBoard({
     : 100;
 
   return (
-    <div
-      className={`flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 shadow-lg ${
-        isMobile ? 'pb-[33vh]' : ''
-      }`}
-    >
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 shadow-lg">
       {/* Game Stats Bar */}
       <div className="grid grid-cols-3 items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2 text-center text-sm shadow-inner backdrop-blur-sm">
         <div className="flex flex-col items-start text-left">
@@ -206,7 +202,7 @@ export function GameBoard({
           <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
             <div
               key={gameState.currentPlayerId}
-              className={`h-full origin-left ${
+              className={`h-[100dvh] origin-left ${
                 isUrgent
                   ? 'bg-gradient-to-r from-red-500 to-orange-400'
                   : 'bg-gradient-to-r from-emerald-500 to-emerald-400'
@@ -291,7 +287,11 @@ export function GameBoard({
       </div>
 
       {/* Bottom bar */}
-      <div className="border-t border-white/10 bg-black/20 px-4 py-4 shadow-inner backdrop-blur-sm transition-transform duration-300">
+      <div
+        className={`border-t border-white/10 bg-black/20 px-4 py-4 shadow-inner backdrop-blur-sm transition-transform duration-300 ${
+          isMobile ? 'fixed bottom-0 left-0 z-30 w-full' : ''
+        }`}
+      >
         <div className="relative mx-auto flex max-w-xl items-center justify-center gap-3">
           {isMyTurn ? (
             <>
@@ -325,19 +325,21 @@ export function GameBoard({
                   Type a word containing &ldquo;{gameState.fragment}&rdquo;...
                 </span>
               </label>
-              <button
-                onClick={handleSubmitWord}
-                className={`rounded-lg px-4 py-3 font-medium text-white shadow-lg transition-transform ${
-                  inputWord
-                    .toLowerCase()
-                    .includes(gameState.fragment.toLowerCase())
-                    ? 'bg-emerald-600 shadow-emerald-600/20 hover:bg-emerald-500'
-                    : 'bg-indigo-600 shadow-indigo-600/20 hover:bg-indigo-500'
-                } disabled:opacity-50`}
-                disabled={inputWord.length < gameState.fragment.length}
-              >
-                Submit
-              </button>
+              {!isMobile && (
+                <button
+                  onClick={handleSubmitWord}
+                  className={`rounded-lg px-4 py-3 font-medium text-white shadow-lg transition-transform ${
+                    inputWord
+                      .toLowerCase()
+                      .includes(gameState.fragment.toLowerCase())
+                      ? 'bg-emerald-600 shadow-emerald-600/20 hover:bg-emerald-500'
+                      : 'bg-indigo-600 shadow-indigo-600/20 hover:bg-indigo-500'
+                  } disabled:opacity-50`}
+                  disabled={inputWord.length < gameState.fragment.length}
+                >
+                  Submit
+                </button>
+              )}
             </>
           ) : (
             <div className="flex w-full items-center justify-center rounded-lg border border-indigo-700/30 bg-indigo-900/50 px-4 py-3 text-center text-base font-medium text-indigo-200 backdrop-blur-sm">

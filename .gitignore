@@ -38,4 +38,4 @@ Thumbs.db
 tsconfig.tsbuildinfo
 
 # Don't commit dictionary
-apps/backend/src/dictionary/words.txt
+apps/backend/src/dictionary/*.txt

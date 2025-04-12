@@ -26,10 +26,7 @@ export async function loadDictionary(): Promise<void> {
 
   try {
     const raw = fs.readFileSync(filePath, 'utf-8');
-    const words = raw
-      .split('\n')
-      .map((w) => w.trim())
-      .filter(Boolean);
+    const words = raw.split('\n');
     dictionary = new Set(words);
     console.log(`✅ Loaded ${dictionary.size.toString()} words`);
 
