@@ -92,6 +92,19 @@ export function GameBoard({
 
   const isMobile = useMemo(() => window.innerWidth < 640, []);
 
+  const rotationOffset = useMemo(() => {
+    if (!gameState || !isMobile) return 0;
+
+    const index = gameState.players.findIndex(
+      (p) => p.id === gameState.currentPlayerId,
+    );
+    const count = gameState.players.length;
+
+    const baseAngle = (360 / count) * index;
+
+    return 270 - baseAngle; // Rotate so current player is at bottom (270°)
+  }, [gameState, isMobile]);
+
   const playerViews = useMemo(() => {
     if (!gameState) return [];
     const highlightWithCache = (
@@ -202,7 +215,7 @@ export function GameBoard({
           <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
             <div
               key={gameState.currentPlayerId}
-              className={`h-[100dvh] origin-left ${
+              className={`h-full origin-left ${
                 isUrgent
                   ? 'bg-gradient-to-r from-red-500 to-orange-400'
                   : 'bg-gradient-to-r from-emerald-500 to-emerald-400'
@@ -274,15 +287,27 @@ export function GameBoard({
         </div>
 
         {/* Player positions around bomb */}
-        <div className="pointer-events-none absolute inset-0">
-          {playerViews.map((view) => (
-            <PlayerBubble
-              key={view.player.id}
-              {...view}
-              lastWordAcceptedBy={lastWordAcceptedBy}
-              isUrgent={isUrgent}
-            />
-          ))}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div
+            className={`relative`}
+            style={{
+              transform:
+                isMobile && rotationOffset !== 0
+                  ? `rotate(${rotationOffset}deg)`
+                  : undefined,
+              transition: 'transform 0.4s ease-in-out',
+            }}
+          >
+            {playerViews.map((view) => (
+              <PlayerBubble
+                key={view.player.id}
+                {...view}
+                lastWordAcceptedBy={lastWordAcceptedBy}
+                isUrgent={isUrgent}
+                rotation={-rotationOffset} // So contents stay upright
+              />
+            ))}
+          </div>
         </div>
       </div>
 

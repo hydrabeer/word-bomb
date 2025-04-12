@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@plugin 'tailwindcss-safe-area';
+
 /* Base styles */
 html,
 body {

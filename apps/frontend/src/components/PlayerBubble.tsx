@@ -11,6 +11,7 @@ function PlayerBubbleComponent({
   highlighted,
   isUrgent,
   lastWordAcceptedBy,
+  rotation = 0,
 }: {
   player: GameState['players'][number];
   isActive: boolean;
@@ -20,12 +21,13 @@ function PlayerBubbleComponent({
   highlighted: string | JSX.Element | null;
   isUrgent: boolean;
   lastWordAcceptedBy: string | null;
+  rotation?: number;
 }) {
   return (
     <div
-      className="absolute left-1/2 top-1/2 flex flex-col items-center transition-transform duration-300"
+      className="absolute left-1/2 top-1/2 transition-transform duration-500 ease-in-out"
       style={{
-        transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+        transform: `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rotation}deg)`,
       }}
     >
       <div
