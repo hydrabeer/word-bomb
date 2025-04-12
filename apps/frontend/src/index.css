@@ -57,19 +57,21 @@ a {
   animation: flash-ring 0.5s ease-out;
 }
 
-@keyframes bomb-pulse {
+@keyframes bomb-progress {
   0% {
-    transform: scale(1.05);
+    transform: scaleX(1);
   }
   100% {
-    transform: scale(1);
+    transform: scaleX(0);
   }
 }
 
-/*.animate-bomb-pulse {*/
-/*  animation: bomb-pulse 0.33s ease-out infinite;*/
-/*  will-change: transform;*/
-/*}*/
+.animate-bomb-progress {
+  animation-name: bomb-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  transform-origin: left;
+}
 
 @keyframes pulse-fast {
   0%,
@@ -112,6 +114,78 @@ a {
   animation: glow 1.5s ease-in-out infinite;
 }
 
-/*.animate-bomb-pulse-fast {*/
-/*  animation: bomb-pulse 0.8s ease-in-out infinite;*/
-/*}*/
+@keyframes sheen {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+.sheen-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.sheen-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    60deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.08) 60%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: sheen 3.5s ease-in-out infinite;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+@keyframes winner-fade-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-winner-fade-in {
+  animation: winner-fade-in 0.4s ease-out both;
+}
+
+/* Tooltip transition */
+#room-tooltip .tooltip-text {
+  transition: opacity 0.3s ease;
+}
+
+#room-tooltip.copied .tooltip-text::after {
+  content: 'Copied!';
+  animation: fadeInOut 2s ease-in-out forwards;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    content: 'Copied!';
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
