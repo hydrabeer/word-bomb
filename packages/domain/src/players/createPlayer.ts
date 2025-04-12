@@ -1,16 +1,29 @@
-// packages/domain/src/players/PlayerFactory.ts
-import { Player, PlayerProps } from './Player';
+// packages/domain/src/players/createPlayer.ts
+import { Player } from './Player';
 import { BonusProgress } from '../game/BonusProgress';
 
 export interface CreatePlayerOptions {
-  props: Omit<PlayerProps, 'bonusProgress'>;
-  bonusTemplate: number[]; // e.g. [1,1,...] of length 26
+  id: string;
+  name: string;
+  isLeader?: boolean;
+  lives: number;
+  bonusTemplate: number[];
 }
 
 export function createPlayer({
-  props,
+  id,
+  name,
+  isLeader = false,
+  lives,
   bonusTemplate,
 }: CreatePlayerOptions): Player {
-  const bonus = new BonusProgress(bonusTemplate);
-  return new Player({ ...props, bonusProgress: bonus });
+  return new Player({
+    id,
+    name,
+    isLeader,
+    isSeated: false,
+    isEliminated: false,
+    lives,
+    bonusProgress: new BonusProgress(bonusTemplate),
+  });
 }

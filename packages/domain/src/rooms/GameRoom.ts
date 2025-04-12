@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Player, PlayerProps } from '../players/Player';
+import { Player } from '../players/Player';
 import { createPlayer } from '../players/createPlayer';
 import { GameRoomRules } from './GameRoomRules';
 import { Game } from '../game/Game';
@@ -46,22 +46,23 @@ export class GameRoom {
    * @param props The player's initial properties
    * @throws If a player with the same ID already exists
    */
-  addPlayer(props: PlayerProps): void {
-    if (this.players.has(props.id)) throw new Error('Player already in room.');
+  addPlayer({ id, name }: { id: string; name: string }): void {
+    if (this.players.has(id)) throw new Error('Player already in room.');
+
+    const isLeader = this.players.size === 0;
 
     const player = createPlayer({
-      props: {
-        ...props,
-        lives: this.rules.maxLives,
-        isLeader: this.players.size === 0, // first player is leader
-      },
+      id,
+      name,
+      isLeader,
+      lives: this.rules.maxLives,
       bonusTemplate: this.rules.bonusTemplate,
     });
 
-    this.players.set(player.id, player);
+    this.players.set(id, player);
 
-    if (player.isLeader) {
-      this.leaderId = player.id;
+    if (isLeader) {
+      this.leaderId = id;
     }
   }
 
