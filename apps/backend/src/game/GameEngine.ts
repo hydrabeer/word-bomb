@@ -1,8 +1,12 @@
 import { Game } from '@game/domain/game/Game';
 import { getRandomFragment, isValidWord } from '../dictionary';
 import { Player } from '@game/domain/players/Player';
+import type { ServerToClientEvents } from '@game/domain/socket/types';
 
-type EmitFn<T = unknown> = (event: string, payload: T) => void;
+type EmitFn = <K extends keyof ServerToClientEvents>(
+  event: K,
+  ...args: Parameters<ServerToClientEvents[K]>
+) => void;
 
 interface GameEngineOptions {
   game: Game;
