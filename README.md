@@ -1,5 +1,20 @@
 # Word Bomb
 
+# Table of Contents
+
+- [Overview](#overview)
+- [🧰 Prerequisites](#-prerequisites)
+  - [Node.js](#nodejs)
+  - [pnpm (monorepo package manager)](#pnpm-monorepo-package-manager)
+- [📦 Setup](#-setup)
+  - [1. Clone the repo](#1-clone-the-repo)
+  - [2. Install dependencies with pnpm](#2-install-dependencies-with-pnpm)
+  - [3. Setup dev environment](#3-setup-dev-environment)
+  - [4. Start the server](#4-start-the-server)
+- [🔐 Dictionary Setup](#-dictionary-setup)
+- [🛠 Packages](#-packages)
+- [🧪 Scripts](#-scripts)
+
 ## Overview
 
 This monorepo is a reimagining of the classic game _Bomb Party_, built with
@@ -60,7 +75,7 @@ pnpm install
 
 ### 3. Setup dev environment
 
-You'll need to define a .env file containing:
+You'll need to make a file, `apps/frontend/.env`, containing:
 
 ```.dotenv
 VITE_BACKEND_URL=http://localhost:3001
@@ -70,6 +85,8 @@ for the backend server to work.
 
 ### 4. Start the server
 
+Run this from the root of the repo to start both the frontend and backend servers:
+
 ```bash
 pnpm dev
 ```
@@ -78,13 +95,13 @@ pnpm dev
 
 This project uses a large (secret!) dictionary for word validation.
 
-As a developer, you can place place your own dictionary at:
+As a developer, you can find your own dictionary for testing and place it at:
 
 ```
 apps/backend/src/dictionary/words.txt
 ```
 
-(It's gitignored.)
+(It's already gitignored.)
 
 ## 🛠 Packages
 
@@ -94,8 +111,12 @@ apps/backend/src/dictionary/words.txt
 
 ## 🧪 Scripts
 
+The following scripts are available in the root of the repo:
+
 ```bash
 pnpm dev         # Run dev servers
 pnpm lint        # Run eslint across packages
 pnpm format      # Format codebase with Prettier
 ```
+
+All three of these should be run and any errors fixed before committing code.
