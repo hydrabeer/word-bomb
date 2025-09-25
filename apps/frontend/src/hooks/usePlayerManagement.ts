@@ -1,7 +1,7 @@
 // apps/frontend/src/hooks/usePlayerManagement.ts
 import { useState, useEffect, useMemo } from 'react';
 import { socket } from '../socket';
-import type { PlayersUpdatedPayload } from '@game/domain/socket/types';
+import type { PlayersUpdatedPayload, PlayersDiffPayload } from '@game/domain/socket/types';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
 
 export function usePlayerManagement(roomCode: string) {
@@ -26,9 +26,35 @@ export function usePlayerManagement(roomCode: string) {
       setLeaderId(data.leaderId ?? null);
     }
 
+    function handlePlayersDiff(diff: PlayersDiffPayload) {
+      setPlayers((prev) => {
+        let next = [...prev];
+        if (diff.removed.length) {
+          const removedSet = new Set(diff.removed);
+            next = next.filter(p => !removedSet.has(p.id));
+        }
+        if (diff.added.length) {
+          next = next.concat(diff.added.map(a => ({ id: a.id, name: a.name, isSeated: a.isSeated })));
+        }
+        if (diff.updated.length) {
+          const updatesMap = new Map(diff.updated.map(u => [u.id, u.changes]));
+          next = next.map(p => {
+            const changes = updatesMap.get(p.id);
+            return changes ? { ...p, ...changes } : p;
+          });
+        }
+        return next;
+      });
+      if (diff.leaderIdChanged !== undefined) {
+        setLeaderId(diff.leaderIdChanged === '' ? null : diff.leaderIdChanged);
+      }
+    }
+
     socket.on('playersUpdated', handlePlayersUpdated);
+    socket.on('playersDiff', handlePlayersDiff);
     return () => {
       socket.off('playersUpdated', handlePlayersUpdated);
+      socket.off('playersDiff', handlePlayersDiff);
     };
   }, []);
 

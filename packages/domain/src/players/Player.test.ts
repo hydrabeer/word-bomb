@@ -114,11 +114,12 @@ describe('Player', () => {
     ).toThrow();
   });
 
-  it('fails validation with non-UUID id', () => {
+  it('fails validation with empty id', () => {
     expect(
       () =>
         new Player(
-          makePlayerProps({ id: '1234' }), // invalid UUID
+          // empty string should violate non-empty id rule
+          makePlayerProps({ id: '' as unknown as string }),
         ),
     ).toThrow();
   });

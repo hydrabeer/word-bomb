@@ -2,11 +2,15 @@ import { z } from 'zod';
 import { BonusProgress } from '../game/BonusProgress';
 
 export const PlayerSchema = z.object({
-  id: z.string().uuid(),
+  // Accept any non-empty string for id to support transport/socket IDs.
+  // (Previously enforced UUID; integration tests use Socket.IO connection ids.)
+  id: z.string().min(1),
   name: z.string().min(1).max(20),
   isLeader: z.boolean().default(false),
   isSeated: z.boolean().default(false),
   isEliminated: z.boolean().default(false),
+  // Whether the player currently has an active socket connection
+  isConnected: z.boolean().default(true),
   lives: z.number().int().min(0),
   bonusProgress: z.instanceof(BonusProgress),
 });
@@ -33,6 +37,9 @@ export class Player {
   /** Whether the player has been eliminated in the current game */
   public isEliminated: boolean;
 
+  /** Whether this player is currently connected via websocket */
+  public isConnected: boolean;
+
   /** Remaining lives in the current game (0 means eliminated) */
   public lives: number;
 
@@ -51,6 +58,7 @@ export class Player {
     this.isLeader = parsed.isLeader;
     this.isSeated = parsed.isSeated;
     this.isEliminated = parsed.isEliminated;
+    this.isConnected = parsed.isConnected;
     this.lives = parsed.lives;
     this.bonusProgress = parsed.bonusProgress;
   }

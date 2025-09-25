@@ -17,9 +17,31 @@ export default tseslint.config(
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
-        project: ['./tsconfig.base.json'],
+        project: [
+          './tsconfig.base.json',
+          './apps/backend/tsconfig.json',
+          './apps/frontend/tsconfig.json',
+          './packages/domain/tsconfig.json',
+        ],
       },
     },
     rules: {},
+  },
+  {
+    files: ['apps/backend/test/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+        project: ['./apps/backend/tsconfig.json'],
+      },
+    },
+    rules: {
+      // Tests interact with dynamic runtime socket objects; loosen unsafe rules here only
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+    },
   },
 );

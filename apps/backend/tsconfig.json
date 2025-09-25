@@ -5,11 +5,11 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "composite": true,
-    "rootDir": "src",
+    "rootDir": "./",
     "outDir": "dist",
     "types": ["vitest/globals"]
   },
-  "include": ["src", "vitest.config.ts"],
+  "include": ["src", "test", "vitest.config.ts"],
   "references": [
     {
       "path": "../../packages/domain"

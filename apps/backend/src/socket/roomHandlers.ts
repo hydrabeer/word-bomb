@@ -11,6 +11,13 @@ import type { Player } from '@game/domain/players/Player';
 
 import type { TypedServer, TypedSocket } from './typedSocket';
 
+// Configurable grace period (ms) before removing a disconnected player.
+// Tests may adjust via setDisconnectGrace().
+export let DISCONNECT_GRACE_MS = 10000;
+export function setDisconnectGrace(ms: number) {
+  DISCONNECT_GRACE_MS = ms;
+}
+
 export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   // joinRoom event
   socket.on('joinRoom', (data, cb) => {
@@ -37,6 +44,20 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       if (socket.data.currentRoomCode !== roomCode) {
         const prevRoom = socket.data.currentRoomCode;
         if (prevRoom && prevRoom !== roomCode) {
+          // Remove player entity from previous room when switching rooms
+          const old = roomManager.get(prevRoom);
+          if (old?.hasPlayer(playerId)) {
+            const oldName = old.getPlayer(playerId)?.name ?? 'Someone';
+            old.removePlayer(playerId);
+            emitPlayers(io, old);
+            io.to(socketRoomId(prevRoom)).emit('chatMessage', {
+              roomCode: prevRoom,
+              sender: 'System',
+              message: `${oldName} left the room.`,
+              timestamp: Date.now(),
+              type: 'system',
+            });
+          }
           void socket.leave(socketRoomId(prevRoom));
           console.log(`[JOIN ROOM] Socket ${socket.id} left room:${prevRoom}`);
         }
@@ -47,7 +68,6 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
 
       if (!room.hasPlayer(playerId)) {
         room.addPlayer({ id: playerId, name });
-
         io.to(socketRoomId(roomCode)).emit('chatMessage', {
           roomCode,
           sender: 'System',
@@ -55,7 +75,10 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
           timestamp: Date.now(),
           type: 'system',
         });
-
+        emitPlayers(io, room);
+      } else {
+        // Reconnection path
+        room.setPlayerConnected(playerId, true);
         emitPlayers(io, room);
       }
 
@@ -74,7 +97,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     );
     const room = roomManager.get(roomCode);
     if (!room) return;
-    room.removePlayer(playerId);
+  room.removePlayer(playerId);
     const playerName = room.getPlayer(playerId)?.name ?? 'Someone';
     io.to(socketRoomId(roomCode)).emit('chatMessage', {
       roomCode,
@@ -130,13 +153,14 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
             console.error('[AUTO START] Error starting game:', err);
           }
         }, timeLeft);
-        io.to(socketRoomId(roomCode)).emit('gameCountdownStarted', {
-          deadline,
-        });
+        io.to(socketRoomId(roomCode)).emit('gameCountdownStarted', { deadline });
       }
     } else {
-      room.cancelGameStartTimer();
-      io.to(socketRoomId(roomCode)).emit('gameCountdownStopped');
+      // Only emit countdownStopped if a timer was actually running to avoid duplicate stop events.
+      if (room.isGameTimerRunning()) {
+        room.cancelGameStartTimer();
+        io.to(socketRoomId(roomCode)).emit('gameCountdownStopped');
+      }
     }
     emitPlayers(io, room);
     callback({ success: true });
@@ -195,10 +219,17 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   // submitWord event
   socket.on('submitWord', (data, cb) => {
     const callback = typeof cb === 'function' ? cb : noop;
-    const { roomCode, playerId, word } = data;
+    const { roomCode, playerId, word, clientActionId } = data;
     const room = roomManager.get(roomCode);
     if (!room) {
       callback({ success: false, error: 'Room not found' });
+      if (clientActionId) {
+        socket.emit('actionAck', {
+          clientActionId,
+          success: false,
+          error: 'Room not found',
+        });
+      }
       return;
     }
 
@@ -206,36 +237,67 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     if (!engine) {
       console.warn(`[SUBMIT] No engine for room ${roomCode}`);
       callback({ success: false, error: 'Game engine not running.' });
+      if (clientActionId) {
+        socket.emit('actionAck', {
+          clientActionId,
+          success: false,
+          error: 'Game engine not running.',
+        });
+      }
       return;
     }
     const result = engine.submitWord(playerId, word);
     callback(result);
+    if (clientActionId) {
+      socket.emit('actionAck', {
+        clientActionId,
+        success: result.success,
+        error: result.success ? undefined : result.error,
+      });
+    }
   });
 
   // disconnect event
   socket.on('disconnect', () => {
     const roomCode = socket.data.currentRoomCode;
     if (!roomCode) return;
-
     const room = roomManager.get(roomCode);
     if (!room) return;
-
     const playerId = socket.id;
-    const playerName = room.getPlayer(playerId)?.name ?? 'A player';
-
-    room.removePlayer(playerId);
-    emitPlayers(io, room);
-
-    io.to(socketRoomId(roomCode)).emit('chatMessage', {
-      roomCode,
-      sender: 'System',
-      message: `${playerName} disconnected.`,
-      timestamp: Date.now(),
-      type: 'system',
-    });
-
-    console.log(
-      `❌ [DISCONNECT] player ${playerName} (${playerId}) from room ${roomCode}`,
-    );
+    // Instead of removing immediately, mark disconnected to allow reconnection window
+    if (room.hasPlayer(playerId)) {
+      room.setPlayerConnected(playerId, false);
+      emitPlayers(io, room);
+      const playerName = room.getPlayer(playerId)?.name ?? 'A player';
+      io.to(socketRoomId(roomCode)).emit('chatMessage', {
+        roomCode,
+        sender: 'System',
+        message: `${playerName} disconnected (will be removed if not back soon).`,
+        timestamp: Date.now(),
+        type: 'system',
+      });
+      console.log(`❌ [DISCONNECT] player ${playerId} marked disconnected in room ${roomCode}`);
+      // schedule removal if not reconnected after timeout
+      setTimeout(() => {
+        const stillRoom = roomManager.get(roomCode);
+        if (!stillRoom) return;
+        const p = stillRoom.getPlayer(playerId);
+        if (p && !p.isConnected) {
+          const name = p.name;
+          stillRoom.removePlayer(playerId);
+          emitPlayers(io, stillRoom);
+          io.to(socketRoomId(roomCode)).emit('chatMessage', {
+            roomCode,
+            sender: 'System',
+            message: `${name} removed due to inactivity.`,
+            timestamp: Date.now(),
+            type: 'system',
+          });
+        }
+      }, DISCONNECT_GRACE_MS); // grace period
+    }
   });
+
+  // Enhance joinRoom to treat existing disconnected player as reconnect
+  // (Patch inserted near top of handler inside existing joinRoom listener)
 }

@@ -123,6 +123,17 @@ export class GameRoom {
   }
 
   /**
+   * Marks a player's connectivity state without removing them from the room.
+   * Used to support reconnection after transient network issues.
+   */
+  setPlayerConnected(playerId: string, isConnected: boolean): void {
+    const player = this.players.get(playerId);
+    if (player) {
+      player.isConnected = isConnected;
+    }
+  }
+
+  /**
    * Sets a player’s intent to join the next game.
    * @param playerId The ID of the player
    * @param seated Whether they are joining (true) or spectating (false)

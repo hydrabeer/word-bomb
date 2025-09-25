@@ -23,6 +23,7 @@ export function createPlayer({
     isLeader,
     isSeated: false,
     isEliminated: false,
+    isConnected: true,
     lives,
     bonusProgress: new BonusProgress(bonusTemplate),
   });

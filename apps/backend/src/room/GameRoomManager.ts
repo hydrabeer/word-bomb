@@ -21,4 +21,11 @@ export class GameRoomManager {
     this.rooms.set(code, room);
     return room;
   }
+
+  /**
+   * Removes all rooms. Intended for test isolation only.
+   */
+  clear(): void {
+    this.rooms.clear();
+  }
 }

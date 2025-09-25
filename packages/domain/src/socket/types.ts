@@ -29,6 +29,7 @@ export interface SubmitWordPayload {
   roomCode: string;
   playerId: string;
   word: string;
+  clientActionId?: string; // for optimistic UI correlation
 }
 
 export interface StartGamePayload {
@@ -50,8 +51,29 @@ export interface PlayersUpdatedPayload {
     id: string;
     name: string;
     isSeated: boolean;
+    isConnected?: boolean; // optional for reconnection awareness
   }[];
   leaderId?: string;
+}
+
+// More compact diff update to reduce bandwidth for frequent player state changes
+export interface PlayersDiffPayload {
+  added: {
+    id: string;
+    name: string;
+    isSeated: boolean;
+    isConnected?: boolean;
+  }[];
+  updated: {
+    id: string;
+    changes: Partial<{
+      name: string;
+      isSeated: boolean;
+      isConnected: boolean;
+    }>;
+  }[];
+  removed: string[];
+  leaderIdChanged?: string; // new leader id (or empty string if none)
 }
 
 export interface PlayerUpdatedPayload {
@@ -109,6 +131,12 @@ export interface GameCountdownStartedPayload {
   deadline: number;
 }
 
+export interface ActionAckPayload {
+  clientActionId: string;
+  success: boolean;
+  error?: string;
+}
+
 // --- Event Maps ---
 
 export interface ClientToServerEvents {
@@ -132,6 +160,7 @@ export interface ClientToServerEvents {
 
 export interface ServerToClientEvents {
   playersUpdated: (data: PlayersUpdatedPayload) => void;
+  playersDiff: (data: PlayersDiffPayload) => void;
   playerUpdated: (data: PlayerUpdatedPayload) => void;
   chatMessage: (data: ChatMessagePayload) => void;
   gameStarted: (data: GameStartedPayload) => void;
@@ -141,6 +170,7 @@ export interface ServerToClientEvents {
   wordAccepted: (data: WordAcceptedPayload) => void;
   gameCountdownStarted: (data: GameCountdownStartedPayload) => void;
   gameCountdownStopped: () => void;
+  actionAck: (data: ActionAckPayload) => void;
 }
 
 export interface SocketData {

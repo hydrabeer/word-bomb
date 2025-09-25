@@ -8,5 +8,6 @@
     "rootDir": "src",
     "types": ["vitest/globals"]
   },
-  "include": ["src", "vitest.config.ts"]
+  // Note: Removed "vitest.config.ts" from includes; keeping only source files under rootDir.
+  "include": ["src"]
 }
