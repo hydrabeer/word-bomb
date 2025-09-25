@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "dayjs": "^1.11.13",
-    "linkify-html": "^4.2.0",
+    "linkify-html": "^4.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",

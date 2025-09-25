@@ -97,8 +97,8 @@ importers:
         specifier: ^1.11.13
         version: 1.11.13
       linkify-html:
-        specifier: ^4.2.0
-        version: 4.2.0(linkifyjs@4.2.0)
+        specifier: ^4.3.2
+        version: 4.3.2(linkifyjs@4.3.2)
       react:
         specifier: ^19.0.0
         version: 19.1.0
@@ -2022,13 +2022,13 @@ packages:
     resolution: {integrity: sha512-6b6gd/RUXKaw5keVdSEtqFVdzWnU5jMxTUjA2bVcMNPLwSQ08Sv/UodBVtETLCn7k4S1Ibxwh7k68IwLZPgKaA==}
     engines: {node: '>= 12.0.0'}
 
-  linkify-html@4.2.0:
-    resolution: {integrity: sha512-bVXuLiWmGwvlH95hq6q9DFGqTsQeFSGw/nHmvvjGMZv9T3GqkxuW2d2SOgk/a4DV2ajeS4c37EqlF16cjOj7GA==}
+  linkify-html@4.3.2:
+    resolution: {integrity: sha512-RozNgrfSFrNQlprJSZIN7lF+ZVPj5Pz8POQcu1PYGAUhL9tKtvtWcOXOmlXjuGGEWHtC6gt6Q2U4+VUq9ELmng==}
     peerDependencies:
       linkifyjs: ^4.0.0
 
-  linkifyjs@4.2.0:
-    resolution: {integrity: sha512-pCj3PrQyATaoTYKHrgWRF3SJwsm61udVh+vuls/Rl6SptiDhgE7ziUIudAedRY9QEfynmM7/RmLEfPUyw1HPCw==}
+  linkifyjs@4.3.2:
+    resolution: {integrity: sha512-NT1CJtq3hHIreOianA8aSXn6Cw0JzYOuDQbOrSPe7gqFnCpKP++MQe3ODgO3oh2GJFORkAAdqredOa60z63GbA==}
 
   locate-path@6.0.0:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
@@ -5049,11 +5049,11 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.29.2
       lightningcss-win32-x64-msvc: 1.29.2
 
-  linkify-html@4.2.0(linkifyjs@4.2.0):
+  linkify-html@4.3.2(linkifyjs@4.3.2):
     dependencies:
-      linkifyjs: 4.2.0
+      linkifyjs: 4.3.2
 
-  linkifyjs@4.2.0: {}
+  linkifyjs@4.3.2: {}
 
   locate-path@6.0.0:
     dependencies:
