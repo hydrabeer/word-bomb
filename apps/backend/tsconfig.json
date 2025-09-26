@@ -11,8 +11,7 @@
   },
   "include": ["src", "test", "vitest.config.ts"],
   "references": [
-    {
-      "path": "../../packages/domain"
-    }
+    { "path": "../../packages/domain" },
+    { "path": "../../packages/types" }
   ]
 }

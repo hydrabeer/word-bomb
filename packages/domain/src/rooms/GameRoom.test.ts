@@ -20,6 +20,7 @@ const makePlayerProps = (overrides?: Partial<PlayerProps>): PlayerProps => ({
   isLeader: false,
   isSeated: false,
   isEliminated: false,
+  isConnected: true,
   lives: 3,
   bonusProgress: new BonusProgress([...bonusTemplate]),
   ...overrides,
@@ -107,10 +108,13 @@ describe('GameRoom', () => {
     expect(player1).toBeDefined();
     expect(player2).toBeDefined();
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const spy1 = vi.spyOn(player1!, 'resetForNextGame');
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const spy2 = vi.spyOn(player2!, 'resetForNextGame');
+    if (!player1 || !player2) {
+      throw new Error(
+        'Players should be defined after being added to the room',
+      );
+    }
+    const spy1 = vi.spyOn(player1, 'resetForNextGame');
+    const spy2 = vi.spyOn(player2, 'resetForNextGame');
 
     room.startGame();
 

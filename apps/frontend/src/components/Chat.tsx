@@ -11,7 +11,7 @@ import { useAutoScroll } from '../hooks/useAutoScroll';
 import { ChatMessageItem, ChatMessage } from './ChatMessageItem';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
 import { ChatMessageSchema } from '@game/domain/chat/ChatMessage';
-import { ChatMessagePayload } from '@game/domain/socket/types';
+import { ChatMessagePayload } from '@word-bomb/types';
 import { FaPaperPlane } from 'react-icons/fa';
 
 interface ChatProps {
@@ -146,8 +146,8 @@ export default function Chat({ roomCode, className }: ChatProps) {
         <form
           className="flex items-end gap-2"
           onSubmit={(e) => {
+            // Prevent native submit; key handler or button click triggers send
             e.preventDefault();
-            sendMessage();
           }}
         >
           <div className="relative block flex-1">
@@ -178,7 +178,8 @@ export default function Chat({ roomCode, className }: ChatProps) {
             </span>
           </div>
           <button
-            type="submit"
+            type="button"
+            onClick={sendMessage}
             className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-black shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
             disabled={!newMessage.trim() || isLoading}
             aria-label="Send message"

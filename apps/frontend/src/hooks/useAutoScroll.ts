@@ -26,11 +26,15 @@ export function useAutoScroll<T extends HTMLElement>(
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container || !autoScrollEnabled) return;
+    // Defer to next frame so layout has settled before scrolling.
     requestAnimationFrame(() => {
-      container.scrollTop = container.scrollHeight;
+      const node = containerRef.current;
+      if (node) {
+        node.scrollTop = node.scrollHeight;
+      }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoScrollEnabled, ...dependencies]);
+    // dependencies array identity is intentionally tracked as a single item.
+  }, [autoScrollEnabled, dependencies, containerRef]);
 
   return containerRef;
 }

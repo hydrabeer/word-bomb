@@ -13,6 +13,7 @@ const makePlayerProps = (overrides?: Partial<PlayerProps>): PlayerProps => ({
   isLeader: false,
   isSeated: false,
   isEliminated: false,
+  isConnected: true,
   lives: 3,
   bonusProgress: new BonusProgress([...bonusTemplate]),
   ...overrides,

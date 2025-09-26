@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { socket } from '../socket';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
-import { BasicResponse } from '@game/domain/socket/types.ts';
+// Avoid direct BasicResponse reliance in callback by runtime guard
 
 // Shared state to track where the socket *thinks* it is
 let latestRoomJoined: string | null = null;
@@ -16,19 +16,21 @@ export function useGameRoom(roomCode: string) {
 
     latestRoomJoined = roomCode;
 
-    socket.emit(
-      'joinRoom',
-      {
-        roomCode,
-        playerId,
-        name,
-      },
-      (res: BasicResponse) => {
-        if (res && !res.success) {
-          console.log('joinRoom error:', res.error);
-        }
-      },
-    );
+    socket.emit('joinRoom', { roomCode, playerId, name }, (res: unknown) => {
+      if (
+        res &&
+        typeof res === 'object' &&
+        'success' in res &&
+        (res as { success?: unknown }).success === false
+      ) {
+        const err =
+          'error' in res &&
+          typeof (res as { error?: unknown }).error === 'string'
+            ? (res as { error: string }).error
+            : 'Unknown error';
+        console.log('joinRoom error:', err);
+      }
+    });
 
     return () => {
       // Only leave if we're not immediately rejoining this room

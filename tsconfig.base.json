@@ -9,7 +9,9 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@game/domain/*": ["packages/domain/src/*"]
+      "@game/domain/*": ["packages/domain/src/*"],
+      "@word-bomb/types": ["packages/types/src"],
+      "@word-bomb/types/*": ["packages/types/src/*"]
     },
     "strict": true
   }

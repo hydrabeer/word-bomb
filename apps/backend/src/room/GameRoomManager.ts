@@ -22,6 +22,12 @@ export class GameRoomManager {
     return room;
   }
 
+  /** Convenience to list seated players without re-filter duplication */
+  getSeatedPlayers(code: string) {
+    const room = this.rooms.get(code);
+    return room ? room.getAllPlayers().filter((p) => p.isSeated) : [];
+  }
+
   /**
    * Removes all rooms. Intended for test isolation only.
    */

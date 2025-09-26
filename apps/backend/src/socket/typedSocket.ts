@@ -3,7 +3,7 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
   SocketData,
-} from '@game/domain/socket/types';
+} from '@word-bomb/types';
 
 export type TypedServer = RawServer<ClientToServerEvents, ServerToClientEvents>;
 export type TypedSocket = RawSocket<

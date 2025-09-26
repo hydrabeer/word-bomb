@@ -37,13 +37,20 @@ export function GameBoard({
   lastWordAcceptedBy,
   lastSubmittedWords,
 }: GameBoardProps) {
-  const localProfileRaw = localStorage.getItem('wordbomb:profile:v1');
-  const localPlayerId = localProfileRaw
-    ? (JSON.parse(localProfileRaw) as { id: string }).id
-    : null;
+  const localPlayerId = useMemo(() => {
+    try {
+      return (
+        JSON.parse(localStorage.getItem('wordbomb:profile:v1') || 'null') as {
+          id: string;
+        } | null
+      )?.id;
+    } catch {
+      return null;
+    }
+  }, []);
   const inputRef = useRef<HTMLInputElement>(null);
   const isMyTurn = gameState && localPlayerId === gameState.currentPlayerId;
-  const highlightCacheRef = useRef<Record<string, JSX.Element>>({});
+  // Removed highlight cache (cheap to compute, saves lines / complexity)
 
   // Timing effects - Fix for the TS18048 error
   const isUrgent = Boolean(
@@ -68,100 +75,76 @@ export function GameBoard({
     }
   };
 
-  function highlightFragment(word: string, fragment: string): JSX.Element {
-    const lowerWord = word.toLowerCase();
-    const lowerFragment = fragment.toLowerCase();
-    const index = lowerWord.indexOf(lowerFragment);
-
-    if (index === -1) {
-      return <>{word}</>;
-    }
-
-    const before = word.slice(0, index);
-    const match = word.slice(index, index + fragment.length);
-    const after = word.slice(index + fragment.length);
-
-    return (
-      <>
-        {before}
-        <span className="font-bold text-emerald-400">{match}</span>
-        {after}
-      </>
-    );
+  const isMobile = useMemo(() => window.innerWidth < 640, []); // Could be swapped to useIsMobile(640) if desired
+  interface PlayerView {
+    player: GameState['players'][number];
+    isActive: boolean;
+    isEliminated: boolean;
+    x: number;
+    y: number;
+    highlighted: JSX.Element | string | null;
   }
-
-  const isMobile = useMemo(() => window.innerWidth < 640, []);
-
-  const rotationOffset = useMemo(() => {
-    if (!gameState || !isMobile) return 0;
-
-    const index = gameState.players.findIndex(
+  const { rotationOffset, playerViews } = useMemo<{
+    rotationOffset: number;
+    playerViews: PlayerView[];
+  }>(() => {
+    if (!gameState) return { rotationOffset: 0, playerViews: [] };
+    const count = gameState.players.length;
+    const currentIndex = gameState.players.findIndex(
       (p) => p.id === gameState.currentPlayerId,
     );
-    const count = gameState.players.length;
-
-    const baseAngle = (360 / count) * index;
-
-    return 90 - baseAngle; // Rotate so current player is at top (90 degrees)
-  }, [gameState, isMobile]);
-
-  const playerViews = useMemo(() => {
-    if (!gameState) return [];
-    const highlightWithCache = (
-      word: string,
-      fragment: string,
-    ): JSX.Element => {
-      const key = `${word.toLowerCase()}::${fragment.toLowerCase()}`;
-      const cached = highlightCacheRef.current[key];
-      if (cached) return cached;
-
-      const result = highlightFragment(word, fragment);
-      highlightCacheRef.current[key] = result;
-      return result;
+    const rotationOffset =
+      !isMobile || currentIndex < 0 ? 0 : 90 - (360 / count) * currentIndex;
+    const predefined: Record<number, number[]> = {
+      2: [180, 0],
+      3: [210, 330, 90],
+      4: [225, 315, 45, 135],
     };
-
-    const count = gameState.players.length;
-
-    return gameState.players.map((player, index) => {
-      const predefinedAngles: Record<number, number[]> = {
-        2: [180, 0],
-        3: [210, 330, 90],
-        4: [225, 315, 45, 135],
-      };
-
+    const highlight = (word: string, fragment: string): JSX.Element => {
+      const lw = word.toLowerCase();
+      const lf = fragment.toLowerCase();
+      const i = lw.indexOf(lf);
+      if (i < 0) return <>{word}</>;
+      return (
+        <>
+          {word.slice(0, i)}
+          <span className="font-bold text-emerald-400">
+            {word.slice(i, i + fragment.length)}
+          </span>
+          {word.slice(i + fragment.length)}
+        </>
+      );
+    };
+    const radius = isMobile ? 140 : 340;
+    const pv: PlayerView[] = gameState.players.map((player, index) => {
       const angleDeg =
-        count <= 4 ? predefinedAngles[count][index] : (index / count) * 360;
-      const angleRad = (angleDeg * Math.PI) / 180;
-
-      const radius = isMobile ? 140 : 340;
-
-      const x = Math.cos(angleRad) * radius;
-      const y = Math.sin(angleRad) * radius;
-
-      const isEliminated = player.lives <= 0;
+        count <= 4 ? predefined[count][index] : (index / count) * 360;
+      const rad = (angleDeg * Math.PI) / 180;
+      const x = Math.cos(rad) * radius;
+      const y = Math.sin(rad) * radius;
       const isActive = gameState.currentPlayerId === player.id;
       const currentInput = liveInputs[player.id] ?? '';
       const last = lastSubmittedWords[player.id];
-
-      const highlightedInput =
-        isActive && currentInput
-          ? currentInput.length >= gameState.fragment.length
-            ? highlightWithCache(currentInput, gameState.fragment)
-            : currentInput
-          : null;
-
-      const highlightedLastWord =
-        !isActive && last ? highlightWithCache(last.word, last.fragment) : null;
-
+      const showInput =
+        isActive &&
+        currentInput &&
+        currentInput.length >= gameState.fragment.length
+          ? highlight(currentInput, gameState.fragment)
+          : isActive
+            ? currentInput
+            : null;
+      const showLast =
+        !isActive && last ? highlight(last.word, last.fragment) : null;
       return {
         player,
         isActive,
-        isEliminated,
+        isEliminated: player.lives <= 0,
         x,
         y,
-        highlighted: highlightedInput ?? highlightedLastWord,
+        highlighted: showInput ?? showLast,
       };
     });
+    return { rotationOffset, playerViews: pv };
   }, [gameState, isMobile, liveInputs, lastSubmittedWords]);
 
   useEffect(() => {
@@ -214,7 +197,7 @@ export function GameBoard({
           </span>
           <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
             <div
-              key={gameState.currentPlayerId}
+              key={`${gameState.currentPlayerId}-${gameState.bombDuration}-${gameState.fragment}`}
               className={`h-full origin-left ${
                 isUrgent
                   ? 'bg-gradient-to-r from-red-500 to-orange-400'

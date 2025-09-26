@@ -1,7 +1,7 @@
 // apps/frontend/src/hooks/useWordSubmission.ts
 import { useState, useCallback, useEffect } from 'react';
 import { socket } from '../socket';
-import type { ActionAckPayload } from '@game/domain/socket/types';
+import { parseActionAck } from '../socket/parsers';
 
 export function useWordSubmission(roomCode: string, playerId: string) {
   const [inputWord, setInputWord] = useState('');
@@ -11,16 +11,17 @@ export function useWordSubmission(roomCode: string, playerId: string) {
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    function handleAck(data: ActionAckPayload) {
-      if (!pendingIds.has(data.clientActionId)) return;
+    function handleAck(raw: unknown) {
+      const parsed = parseActionAck(raw);
+      if (!parsed) return;
+      const { clientActionId, success } = parsed;
+      if (!pendingIds.has(clientActionId)) return;
       setPendingIds((prev) => {
         const next = new Set(prev);
-        next.delete(data.clientActionId);
+        next.delete(clientActionId);
         return next;
       });
-      if (data.success) {
-        // Already cleared input optimistically
-      } else {
+      if (!success) {
         setRejected(true);
         setTimeout(() => setRejected(false), 300);
       }
@@ -37,7 +38,12 @@ export function useWordSubmission(roomCode: string, playerId: string) {
     setPendingIds((prev) => new Set(prev).add(clientActionId));
     // Optimistic clear
     setInputWord('');
-    socket.emit('submitWord', { roomCode, playerId, word: inputWord, clientActionId });
+    socket.emit('submitWord', {
+      roomCode,
+      playerId,
+      word: inputWord,
+      clientActionId,
+    });
   }, [roomCode, playerId, inputWord]);
 
   return {

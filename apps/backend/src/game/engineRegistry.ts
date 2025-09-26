@@ -1,15 +1,19 @@
 import type { GameEngine } from './GameEngine';
 
-const gameEngines = new Map<string, GameEngine>();
+const engines = new Map<string, GameEngine>();
 
-export function setGameEngine(roomCode: string, engine: GameEngine): void {
-  gameEngines.set(roomCode, engine);
-}
+export const gameEngines = {
+  set: (roomCode: string, engine: GameEngine) => {
+    engines.set(roomCode, engine);
+  },
+  get: (roomCode: string) => engines.get(roomCode),
+  delete: (roomCode: string) => {
+    engines.delete(roomCode);
+  },
+  clear: () => {
+    engines.clear();
+  },
+};
 
-export function getGameEngine(roomCode: string): GameEngine | undefined {
-  return gameEngines.get(roomCode);
-}
-
-export function deleteGameEngine(roomCode: string): void {
-  gameEngines.delete(roomCode);
-}
+export const setGameEngine = gameEngines.set;
+export const getGameEngine = gameEngines.get;

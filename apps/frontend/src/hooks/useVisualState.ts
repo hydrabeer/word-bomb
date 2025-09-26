@@ -3,13 +3,15 @@ import { GameState } from '../components/GameBoard.tsx';
 
 export type VisualState = 'idle' | 'seated' | 'playing';
 
-export function useVisualState({
-  seatedCount,
-  gameState,
-}: {
-  seatedCount: number;
+interface Params {
+  seatedCount?: number; // optional: can derive from players list separately
   gameState: GameState | null;
-}): VisualState {
+}
+
+export function useVisualState({
+  seatedCount = 0,
+  gameState,
+}: Params): VisualState {
   const [visualState, setVisualState] = useState<VisualState>('idle');
 
   useEffect(() => {

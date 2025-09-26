@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   FaChevronRight,
@@ -9,17 +9,20 @@ import {
 } from 'react-icons/fa';
 import Chat from '../components/Chat';
 import { useGameRoom } from '../hooks/useGameRoom';
+import { useSocketConnection } from '../hooks/useSocketConnection';
 import { GameBoard } from '../components/GameBoard';
 import { useGameState } from '../hooks/useGameState';
 import { usePlayerManagement } from '../hooks/usePlayerManagement';
 import { useWordSubmission } from '../hooks/useWordSubmission';
 import { useVisualState } from '../hooks/useVisualState.ts';
+import { useIsMobile } from '../hooks/useIsMobile.ts';
+import { formatDurationSeconds } from '../utils/formatTime.ts';
 
 export default function RoomPage() {
   const navigate = useNavigate();
   const { roomCode = '' } = useParams<{ roomCode: string }>();
   const [isChatOpen, setIsChatOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [inviteCopied, setInviteCopied] = useState(false);
 
   // Custom hooks
@@ -46,10 +49,11 @@ export default function RoomPage() {
     setInputWord('');
   }, [gameState, setInputWord]);
 
-  const visualState = useVisualState({
-    seatedCount: players.filter((p) => p.isSeated).length,
-    gameState,
-  });
+  const seatedCount = useMemo(
+    () => players.reduce((acc, p) => acc + (p.isSeated ? 1 : 0), 0),
+    [players],
+  );
+  const visualState = useVisualState({ seatedCount, gameState });
 
   const winner = players.find((p) => p.id === winnerId);
 
@@ -60,28 +64,10 @@ export default function RoomPage() {
     }
   }, [roomCode, navigate]);
 
-  // Detect mobile screens
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+  // (Removed in favor of useIsMobile hook)
 
-    // Check on initial load
-    checkMobile();
-
-    window.addEventListener('resize', checkMobile);
-
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Handle disconnect
-  useEffect(() => {
-    const handleDisconnect = () => {
-      void navigate('/disconnected');
-    };
-    window.addEventListener('offline', handleDisconnect);
-    return () => window.removeEventListener('offline', handleDisconnect);
-  }, [navigate]);
+  // Centralized socket disconnect navigation (also handles network loss indirectly)
+  useSocketConnection();
 
   // Handle input change with typing update
   const handleInputChange = (value: string) => {
@@ -91,10 +77,7 @@ export default function RoomPage() {
     }
   };
 
-  const formattedMins = Math.floor(elapsedGameTime / 60)
-    .toString()
-    .padStart(2, '0');
-  const formattedSecs = (elapsedGameTime % 60).toString().padStart(2, '0');
+  const formattedElapsed = formatDurationSeconds(elapsedGameTime);
 
   function JoinGameButtons() {
     return (
@@ -140,7 +123,7 @@ export default function RoomPage() {
         {visualState === 'playing' && (
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform">
             <span className="rounded-full bg-white/10 px-3 py-1 font-mono text-sm text-indigo-200 shadow-sm">
-              {formattedMins}:{formattedSecs}
+              {formattedElapsed}
             </span>
           </div>
         )}
@@ -148,28 +131,50 @@ export default function RoomPage() {
 
       {/* Main Area */}
       <div
-        className={`relative flex-1 overflow-y-auto transition-all duration-300 ${
+        className={`relative flex-1 transition-all duration-300 ${
+          // Desktop: always hide scroll; Mobile: allow scroll only during game
+          isMobile
+            ? visualState !== 'playing'
+              ? 'overflow-hidden'
+              : 'overflow-y-auto'
+            : 'overflow-hidden'
+        } ${
+          // Extra bottom padding only needed on mobile when chat open
           isChatOpen && isMobile ? 'pb-[33vh] md:pb-0' : 'pb-safe'
+        } ${
+          // When playing on desktop, center contents
+          !isMobile && visualState === 'playing'
+            ? 'flex items-center justify-center'
+            : ''
         }`}
       >
         {/* Active Game */}
         {visualState === 'playing' && gameState && (
-          <GameBoard
-            gameState={gameState}
-            inputWord={inputWord}
-            setInputWord={handleInputChange}
-            handleSubmitWord={handleSubmitWord}
-            bombCountdown={bombCountdown}
-            rejected={rejected}
-            liveInputs={liveInputs}
-            lastWordAcceptedBy={lastWordAcceptedBy}
-            lastSubmittedWords={lastSubmittedWords}
-          />
+          <div
+            className={`${!isMobile ? 'flex h-full w-full items-center justify-center' : ''}`}
+          >
+            <GameBoard
+              gameState={gameState}
+              inputWord={inputWord}
+              setInputWord={handleInputChange}
+              handleSubmitWord={handleSubmitWord}
+              bombCountdown={bombCountdown}
+              rejected={rejected}
+              liveInputs={liveInputs}
+              lastWordAcceptedBy={lastWordAcceptedBy}
+              lastSubmittedWords={lastSubmittedWords}
+            />
+          </div>
         )}
 
         {/* Lobby with Optional Winner */}
         {visualState !== 'playing' && (
-          <div className="flex h-[100svh] flex-col items-center justify-center px-4 text-center">
+          <div
+            className={`flex min-h-[100svh] flex-col items-center justify-center px-4 text-center ${
+              // Move panel slightly up on mobile for better visual centering with bottom bar
+              isMobile ? '-mt-8 pb-20' : ''
+            }`}
+          >
             {winner && (
               <div className="animate-winner-fade-in mb-10 flex flex-col items-center">
                 <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl backdrop-blur-sm transition-all">

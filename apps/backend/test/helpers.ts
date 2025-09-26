@@ -7,7 +7,7 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
   SocketData,
-} from '@game/domain/socket/types';
+} from '@word-bomb/types';
 import { io as Client, Socket } from 'socket.io-client';
 import { registerRoomHandlers } from '../src/socket/roomHandlers';
 import type { TypedServer, TypedSocket } from '../src/socket/typedSocket';

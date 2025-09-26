@@ -7,14 +7,16 @@
     "dev": "ts-node -r tsconfig-paths/register src/index.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "start": "ts-node -r tsconfig-paths/register src/index.ts",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "vitest run --config vitest.config.ts",
+    "test:coverage": "vitest run --config vitest.config.ts --coverage"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "socket.io": "^4.8.1",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "@word-bomb/types": "workspace:*"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

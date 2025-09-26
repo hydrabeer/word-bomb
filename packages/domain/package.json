@@ -5,9 +5,11 @@
   "main": "src/index.ts",
   "scripts": {
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "vitest run --config vitest.config.ts",
+    "test:coverage": "vitest run --config vitest.config.ts --coverage"
   },
   "dependencies": {
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "@word-bomb/types": "workspace:*"
   }
 }

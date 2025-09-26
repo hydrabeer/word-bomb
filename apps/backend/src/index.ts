@@ -1,5 +1,10 @@
 import express from 'express';
-import { createServer } from 'http';
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+  type RequestListener,
+} from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -10,7 +15,7 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
   SocketData,
-} from '@game/domain/socket/types';
+} from '@word-bomb/types';
 
 const app = express();
 // Use helmet to set security headers
@@ -45,8 +50,24 @@ app.use(cors());
 app.use(express.json());
 app.use('/api/rooms', roomsRouter);
 
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
-const server = createServer(app);
+// Adapter: Express app signature is (req, res, next). Node's createServer expects (req, res).
+// We provide a no-op next function and ensure a void return; no ESLint suppression needed.
+const nodeHandler: RequestListener = (
+  req: IncomingMessage,
+  res: ServerResponse,
+) => {
+  // Cast through unknown to keep strict typing without introducing 'any'.
+  (
+    app as unknown as (
+      req: IncomingMessage,
+      res: ServerResponse,
+      next: (err?: unknown) => void,
+    ) => void
+  )(req, res, function next() {
+    // Intentionally no-op: Node HTTP server does not use the third argument.
+  });
+};
+const server = createServer(nodeHandler);
 
 // Sets up the Socket.IO server. CORS (Cross-Origin Resource Sharing) just
 // lets our backend and our frontend talk to each other from different domains

@@ -19,6 +19,7 @@ const makeMockPlayer = (name: string, eliminated = false): Player => {
     isLeader: false,
     isSeated: true,
     isEliminated: eliminated,
+    isConnected: true,
     lives: 3,
     bonusProgress: new BonusProgress(mockBonusTemplate),
   });

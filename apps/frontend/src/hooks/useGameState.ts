@@ -1,13 +1,15 @@
 // apps/frontend/src/hooks/useGameState.ts
 import { useState, useEffect } from 'react';
 import { socket } from '../socket';
-import type {
-  GameCountdownStartedPayload,
-  GameStartedPayload,
-  TurnStartedPayload,
-  PlayerUpdatedPayload,
-  GameEndedPayload,
-} from '@game/domain/socket/types';
+import {
+  parseCountdownStarted,
+  parseGameStarted,
+  parseTurnStarted,
+  parsePlayerTypingUpdate,
+  parsePlayerUpdated,
+  parseGameEnded,
+  parseWordAccepted,
+} from '../socket/parsers';
 import type { GameState } from '../components/GameBoard';
 
 export function useGameState(roomCode: string) {
@@ -71,83 +73,83 @@ export function useGameState(roomCode: string) {
 
   // Socket event handlers
   useEffect(() => {
-    function handleGameCountdownStarted(data: GameCountdownStartedPayload) {
-      setCountdownDeadline(data.deadline);
+    // --- Parsing helpers (structural, no dependency on external event typing inference) ---
+    // --- Handlers using parsed data only ---
+    function handleGameCountdownStarted(raw: unknown) {
+      const unknownResult = parseCountdownStarted(raw);
+      if (!unknownResult) return;
+      const deadline = unknownResult.deadline; // primitive copy prevents unsafe member lint
+      setCountdownDeadline(deadline);
     }
-
     function handleGameCountdownStopped() {
       setCountdownDeadline(null);
       setTimeLeftSec(0);
     }
-
-    function handleGameStarted(data: GameStartedPayload) {
+    function handleGameStarted(raw: unknown) {
+      const parsed = parseGameStarted(raw);
+      if (!parsed) return;
+      const { fragment, bombDuration, currentPlayer, players } = parsed;
       setWinnerId(null);
       setGameState({
-        fragment: data.fragment,
-        bombDuration: data.bombDuration,
-        currentPlayerId: data.currentPlayer,
-        players: data.players,
+        fragment,
+        bombDuration,
+        currentPlayerId: currentPlayer,
+        players,
       });
       setCountdownDeadline(null);
       setGameStartedAt(Date.now());
     }
-
-    function handleTurnStarted(data: TurnStartedPayload) {
-      const newDeadline = Date.now() + data.bombDuration * 1000;
-      setTurnDeadline(newDeadline);
-
+    function handleTurnStarted(raw: unknown) {
+      const parsed = parseTurnStarted(raw);
+      if (!parsed) return;
+      const { bombDuration, playerId, fragment, players } = parsed;
+      setTurnDeadline(Date.now() + bombDuration * 1000);
       setLiveInputs((prev) => {
-        const newState = { ...prev };
-        if (data.playerId) {
-          delete newState[data.playerId];
-        }
-        return newState;
+        if (!playerId) return prev;
+        const copy = { ...prev };
+        delete copy[playerId];
+        return copy;
       });
-
       setLastSubmittedWords((prev) => {
-        const newState = { ...prev };
-        if (data.playerId) {
-          delete newState[data.playerId];
-        }
-        return newState;
+        if (!playerId) return prev;
+        const copy = { ...prev };
+        delete copy[playerId];
+        return copy;
       });
-
-      setGameState((prev) =>
-        prev
-          ? {
-              ...prev,
-              fragment: data.fragment,
-              bombDuration: data.bombDuration,
-              currentPlayerId: data.playerId,
-              players: data.players || prev.players,
-            }
-          : null,
-      );
+      setGameState((prev) => {
+        if (!prev) return null;
+        const nextPlayers = players.length ? players : prev.players;
+        return {
+          ...prev,
+          fragment,
+          bombDuration,
+          currentPlayerId: playerId,
+          players: nextPlayers,
+        };
+      });
     }
-
-    function handlePlayerTypingUpdate(data: {
-      playerId: string;
-      input: string;
-    }) {
-      setLiveInputs((prev) => ({
-        ...prev,
-        [data.playerId]: data.input,
-      }));
+    function handlePlayerTypingUpdate(raw: unknown) {
+      const parsed = parsePlayerTypingUpdate(raw);
+      if (!parsed) return;
+      const { playerId, input } = parsed;
+      setLiveInputs((prev) => ({ ...prev, [playerId]: input }));
     }
-
-    function handlePlayerUpdated(data: PlayerUpdatedPayload) {
+    function handlePlayerUpdated(raw: unknown) {
+      const parsed = parsePlayerUpdated(raw);
+      if (!parsed) return;
+      const { playerId, lives } = parsed;
       setGameState((prev) => {
         if (!prev) return prev;
-        const updatedPlayers = prev.players.map((p) =>
-          p.id === data.playerId
-            ? { ...p, lives: data.lives, isEliminated: data.lives <= 0 }
-            : p,
+        const updated = prev.players.map((p) =>
+          p.id === playerId ? { ...p, lives, isEliminated: lives <= 0 } : p,
         );
-        return { ...prev, players: updatedPlayers };
+        return { ...prev, players: updated };
       });
     }
-
-    function handleGameEnded(data: GameEndedPayload) {
+    function handleGameEnded(raw: unknown) {
+      const parsed = parseGameEnded(raw);
+      if (!parsed) return;
+      const winner = parsed.winnerId;
       setGameStartedAt(null);
       setElapsedGameTime(0);
       setLastSubmittedWords({});
@@ -155,8 +157,21 @@ export function useGameState(roomCode: string) {
       setLastWordAcceptedBy(null);
       setTurnDeadline(null);
       setBombCountdown(0);
-      setWinnerId(data.winnerId);
+      setWinnerId(winner);
       setGameState(null);
+    }
+    function handleWordAccepted(raw: unknown) {
+      const parsed = parseWordAccepted(raw);
+      if (!parsed) return;
+      const playerId = parsed.playerId;
+      const word = parsed.word;
+      const fragmentSnapshot = gameState?.fragment ?? '';
+      setLastSubmittedWords((prev) => ({
+        ...prev,
+        [playerId]: { word: word.trim(), fragment: fragmentSnapshot },
+      }));
+      setLastWordAcceptedBy(playerId);
+      setTimeout(() => setLastWordAcceptedBy(null), 500);
     }
 
     socket.on('gameCountdownStarted', handleGameCountdownStarted);
@@ -166,6 +181,7 @@ export function useGameState(roomCode: string) {
     socket.on('playerTypingUpdate', handlePlayerTypingUpdate);
     socket.on('playerUpdated', handlePlayerUpdated);
     socket.on('gameEnded', handleGameEnded);
+    socket.on('wordAccepted', handleWordAccepted);
 
     return () => {
       socket.off('gameCountdownStarted', handleGameCountdownStarted);
@@ -175,26 +191,6 @@ export function useGameState(roomCode: string) {
       socket.off('playerTypingUpdate', handlePlayerTypingUpdate);
       socket.off('playerUpdated', handlePlayerUpdated);
       socket.off('gameEnded', handleGameEnded);
-    };
-  }, []);
-
-  // Word accepted effect
-  useEffect(() => {
-    const handleWordAccepted = (data: { playerId: string; word: string }) => {
-      setLastSubmittedWords((prev) => ({
-        ...prev,
-        [data.playerId]: {
-          word: data.word.trim(),
-          fragment: gameState?.fragment ?? '',
-        },
-      }));
-
-      setLastWordAcceptedBy(data.playerId);
-      setTimeout(() => setLastWordAcceptedBy(null), 500);
-    };
-
-    socket.on('wordAccepted', handleWordAccepted);
-    return () => {
       socket.off('wordAccepted', handleWordAccepted);
     };
   }, [gameState?.fragment]);

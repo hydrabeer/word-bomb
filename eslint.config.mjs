@@ -22,6 +22,7 @@ export default tseslint.config(
           './apps/backend/tsconfig.json',
           './apps/frontend/tsconfig.json',
           './packages/domain/tsconfig.json',
+          './packages/types/tsconfig.json',
         ],
       },
     },
@@ -42,6 +43,18 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
+  // Config files live at package roots outside declared rootDir (src); skip project service to avoid inclusion errors
+  {
+    files: [
+      '**/vitest.config.{ts,cts,mts,js,cjs,mjs}',
+      '**/vite.config.{ts,cts,mts,js,cjs,mjs}',
+    ],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+      },
     },
   },
 );
