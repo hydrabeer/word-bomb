@@ -82,15 +82,12 @@ describe('useGameRoom', () => {
     );
 
     // Unmount without rejoin should not emit leaveRoom due to latestRoomJoined === roomCode
-  __emitMock.mockClear();
+    __emitMock.mockClear();
     unmount();
     act(() => {
       vi.advanceTimersByTime(150);
     });
-    expect(__emitMock).not.toHaveBeenCalledWith(
-      'leaveRoom',
-      expect.anything(),
-    );
+    expect(__emitMock).not.toHaveBeenCalledWith('leaveRoom', expect.anything());
   });
 
   it('emits leaveRoom when switching to a different room', () => {

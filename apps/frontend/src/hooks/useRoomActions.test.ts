@@ -13,7 +13,7 @@ describe('useRoomActions', () => {
   it('creates and validates rooms', async () => {
     const { result } = renderHook(() => useRoomActions());
 
-  let code = '';
+    let code = '';
     await act(async () => {
       code = await result.current.createNewRoom();
     });

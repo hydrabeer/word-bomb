@@ -81,7 +81,11 @@ describe('usePlayerManagement', () => {
     });
     expect(__emitMock).toHaveBeenCalledWith(
       'setPlayerSeated',
-      expect.objectContaining({ roomCode: 'ROOM', playerId: 'me', seated: false }),
+      expect.objectContaining({
+        roomCode: 'ROOM',
+        playerId: 'me',
+        seated: false,
+      }),
       expect.any(Function),
     );
 
