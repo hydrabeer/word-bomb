@@ -221,10 +221,11 @@ export default function RoomPage() {
                 </span>
               </h2>
 
-              <p className="mb-8 text-lg leading-relaxed text-indigo-200">
+              {/* Countdown / Waiting Status (fixed height to avoid vertical shift; no placeholder so text stays centered) */}
+              <div className="mb-8 text-lg leading-relaxed text-indigo-200">
                 {timeLeftSec > 0 ? (
-                  <span className="flex items-center justify-center gap-3">
-                    Game starts in {timeLeftSec} seconds...
+                  <div className="flex h-12 items-center justify-center gap-3">
+                    <span>Game starts in {timeLeftSec} seconds...</span>
                     {leaderId && playerId === leaderId && (
                       <button
                         onClick={startGame}
@@ -234,11 +235,13 @@ export default function RoomPage() {
                         Start now
                       </button>
                     )}
-                  </span>
+                  </div>
                 ) : (
-                  'Waiting for players to join the game'
+                  <div className="flex h-12 items-center justify-center">
+                    Waiting for players to join the game
+                  </div>
                 )}
-              </p>
+              </div>
 
               {/* Seated Players */}
               <div className="mb-8">
