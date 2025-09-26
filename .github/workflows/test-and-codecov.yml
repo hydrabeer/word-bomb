@@ -17,8 +17,7 @@ jobs:
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10.8.0
+        # No 'with: version' so the action uses the version pinned in package.json 'packageManager'
 
       - name: Set up Node
         uses: actions/setup-node@v4
