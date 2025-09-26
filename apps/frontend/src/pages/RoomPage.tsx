@@ -99,7 +99,14 @@ export default function RoomPage() {
   }
 
   return (
-    <div className="flex h-[100svh] w-screen flex-col bg-gradient-to-br from-indigo-950 to-purple-900 text-white">
+    // Add a responsive right padding when the desktop chat is open so the main
+    // application content (top bar, lobby/game area, etc.) is "pushed" left
+    // instead of being overlapped by the fixed chat panel.
+    <div
+      className={`flex h-[100svh] w-screen flex-col bg-gradient-to-br from-indigo-950 to-purple-900 text-white transition-all duration-300 ease-in-out ${
+        !isMobile ? (isChatOpen ? 'md:pr-96' : 'md:pr-0') : ''
+      }`}
+    >
       {/* Top Bar */}
       <div className="relative flex -translate-y-[7px] items-center justify-between border-b border-white/10 bg-gradient-to-r from-indigo-800/70 to-purple-800/70 p-3 text-base text-white backdrop-blur-sm">
         <div className="flex translate-y-1 items-center gap-3">
@@ -151,19 +158,21 @@ export default function RoomPage() {
         {/* Active Game */}
         {visualState === 'playing' && gameState && (
           <div
-            className={`${!isMobile ? 'flex h-full w-full items-center justify-center' : ''}`}
+            className={`${!isMobile ? 'flex h-full w-full' : ''}`}
           >
-            <GameBoard
-              gameState={gameState}
-              inputWord={inputWord}
-              setInputWord={handleInputChange}
-              handleSubmitWord={handleSubmitWord}
-              bombCountdown={bombCountdown}
-              rejected={rejected}
-              liveInputs={liveInputs}
-              lastWordAcceptedBy={lastWordAcceptedBy}
-              lastSubmittedWords={lastSubmittedWords}
-            />
+            <div className="flex h-full w-full">
+              <GameBoard
+                gameState={gameState}
+                inputWord={inputWord}
+                setInputWord={handleInputChange}
+                handleSubmitWord={handleSubmitWord}
+                bombCountdown={bombCountdown}
+                rejected={rejected}
+                liveInputs={liveInputs}
+                lastWordAcceptedBy={lastWordAcceptedBy}
+                lastSubmittedWords={lastSubmittedWords}
+              />
+            </div>
           </div>
         )}
 
