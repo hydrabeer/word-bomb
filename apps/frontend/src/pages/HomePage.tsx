@@ -75,45 +75,48 @@ export default function HomePage() {
                 Your Profile
               </h2>
 
-              {editing ? (
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
-                    value={name}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      setName(e.target.value)
-                    }
-                    onKeyDown={(e: KeyboardEvent<HTMLInputElement>) =>
-                      e.key === 'Enter' && handleSaveName()
-                    }
-                    placeholder="Your name"
-                    maxLength={20}
-                    className="w-full rounded-lg border border-indigo-600/30 bg-indigo-900/30 px-4 py-3 text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                    autoFocus
-                    aria-label="Your display name"
-                    aria-describedby="name-constraints"
-                  />
-                  <button
-                    onClick={handleSaveName}
-                    className="mt-2 whitespace-nowrap rounded-md bg-emerald-500 px-4 py-3 text-base font-medium text-black shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-400 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 sm:mt-0"
-                    aria-label="Save name"
-                  >
-                    Save
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <span className="text-xl font-medium text-indigo-100">
-                    {name}
-                  </span>
-                  <button
-                    onClick={() => setEditing(true)}
-                    className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium transition-all hover:bg-white/20 focus:ring-2 focus:ring-emerald-400 active:scale-95"
-                    aria-label="Edit your name"
-                  >
-                    Edit Name
-                  </button>
-                </div>
-              )}
+              {/* Reserve vertical space to prevent layout shift when toggling edit mode */}
+              <div className="min-h-[7rem] sm:min-h-[3.5rem]">
+                {editing ? (
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input
+                      value={name}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setName(e.target.value)
+                      }
+                      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) =>
+                        e.key === 'Enter' && handleSaveName()
+                      }
+                      placeholder="Your name"
+                      maxLength={20}
+                      className="w-full rounded-lg border border-indigo-600/30 bg-indigo-900/30 px-4 py-3 text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      autoFocus
+                      aria-label="Your display name"
+                      aria-describedby="name-constraints"
+                    />
+                    <button
+                      onClick={handleSaveName}
+                      className="mt-2 whitespace-nowrap rounded-md bg-emerald-500 px-4 py-3 text-base font-medium text-black shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-400 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 sm:mt-0"
+                      aria-label="Save name"
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xl font-medium text-indigo-100">
+                      {name}
+                    </span>
+                    <button
+                      onClick={() => setEditing(true)}
+                      className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium transition-all hover:bg-white/20 focus:ring-2 focus:ring-emerald-400 active:scale-95"
+                      aria-label="Edit your name"
+                    >
+                      Edit Name
+                    </button>
+                  </div>
+                )}
+              </div>
               <p id="name-constraints" className="sr-only">
                 Name must be between 1 and 20 characters.
               </p>
