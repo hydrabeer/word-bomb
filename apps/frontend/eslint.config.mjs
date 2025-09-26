@@ -22,7 +22,7 @@ export default tseslint.config(
   reactPlugin.configs.flat['jsx-runtime'],
 
   // React Refresh plugin
-  reactRefresh.configs.vite,
+  reactRefresh.configs.recommended,
 
   eslintConfigPrettier,
   // React Hooks plugin
@@ -31,12 +31,13 @@ export default tseslint.config(
       'react-hooks': reactHooks,
     },
     rules: {
-      ...reactHooks.configs['recommended-latest'].rules,
+      ...reactHooks.configs.recommended.rules,
     },
   },
 
-  // Custom project-level settings
+  // Custom project-level settings (scoped to TS files)
   {
+    files: ['**/*.{ts,tsx,mts,cts}'],
     settings: {
       react: {
         version: 'detect', // auto-detect from package.json
