@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { socket } from '../socket';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
@@ -13,14 +13,41 @@ export default function DisconnectedPage() {
     'idle' | 'reconnecting' | 'failed' | 'success'
   >('idle');
   const intervalRef = useRef<number | null>(null);
+  const failSafeRef = useRef<number | null>(null);
+  const statusRef = useRef<'idle' | 'reconnecting' | 'failed' | 'success'>(
+    'idle',
+  );
+  const attemptRef = useRef(0);
+  const connectHandlerRef = useRef<((...args: unknown[]) => void) | null>(null);
+  const connectErrorHandlerRef = useRef<((...args: unknown[]) => void) | null>(
+    null,
+  );
   const MAX_ATTEMPTS = 5;
 
   const handleReturnHome = () => {
     void navigate('/');
   };
 
-  const tryReconnect = () => {
-    if (status === 'reconnecting') return;
+  // Keep statusRef in sync to avoid stale closures inside timers
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+  useEffect(() => {
+    attemptRef.current = attempt;
+  }, [attempt]);
+
+  const tryReconnect = useCallback(() => {
+    // clear any pending scheduled retry before starting a fresh attempt
+    if (intervalRef.current) {
+      window.clearTimeout(intervalRef.current);
+      intervalRef.current = null;
+    }
+    // clear any previous failsafe timer
+    if (failSafeRef.current) {
+      window.clearTimeout(failSafeRef.current);
+      failSafeRef.current = null;
+    }
+    if (statusRef.current === 'reconnecting') return;
     setStatus('reconnecting');
     setAttempt((a) => a + 1);
 
@@ -29,8 +56,34 @@ export default function DisconnectedPage() {
     }
 
     // When connected, optionally rejoin room
+    // Remove any previous listeners to avoid multiple handlers piling up
+    const remove = (
+      event: 'connect' | 'connect_error',
+      handler: ((...args: unknown[]) => void) | null,
+    ) => {
+      if (!handler) return;
+      const anySock = socket as unknown as {
+        off?: (e: string, h: (...a: unknown[]) => void) => void;
+        removeListener?: (e: string, h: (...a: unknown[]) => void) => void;
+      };
+      if (typeof anySock.off === 'function') anySock.off(event, handler);
+      else if (typeof anySock.removeListener === 'function')
+        anySock.removeListener(event, handler);
+    };
+    if (connectHandlerRef.current) remove('connect', connectHandlerRef.current);
+    if (connectErrorHandlerRef.current)
+      remove('connect_error', connectErrorHandlerRef.current);
+
     const onConnect = () => {
       setStatus('success');
+      // clear any pending timers
+      if (intervalRef.current) window.clearTimeout(intervalRef.current);
+      if (failSafeRef.current) window.clearTimeout(failSafeRef.current);
+      // best-effort cleanup of the error handler if still present
+      if (connectErrorHandlerRef.current) {
+        remove('connect_error', connectErrorHandlerRef.current);
+        connectErrorHandlerRef.current = null;
+      }
       if (roomCode) {
         const { id: playerId, name } = getOrCreatePlayerProfile();
         socket.emit('joinRoom', { roomCode, playerId, name }, () => {
@@ -44,39 +97,76 @@ export default function DisconnectedPage() {
 
     const onConnectError = () => {
       setStatus('failed');
+      // cleanup connect listener to avoid firing on a later successful connect from a new attempt
+      if (connectHandlerRef.current) {
+        remove('connect', connectHandlerRef.current);
+        connectHandlerRef.current = null;
+      }
+      // schedule a retry only on explicit connect_error
+      if (attemptRef.current < MAX_ATTEMPTS) {
+        if (intervalRef.current) window.clearTimeout(intervalRef.current);
+        intervalRef.current = window.setTimeout(() => {
+          tryReconnect();
+        }, 1500) as unknown as number;
+      }
     };
 
     socket.once('connect', onConnect);
     socket.once('connect_error', onConnectError);
+    connectHandlerRef.current = onConnect;
+    connectErrorHandlerRef.current = onConnectError;
 
     // Failsafe timeout
-    window.setTimeout(() => {
-      if (!socket.connected && status !== 'success') {
+    failSafeRef.current = window.setTimeout(() => {
+      // Avoid stale status by using refs and checking live socket state
+      if (!socket.connected && statusRef.current !== 'success') {
         setStatus('failed');
       }
-    }, 4000);
-  };
+    }, 4000) as unknown as number;
+  }, [navigate, roomCode]);
 
   // Auto retry
   useEffect(() => {
     if (status === 'success') {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
+      if (intervalRef.current) window.clearTimeout(intervalRef.current);
+      if (failSafeRef.current) window.clearTimeout(failSafeRef.current);
       return;
     }
     if (attempt === 0) {
       tryReconnect();
       return;
     }
-    if (status === 'failed' && attempt < MAX_ATTEMPTS) {
-      intervalRef.current = window.setTimeout(() => {
-        tryReconnect();
-      }, 1500) as unknown as number;
-    }
+    return () => {
+      // do not clear failsafe here; it is managed per-attempt and on success/unmount
+    };
+  }, [status, attempt, tryReconnect]);
+
+  // On unmount, ensure timers and any listeners are cleaned up
+  useEffect(() => {
     return () => {
       if (intervalRef.current) window.clearTimeout(intervalRef.current);
+      if (failSafeRef.current) window.clearTimeout(failSafeRef.current);
+      const anySock = socket as unknown as {
+        off?: (e: string, h: (...a: unknown[]) => void) => void;
+        removeListener?: (e: string, h: (...a: unknown[]) => void) => void;
+      };
+      if (connectHandlerRef.current) {
+        if (typeof anySock.off === 'function')
+          anySock.off('connect', connectHandlerRef.current);
+        else if (typeof anySock.removeListener === 'function')
+          anySock.removeListener('connect', connectHandlerRef.current);
+      }
+      if (connectErrorHandlerRef.current) {
+        if (typeof anySock.off === 'function')
+          anySock.off('connect_error', connectErrorHandlerRef.current);
+        else if (typeof anySock.removeListener === 'function')
+          anySock.removeListener(
+            'connect_error',
+            connectErrorHandlerRef.current,
+          );
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, attempt]);
+  }, []);
 
   const progressMessage = (() => {
     switch (status) {
@@ -108,6 +198,7 @@ export default function DisconnectedPage() {
           <button
             onClick={tryReconnect}
             disabled={status === 'reconnecting' || attempt >= MAX_ATTEMPTS}
+            aria-label="Try Again"
             className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-black hover:enabled:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {status === 'reconnecting' ? 'Reconnecting...' : 'Try Again'}
