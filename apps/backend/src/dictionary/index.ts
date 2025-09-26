@@ -32,10 +32,14 @@ export async function loadDictionary(): Promise<void> {
     words = words.filter((w) => w.length <= 30);
     const removed = before - words.length;
     if (removed > 0) {
-      console.log(`⚠️  Filtered ${removed.toString()} over-length words (>30 chars)`);
+      console.log(
+        `⚠️  Filtered ${removed.toString()} over-length words (>30 chars)`,
+      );
     }
     dictionary = new Set(words);
-    console.log(`✅ Loaded ${dictionary.size.toString()} words (max length 30)`);
+    console.log(
+      `✅ Loaded ${dictionary.size.toString()} words (max length 30)`,
+    );
 
     buildFragmentIndex(words);
   } catch (err) {

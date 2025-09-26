@@ -134,8 +134,13 @@ a {
 }
 
 @keyframes bomb-arc-glow {
-  0%, 100% { opacity: var(--glow-min,0.5); }
-  50% { opacity: var(--glow-max,0.85); }
+  0%,
+  100% {
+    opacity: var(--glow-min, 0.5);
+  }
+  50% {
+    opacity: var(--glow-max, 0.85);
+  }
 }
 
 .bomb-arc-glow-wrapper {
@@ -150,9 +155,9 @@ a {
   background: radial-gradient(
     circle at 50% 50%,
     transparent 55%,
-    rgba(239,68,68,0.55) 66%,
-    rgba(239,68,68,0.4) 72%,
-    rgba(239,68,68,0.22) 80%,
+    rgba(239, 68, 68, 0.55) 66%,
+    rgba(239, 68, 68, 0.4) 72%,
+    rgba(239, 68, 68, 0.22) 80%,
     transparent 90%
   );
   filter: blur(6px);
@@ -161,7 +166,8 @@ a {
   mix-blend-mode: screen;
 }
 
-.animate-bomb-arc-glow { /* now only opacity breathing handled externally */
+.animate-bomb-arc-glow {
+  /* now only opacity breathing handled externally */
   animation: bomb-arc-glow 1.8s ease-in-out infinite;
 }
 

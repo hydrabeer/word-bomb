@@ -140,6 +140,18 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     (socket.data as { currentRoomCode?: string }).currentRoomCode = code;
   };
 
+  const getCurrentPlayerId = (): string | undefined => {
+    const data: unknown = socket.data;
+    if (data && typeof data === 'object' && 'currentPlayerId' in data) {
+      const val = (data as { currentPlayerId?: unknown }).currentPlayerId;
+      return typeof val === 'string' ? val : undefined;
+    }
+    return undefined;
+  };
+  const setCurrentPlayerId = (playerId: string): void => {
+    (socket.data as { currentPlayerId?: string }).currentPlayerId = playerId;
+  };
+
   function handleJoinRoom(raw: unknown, cb?: (res: BasicResponse) => void) {
     const callback = normalizeCb(cb);
     const parsed = parseJoinRoom(raw);
@@ -188,6 +200,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
         room.setPlayerConnected(playerId, true);
         emitPlayers(io, room);
       }
+      setCurrentPlayerId(playerId);
 
       // If a game is already in progress, immediately emit the current game
       // snapshot so late joiners become spectators. They are NOT added to the
@@ -416,7 +429,8 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     if (!roomCode) return;
     const room = roomManager.get(roomCode);
     if (!room) return;
-    const playerId = socket.id;
+    const playerId = getCurrentPlayerId();
+    if (!playerId) return; // player never completed join
     // Instead of removing immediately, mark disconnected to allow reconnection window
     if (room.hasPlayer(playerId)) {
       room.setPlayerConnected(playerId, false);

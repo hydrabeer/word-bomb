@@ -38,15 +38,25 @@ function PlayerBubbleComponent({
       {flash && (
         <div
           className="flash-ring bg-emerald-400/70"
-          style={{ position: 'absolute', left: 0, top: 0, marginLeft: -50, marginTop: -50 }}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            marginLeft: -50,
+            marginTop: -50,
+          }}
         />
       )}
       {/* Hearts + Name (independent fixed stack) */}
       <div
         className="absolute flex flex-col items-center"
-        style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%) translateY(-12px)' }}
+        style={{
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%) translateY(-12px)',
+        }}
       >
-        <div className="flex items-center justify-center gap-1 mb-1 h-6 sm:h-7 w-max">
+        <div className="mb-1 flex h-6 w-max items-center justify-center gap-1 sm:h-7">
           {isEliminated ? (
             <span className="text-xl leading-none">💀</span>
           ) : (
@@ -55,7 +65,7 @@ function PlayerBubbleComponent({
               .map((heart, i) => (
                 <span
                   key={i}
-                  className={`inline-block text-lg sm:text-xl leading-none ${
+                  className={`inline-block text-lg leading-none sm:text-xl ${
                     isActive && isUrgent ? 'animate-pulse' : ''
                   }`}
                   style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
@@ -66,9 +76,9 @@ function PlayerBubbleComponent({
           )}
         </div>
         <div
-          className={`flex items-center justify-center font-semibold tracking-wide leading-tight h-5 sm:h-6 w-max ${
+          className={`flex h-5 w-max items-center justify-center font-semibold leading-tight tracking-wide sm:h-6 ${
             isEliminated
-              ? 'line-through opacity-40 text-red-300'
+              ? 'text-red-300 line-through opacity-40'
               : isActive
                 ? 'text-emerald-300'
                 : 'text-indigo-200'
@@ -85,10 +95,14 @@ function PlayerBubbleComponent({
       {/* Word (separate absolutely centered) */}
       <div
         className="absolute flex items-center justify-center"
-        style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%) translateY(28px)' }}
+        style={{
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%) translateY(28px)',
+        }}
       >
         <span
-          className={`whitespace-nowrap text-lg sm:text-xl md:text-2xl font-bold uppercase tracking-wide text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${
+          className={`whitespace-nowrap text-lg font-bold uppercase tracking-wide text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] sm:text-xl md:text-2xl ${
             isActive && highlighted ? 'animate-typing' : ''
           } ${isEliminated ? 'opacity-30' : ''} ${shake ? 'animate-shake text-red-300' : ''}`}
           style={{ visibility: highlighted ? 'visible' : 'hidden' }}

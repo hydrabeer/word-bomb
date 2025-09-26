@@ -25,8 +25,11 @@ export default function RoomPage() {
   const isMobile = useIsMobile();
   const [inviteCopied, setInviteCopied] = useState(false);
 
-  // Custom hooks
-  useGameRoom(roomCode);
+  // Custom hooks (order matters!): we must attach all socket listeners BEFORE
+  // emitting joinRoom, otherwise on a page reload while a game is active the
+  // server's immediate gameStarted/turnStarted snapshot can arrive before our
+  // listeners are registered, leaving us stuck in the lobby view. So we call
+  // the state/listener hooks first, then join the room last.
   const {
     gameState,
     timeLeftSec,
@@ -41,6 +44,9 @@ export default function RoomPage() {
 
   const { players, leaderId, playerId, me, toggleSeated, startGame } =
     usePlayerManagement(roomCode);
+
+  // Join room AFTER listeners above are wired.
+  useGameRoom(roomCode);
 
   const { inputWord, setInputWord, rejected, handleSubmitWord } =
     useWordSubmission(roomCode, playerId);
@@ -150,16 +156,12 @@ export default function RoomPage() {
           isChatOpen && isMobile ? 'pb-[33vh] md:pb-0' : 'pb-safe'
         } ${
           // When playing on desktop, center contents
-          !isMobile && visualState === 'playing'
-            ? 'flex'
-            : ''
+          !isMobile && visualState === 'playing' ? 'flex' : ''
         }`}
       >
         {/* Active Game */}
         {visualState === 'playing' && gameState && (
-          <div
-            className={`${!isMobile ? 'flex h-full w-full' : ''}`}
-          >
+          <div className="flex h-full w-full">
             <div className="flex h-full w-full">
               <GameBoard
                 gameState={gameState}

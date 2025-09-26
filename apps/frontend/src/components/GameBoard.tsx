@@ -90,11 +90,7 @@ export function GameBoard({
   }>(() => {
     if (!gameState) return { rotationOffset: 0, playerViews: [] };
     const count = gameState.players.length;
-    const currentIndex = gameState.players.findIndex(
-      (p) => p.id === gameState.currentPlayerId,
-    );
-    const rotationOffset =
-      !isMobile || currentIndex < 0 ? 0 : 90 - (360 / count) * currentIndex;
+    const rotationOffset = 0;
     const predefined: Record<number, number[]> = {
       2: [180, 0],
       3: [210, 330, 90],
@@ -189,7 +185,7 @@ export function GameBoard({
   const strokeDashoffset = progressElapsed * circumference;
 
   return (
-  <div className="flex h-full w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 shadow-lg">
+    <div className="flex h-full w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 shadow-lg">
       {/* Game Stats Bar */}
       <div className="grid grid-cols-3 items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2 text-center text-sm shadow-inner backdrop-blur-sm">
         <div className="flex flex-col items-start text-left">
@@ -208,7 +204,10 @@ export function GameBoard({
           <div className="mt-1 h-1.5 w-28 overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full origin-left bg-gradient-to-r from-red-500 via-red-400 to-red-500"
-              style={{ width: `${countdownPercentage}%`, transition: 'width 0.15s linear' }}
+              style={{
+                width: `${countdownPercentage}%`,
+                transition: 'width 0.15s linear',
+              }}
             />
           </div>
         </div>
@@ -266,7 +265,8 @@ export function GameBoard({
                   style={{
                     strokeDasharray: circumference,
                     strokeDashoffset,
-                    transition: 'stroke-dashoffset 0.15s linear, stroke-opacity 0.2s linear',
+                    transition:
+                      'stroke-dashoffset 0.15s linear, stroke-opacity 0.2s linear',
                     transform: 'rotate(-90deg)',
                     transformOrigin: '50% 50%',
                   }}
@@ -334,7 +334,7 @@ export function GameBoard({
         className={`border-t border-white/10 bg-black/20 px-4 shadow-inner backdrop-blur-sm transition-all duration-300 ${
           isMobile
             ? 'sticky bottom-0 left-0 z-30 w-full py-3'
-            : 'h-20 flex items-center'
+            : 'flex h-20 items-center'
         }`}
       >
         <div className="relative mx-auto flex h-14 w-full max-w-2xl items-center gap-4">
@@ -344,8 +344,8 @@ export function GameBoard({
                 rejected
                   ? 'animate-shake border border-red-500 bg-red-500/10'
                   : inputWord
-                      .toLowerCase()
-                      .includes(gameState.fragment.toLowerCase())
+                        .toLowerCase()
+                        .includes(gameState.fragment.toLowerCase())
                     ? 'border border-emerald-500 bg-emerald-900/10'
                     : 'border border-indigo-700/30 bg-indigo-900/50'
               }`}
