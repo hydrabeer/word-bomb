@@ -142,6 +142,37 @@ export default function RoomPage() {
           </button>
         </div>
 
+        {/* Chat Toggle – square arrow in top-right of top bar (desktop only) */}
+        <div className="hidden items-center md:flex">
+          <button
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            className="grid h-9 w-9 place-items-center rounded-md border border-white/10 bg-white/10 text-white shadow-sm transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
+            aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
+            aria-controls={
+              // Associate with the visible panel by breakpoint
+              !isMobile ? 'desktop-chat-panel' : 'mobile-chat-panel'
+            }
+            aria-expanded={isChatOpen}
+            data-testid="chat-toggle-top"
+          >
+            {/* Desktop: left/right arrow. Mobile: up/down arrow. Direction represents the action to be performed. */}
+            <span className="hidden md:block">
+              {isChatOpen ? (
+                <FaChevronRight className="h-4 w-4" />
+              ) : (
+                <FaChevronLeft className="h-4 w-4" />
+              )}
+            </span>
+            <span className="md:hidden">
+              {isChatOpen ? (
+                <FaChevronDown className="h-4 w-4" />
+              ) : (
+                <FaChevronUp className="h-4 w-4" />
+              )}
+            </span>
+          </button>
+        </div>
+
         {visualState === 'playing' && (
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform">
             <span className="rounded-full bg-white/10 px-3 py-1 font-mono text-sm text-indigo-200 shadow-sm">
@@ -333,7 +364,7 @@ export default function RoomPage() {
           <div className="relative flex w-full justify-center gap-4 border-t border-white/10 bg-white/5 py-4 shadow-inner backdrop-blur-sm">
             <JoinGameButtons />
 
-            {/* Chat Toggle Button – mobile */}
+            {/* Chat Toggle Button – mobile (restored) */}
             <button
               onClick={() => setIsChatOpen(!isChatOpen)}
               className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 transition-colors hover:bg-white/20 focus:ring-2 focus:ring-emerald-400"
@@ -389,46 +420,7 @@ export default function RoomPage() {
         />
       </aside>
 
-      {/* Chat Toggle Button - desktop, with improved design */}
-      <div
-        className={`fixed z-40 hidden transition-all duration-300 ease-in-out md:block ${
-          isChatOpen ? 'right-96' : 'right-0'
-        }`}
-        style={{
-          top: 'calc(50% - 36px)',
-        }}
-      >
-        <button
-          onClick={() => {
-            setIsChatOpen(!isChatOpen);
-          }}
-          className={`group flex h-16 w-6 items-center justify-center rounded-l-md border-b border-l border-t border-white/10 backdrop-blur-sm transition-all duration-300 ${
-            isChatOpen
-              ? 'bg-gradient-to-br from-indigo-800/70 to-purple-800/70 hover:from-indigo-700/70 hover:to-purple-700/70'
-              : 'bg-white/5 hover:bg-white/10'
-          } focus:outline-none`}
-          aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
-          aria-controls="desktop-chat-panel"
-          aria-expanded={isChatOpen}
-        >
-          <div className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden">
-            <div
-              className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
-                isChatOpen ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              <FaChevronRight className="h-3 w-3 text-white/80 transition-all group-hover:text-white" />
-            </div>
-            <div
-              className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
-                isChatOpen ? 'opacity-0' : 'opacity-100'
-              }`}
-            >
-              <FaChevronLeft className="h-3 w-3 text-white/80 transition-all group-hover:text-white" />
-            </div>
-          </div>
-        </button>
-      </div>
+      {/* Removed old desktop floating chat toggle; unified control is in top bar */}
     </div>
   );
 }
