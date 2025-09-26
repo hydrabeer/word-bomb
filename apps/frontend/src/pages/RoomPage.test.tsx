@@ -1,18 +1,28 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import RoomPage from './RoomPage';
 
 // Mock hooks used inside RoomPage
 vi.mock('../hooks/useGameRoom', () => ({ useGameRoom: () => undefined }));
+let mockPlayers: { id: string; name: string; isSeated: boolean }[] = [];
+let mockLeaderId: string | null = null;
+let mockPlayerId = 'p1';
+const mockMe: { id: string; name: string; isSeated: boolean } = {
+  id: 'p1',
+  name: 'Alice',
+  isSeated: false,
+};
+const toggleSeatedMock = vi.fn();
+const startGameMock = vi.fn();
 vi.mock('../hooks/usePlayerManagement', () => ({
   usePlayerManagement: () => ({
-    players: [],
-    leaderId: null,
-    playerId: 'p1',
-    me: { id: 'p1', name: 'Alice', isSeated: false },
-    toggleSeated: vi.fn(),
-    startGame: vi.fn(),
+    players: mockPlayers,
+    leaderId: mockLeaderId,
+    playerId: mockPlayerId,
+    me: mockMe,
+    toggleSeated: toggleSeatedMock,
+    startGame: startGameMock,
   }),
 }));
 vi.mock('../hooks/useWordSubmission', () => ({
@@ -61,6 +71,13 @@ vi.mock('../hooks/useGameState', () => ({
   useGameState: () => mockUseGameStateReturn,
 }));
 
+// Mock clipboard
+Object.assign(navigator, {
+  clipboard: {
+    writeText: vi.fn().mockResolvedValue(undefined),
+  },
+});
+
 describe('RoomPage', () => {
   const renderWithRoute = (roomCode = 'ROOM') =>
     render(
@@ -92,5 +109,69 @@ describe('RoomPage', () => {
     renderWithRoute();
     // Multiple spots show fragment; ensure at least one instance present
     expect(screen.getAllByText('ab').length).toBeGreaterThan(0);
+  });
+
+  it('toggles chat via top-right button', () => {
+    mockUseGameStateReturn = { ...baseState };
+    renderWithRoute();
+    const toggle = screen.getByTestId('chat-toggle-top');
+    expect(toggle).toBeInTheDocument();
+    fireEvent.click(toggle);
+  });
+
+  it('copies invite link on click and shows feedback', async () => {
+    mockUseGameStateReturn = { ...baseState };
+    renderWithRoute('ROOM42');
+    fireEvent.click(
+      screen.getByRole('button', { name: /Copy room invite link/i }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/copied!/i)).toBeInTheDocument(),
+    );
+  });
+
+  it('renders players list with leader and seated markers', () => {
+    mockPlayers = [
+      { id: 'p1', name: 'Alice', isSeated: true },
+      { id: 'p2', name: 'Bob', isSeated: false },
+    ];
+    mockLeaderId = 'p2';
+    mockUseGameStateReturn = { ...baseState };
+    renderWithRoute();
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText('Bob')).toBeInTheDocument();
+    // Check leader crown and seated check exist in DOM
+    expect(
+      screen.getAllByLabelText(/Game leader|Seated/).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('shows Start now button only for leader and when countdown active', () => {
+    mockPlayers = [{ id: 'p1', name: 'Alice', isSeated: true }];
+    mockLeaderId = 'p1';
+    mockPlayerId = 'p1';
+    mockUseGameStateReturn = { ...baseState, timeLeftSec: 5 };
+    const r1 = renderWithRoute();
+    expect(
+      screen.getByRole('button', { name: /Start game now/i }),
+    ).toBeInTheDocument();
+    r1.unmount();
+
+    // Non-leader should not see button
+    mockLeaderId = 'p2';
+    mockUseGameStateReturn = { ...baseState, timeLeftSec: 5 };
+    const r2 = renderWithRoute();
+    expect(
+      screen.queryByRole('button', { name: /Start game now/i }),
+    ).not.toBeInTheDocument();
+    r2.unmount();
+
+    // No countdown
+    mockLeaderId = 'p1';
+    mockUseGameStateReturn = { ...baseState, timeLeftSec: 0 };
+    renderWithRoute();
+    expect(
+      screen.queryByRole('button', { name: /Start game now/i }),
+    ).not.toBeInTheDocument();
   });
 });
