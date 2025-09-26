@@ -207,4 +207,24 @@ describe('DisconnectedPage', () => {
     fireEvent.click(homeBtn);
     expect(navigateMock).toHaveBeenCalledWith('/');
   });
+
+  it('announces status changes and manages focus/aria-busy', () => {
+    renderAt('/disconnected?reason=boom');
+    const main = screen.getByRole('main');
+    // focused on mount
+    expect(document.activeElement).toBe(main);
+    // has live status
+    const statusEl = screen.getByRole('status');
+    expect(statusEl).toHaveTextContent(/Reconnecting/);
+    // busy while reconnecting
+    expect(main).toHaveAttribute('aria-busy', 'true');
+
+    // simulate a connection error -> should no longer be busy
+    act(() => {
+      (socketModule as unknown as SocketTestHelpers).__triggerOnce(
+        'connect_error',
+      );
+    });
+    expect(main).toHaveAttribute('aria-busy', 'false');
+  });
 });

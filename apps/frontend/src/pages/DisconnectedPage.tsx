@@ -12,6 +12,7 @@ export default function DisconnectedPage() {
   const [status, setStatus] = useState<
     'idle' | 'reconnecting' | 'failed' | 'success'
   >('idle');
+  const mainRef = useRef<HTMLElement | null>(null);
   const intervalRef = useRef<number | null>(null);
   const failSafeRef = useRef<number | null>(null);
   const statusRef = useRef<'idle' | 'reconnecting' | 'failed' | 'success'>(
@@ -35,6 +36,23 @@ export default function DisconnectedPage() {
   useEffect(() => {
     attemptRef.current = attempt;
   }, [attempt]);
+  // Focus the main region on mount for screen reader context
+  useEffect(() => {
+    mainRef.current?.focus();
+  }, []);
+  // Keep the document title informative
+  useEffect(() => {
+    const base = 'Disconnected';
+    if (status === 'reconnecting') {
+      document.title = `${base} — Reconnecting (attempt ${attempt}/${MAX_ATTEMPTS})`;
+    } else if (status === 'success') {
+      document.title = `${base} — Reconnected`;
+    } else if (status === 'failed') {
+      document.title = `${base} — Retry failed`;
+    } else {
+      document.title = base;
+    }
+  }, [status, attempt]);
 
   const tryReconnect = useCallback(() => {
     // clear any pending scheduled retry before starting a fresh attempt
@@ -184,33 +202,49 @@ export default function DisconnectedPage() {
   })();
 
   return (
-    <div className="flex min-h-screen w-screen flex-col items-center justify-center bg-gray-900 p-6 text-white">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 shadow-xl backdrop-blur-sm">
-        <h1 className="mb-4 text-3xl font-bold">Disconnected</h1>
-        <p className="mb-2 text-indigo-200">Reason: {reason}</p>
+    <div className="flex min-h-screen w-screen flex-col items-center justify-center bg-gradient-to-br from-indigo-950 to-purple-900 p-6 text-white">
+      <main
+        ref={mainRef as unknown as React.RefObject<HTMLElement>}
+        role="main"
+        tabIndex={-1}
+        aria-labelledby="disconnected-heading"
+        aria-describedby="disconnected-reason"
+        aria-busy={status === 'reconnecting'}
+        className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 text-center shadow-xl backdrop-blur-sm"
+      >
+        <h1 id="disconnected-heading" className="mb-4 text-3xl font-bold">Disconnected</h1>
+        <p id="disconnected-reason" className="mb-2 text-indigo-200">
+          Reason: {reason}
+        </p>
         {roomCode && (
           <p className="mb-4 text-sm text-indigo-300">
             Previous room: {roomCode}
           </p>
         )}
-        <p className="mb-6 text-sm text-indigo-300">{progressMessage}</p>
+        <p
+          className="mb-6 text-sm text-indigo-300"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {progressMessage}
+        </p>
         <div className="flex flex-col gap-3">
           <button
             onClick={tryReconnect}
             disabled={status === 'reconnecting' || attempt >= MAX_ATTEMPTS}
-            aria-label="Try Again"
-            className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-black hover:enabled:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center justify-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-black shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {status === 'reconnecting' ? 'Reconnecting...' : 'Try Again'}
           </button>
           <button
             onClick={handleReturnHome}
-            className="rounded border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+            className="inline-flex items-center justify-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-black shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95"
           >
             Home
           </button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
