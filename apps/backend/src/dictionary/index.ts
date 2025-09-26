@@ -5,6 +5,34 @@ import https from 'https';
 let dictionary = new Set<string>();
 let fragmentCounts = new Map<string, number>();
 
+// Minimal built-in fallback to keep tests and dev environment working when
+// the local words.txt is not present (CI doesn't commit the large dictionary).
+// Keep this list tiny and all lowercase.
+const DEFAULT_WORDS: string[] = [
+  'aa',
+  'aah',
+  'ab',
+  'aba',
+  'able',
+  'about',
+  'above',
+  'act',
+  'action',
+  'active',
+  'add',
+  'age',
+  'ago',
+  'agree',
+  'air',
+  'aim',
+  'all',
+  'alone',
+  'also',
+  'always',
+  'amazing',
+  'amount',
+];
+
 /**
  * Loads the dictionary into memory from a local file or a remote source (if in production).
  * Also builds the fragment count index for fast lookup.
@@ -44,6 +72,14 @@ export async function loadDictionary(): Promise<void> {
     buildFragmentIndex(words);
   } catch (err) {
     console.error(`❌ Failed to load dictionary from ${filePath}:`, err);
+    if (!isProd) {
+      // Fallback to a tiny built-in dictionary for dev/test so CI remains deterministic.
+      dictionary = new Set(DEFAULT_WORDS);
+      buildFragmentIndex(DEFAULT_WORDS);
+      console.log(
+        `ℹ️ Using built-in fallback dictionary with ${dictionary.size.toString()} words`,
+      );
+    }
   }
 }
 
