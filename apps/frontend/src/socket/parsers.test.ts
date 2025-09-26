@@ -116,10 +116,19 @@ describe('socket parsers', () => {
       parseGameStarted({ fragment: 'ok', bombDuration: 5, players: {} }),
     ).toBeNull();
     // currentPlayer absent -> null
-    const noCp = parseGameStarted({ fragment: 'ok', bombDuration: 5, players: [] });
+    const noCp = parseGameStarted({
+      fragment: 'ok',
+      bombDuration: 5,
+      players: [],
+    });
     expect(noCp!.currentPlayer).toBeNull();
     // currentPlayer present but not string/null -> null via fallback branch
-    const badCp = parseGameStarted({ fragment: 'ok', bombDuration: 5, players: [], currentPlayer: 123 });
+    const badCp = parseGameStarted({
+      fragment: 'ok',
+      bombDuration: 5,
+      players: [],
+      currentPlayer: 123,
+    });
     expect(badCp!.currentPlayer).toBeNull();
   });
   it('parseTurnStarted valid', () => {
@@ -148,7 +157,10 @@ describe('socket parsers', () => {
       ],
     });
     expect(res!.playerId).toBe('p1');
-    expect(res!.players[0].bonusProgress).toEqual({ remaining: [0, 1], total: [2, 3] });
+    expect(res!.players[0].bonusProgress).toEqual({
+      remaining: [0, 1],
+      total: [2, 3],
+    });
   });
   it('parseTurnStarted maps non-object player to defaults', () => {
     const res = parseTurnStarted({
@@ -158,13 +170,24 @@ describe('socket parsers', () => {
       players: [42], // non-object -> default player entry
     });
     expect(res!.playerId).toBeNull();
-    expect(res!.players[0]).toEqual({ id: 'unknown', name: 'Unknown', isEliminated: false, lives: 0 });
+    expect(res!.players[0]).toEqual({
+      id: 'unknown',
+      name: 'Unknown',
+      isEliminated: false,
+      lives: 0,
+    });
   });
   it('parseTurnStarted invalid variants', () => {
     expect(parseTurnStarted('no')).toBeNull();
-    expect(parseTurnStarted({ fragment: 1, bombDuration: 1, players: [] })).toBeNull();
-    expect(parseTurnStarted({ fragment: 'c', bombDuration: '1', players: [] })).toBeNull();
-    expect(parseTurnStarted({ fragment: 'c', bombDuration: 1, players: {} })).toBeNull();
+    expect(
+      parseTurnStarted({ fragment: 1, bombDuration: 1, players: [] }),
+    ).toBeNull();
+    expect(
+      parseTurnStarted({ fragment: 'c', bombDuration: '1', players: [] }),
+    ).toBeNull();
+    expect(
+      parseTurnStarted({ fragment: 'c', bombDuration: 1, players: {} }),
+    ).toBeNull();
   });
   it('parseTurnStarted player object with invalid fields falls back', () => {
     const res = parseTurnStarted({

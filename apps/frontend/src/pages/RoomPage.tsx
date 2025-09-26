@@ -123,6 +123,10 @@ export default function RoomPage() {
 
       {/* Top Bar */}
       <header className="relative flex -translate-y-[7px] items-center justify-between border-b border-white/10 bg-gradient-to-r from-indigo-800/70 to-purple-800/70 p-3 text-base text-white backdrop-blur-sm">
+        {/* Page heading for a11y (visually hidden) */}
+        <h1 id="page-title" className="sr-only">
+          Word Bomb Room {roomCode}
+        </h1>
         <div className="flex translate-y-1 items-center gap-3">
           <button
             onClick={() => {
@@ -417,6 +421,8 @@ export default function RoomPage() {
           roomCode={roomCode}
           headingId="desktop-chat-heading"
           autoFocus={isChatOpen}
+          /* Avoid nested complementary landmarks inside the aside */
+          regionRole="region"
         />
       </aside>
 
