@@ -44,9 +44,10 @@ describe('duplicate words are rejected within a game', () => {
   it('rejects a word that has already been used and resets next game', () => {
     // Ensure dictionary validity always passes for simplicity
     vi.mock('../src/dictionary', async () => {
-      const mod = await vi.importActual<typeof import('../src/dictionary')>(
-        '../src/dictionary',
-      );
+      const mod =
+        await vi.importActual<typeof import('../src/dictionary')>(
+          '../src/dictionary',
+        );
       return { ...mod, isValidWord: () => true };
     });
 
@@ -58,10 +59,12 @@ describe('duplicate words are rejected within a game', () => {
     const emit: EmitFn = vi.fn();
 
     const scheduler: TurnScheduler = {
-      schedule: vi.fn<(d: number, cb: () => void) => object | number>((d, cb) => {
-        const token = setTimeout(cb, d);
-        return token as unknown as object;
-      }),
+      schedule: vi.fn<(d: number, cb: () => void) => object | number>(
+        (d, cb) => {
+          const token = setTimeout(cb, d);
+          return token as unknown as object;
+        },
+      ),
       cancel: vi.fn<(token: object | number) => void>((token) => {
         clearTimeout(token as unknown as NodeJS.Timeout);
       }),
