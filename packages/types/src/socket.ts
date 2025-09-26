@@ -68,13 +68,13 @@ export interface GameStartedPayload {
   bombDuration: number;
   currentPlayer: string | null;
   leaderId: string | null;
-  players: { id: string; name: string; isEliminated: boolean; lives: number }[];
+  players: GamePlayerView[];
 }
 export interface TurnStartedPayload {
   playerId: string | null;
   fragment: string;
   bombDuration: number;
-  players: { id: string; name: string; isEliminated: boolean; lives: number }[];
+  players: GamePlayerView[];
 }
 export interface PlayerTypingPayload {
   roomCode: string;
@@ -135,4 +135,21 @@ export interface ServerToClientEvents {
 }
 export interface SocketData {
   currentRoomCode?: string;
+}
+
+// --- Bonus Alphabet in-game player view extensions ---
+export interface BonusProgressView {
+  // Remaining counts per letter (length 26), 0 means fulfilled for that letter
+  remaining: number[];
+  // Total required per letter (length 26); may be 0 for letters not in subset
+  total: number[];
+}
+
+export interface GamePlayerView {
+  id: string;
+  name: string;
+  isEliminated: boolean;
+  lives: number;
+  // Optional to allow older servers/clients; present during active game payloads
+  bonusProgress?: BonusProgressView;
 }

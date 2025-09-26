@@ -7,6 +7,14 @@ export class BonusProgress {
     this.progress = [...initial];
   }
 
+  /**
+   * Returns a copy of the current per-letter remaining counts.
+   * Index 0 corresponds to 'a', 25 to 'z'.
+   */
+  toArray(): number[] {
+    return [...this.progress];
+  }
+
   useLetter(letter: string): boolean {
     const index = this.getIndex(letter);
     if (index === -1 || this.progress[index] <= 0) return false;

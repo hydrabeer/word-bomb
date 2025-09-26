@@ -1,6 +1,8 @@
 // apps/frontend/src/components/GameBoard.tsx
 import { useRef, useEffect, KeyboardEvent, JSX, useMemo } from 'react';
 import { PlayerBubble } from './PlayerBubble';
+import { BonusAlphabet } from './BonusAlphabet';
+import { useBonusAlphabetSettings } from '../hooks/useBonusAlphabetSettings';
 
 export interface GameState {
   fragment: string;
@@ -11,6 +13,7 @@ export interface GameState {
     name: string;
     isEliminated: boolean;
     lives: number;
+    bonusProgress?: { remaining: number[]; total: number[] };
   }[];
 }
 
@@ -37,6 +40,7 @@ export function GameBoard({
   lastWordAcceptedBy,
   lastSubmittedWords,
 }: GameBoardProps) {
+  const { settings: bonusSettings } = useBonusAlphabetSettings();
   const localPlayerId = useMemo(() => {
     try {
       return (
@@ -63,7 +67,7 @@ export function GameBoard({
       inputRef.current?.focus();
       inputRef.current?.select();
     };
-    focusInput();
+    // Removed highlight cache (cheap to compute, saves lines / complexity)
     const timeout = setTimeout(focusInput, 50);
     return () => clearTimeout(timeout);
   }, [isMyTurn]);
@@ -235,6 +239,14 @@ export function GameBoard({
 
       {/* Bomb Area */}
       <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+        {/* floating bonus alphabet overlay for the local player (anchored to play area) */}
+        <BonusAlphabet
+          progress={
+            gameState.players.find((p) => p.id === localPlayerId)
+              ?.bonusProgress ?? null
+          }
+          settings={bonusSettings}
+        />
         {/* Red Reactive Bomb Ring */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative flex items-center justify-center">

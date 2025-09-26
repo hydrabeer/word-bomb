@@ -5,6 +5,7 @@ import type {
   GameStartedPayload,
   TurnStartedPayload,
   PlayersUpdatedPayload,
+  GamePlayerView,
 } from '@word-bomb/types';
 
 // Player view helpers (room vs in-game)
@@ -17,12 +18,16 @@ export function toRoomPlayerView(p: Player) {
   };
 }
 
-export function toGamePlayerView(p: Player) {
+export function toGamePlayerView(
+  p: Player,
+  rules: Game['rules'],
+): GamePlayerView {
   return {
     id: p.id,
     name: p.name,
     isEliminated: p.isEliminated,
     lives: p.lives,
+    bonusProgress: p.getBonusProgressSnapshot(rules.bonusTemplate),
   };
 }
 
@@ -41,7 +46,7 @@ export function buildTurnStartedPayload(game: Game): TurnStartedPayload {
     playerId: current.id,
     fragment: game.fragment,
     bombDuration: game.getBombDuration(),
-    players: game.players.map(toGamePlayerView),
+    players: game.players.map((pl) => toGamePlayerView(pl, game.rules)),
   };
 }
 
@@ -56,6 +61,6 @@ export function buildGameStartedPayload(
     bombDuration: game.getBombDuration(),
     currentPlayer: current.id,
     leaderId: room.getLeaderId() ?? null,
-    players: game.players.map(toGamePlayerView),
+    players: game.players.map((pl) => toGamePlayerView(pl, game.rules)),
   };
 }

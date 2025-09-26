@@ -67,13 +67,19 @@ describe('serialization player views', () => {
     player.isSeated = true;
     player.isConnected = false;
     player.isEliminated = true;
-    const view = toGamePlayerView(player);
-    expect(view).toEqual({
-      id: 'Y',
-      name: 'Yuri',
-      isEliminated: true,
-      lives: 2,
+    const view = toGamePlayerView(player, {
+      maxLives: rules.maxLives,
+      bonusTemplate: rules.bonusTemplate,
+      minTurnDuration: rules.minTurnDuration,
+      minWordsPerPrompt: rules.minWordsPerPrompt,
     });
+    expect(view.id).toBe('Y');
+    expect(view.name).toBe('Yuri');
+    expect(view.isEliminated).toBe(true);
+    expect(view.lives).toBe(2);
+    expect(view.bonusProgress).toBeDefined();
+    expect(view.bonusProgress?.remaining.length).toBe(26);
+    expect(view.bonusProgress?.total.length).toBe(26);
   });
 });
 

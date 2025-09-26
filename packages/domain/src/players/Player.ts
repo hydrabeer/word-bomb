@@ -121,4 +121,18 @@ export class Player {
     this.lives = maxLives;
     this.bonusProgress.reset(resetTemplate);
   }
+
+  /**
+   * Returns a read-only snapshot of the player's bonus progress for transport/UI.
+   * @param totalTemplate The per-letter required counts template for the current game rules
+   */
+  getBonusProgressSnapshot(totalTemplate: number[]): {
+    remaining: number[];
+    total: number[];
+  } {
+    return {
+      remaining: this.bonusProgress.toArray(),
+      total: [...totalTemplate],
+    };
+  }
 }

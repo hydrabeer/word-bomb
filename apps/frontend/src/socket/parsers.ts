@@ -30,6 +30,7 @@ export interface PlayerEntryParsed {
   name: string;
   isEliminated: boolean;
   lives: number;
+  bonusProgress?: { remaining: number[]; total: number[] };
 }
 export interface GameStartedParsed {
   fragment: string;
@@ -53,7 +54,22 @@ export function parseGameStarted(v: unknown): GameStartedParsed | null {
       const name = typeof o.name === 'string' ? o.name : 'Unknown';
       const isEliminated = !!o.isEliminated;
       const lives = typeof o.lives === 'number' ? o.lives : 0;
-      return { id, name, isEliminated, lives };
+      let bp: { remaining: number[]; total: number[] } | undefined;
+      const rawBp: unknown = o.bonusProgress;
+      if (isObj(rawBp)) {
+        const rem = (rawBp as { remaining?: unknown }).remaining;
+        const tot = (rawBp as { total?: unknown }).total;
+        if (Array.isArray(rem) && Array.isArray(tot)) {
+          const remainingNums: number[] = rem.filter(
+            (n): n is number => typeof n === 'number',
+          );
+          const totalNums: number[] = tot.filter(
+            (n): n is number => typeof n === 'number',
+          );
+          bp = { remaining: remainingNums, total: totalNums };
+        }
+      }
+      return { id, name, isEliminated, lives, bonusProgress: bp };
     }
     return { id: 'unknown', name: 'Unknown', isEliminated: false, lives: 0 };
   });
@@ -83,12 +99,26 @@ export function parseTurnStarted(v: unknown): TurnStartedParsed | null {
   const players: PlayerEntryParsed[] = (v.players as unknown[]).map((p) => {
     if (p && typeof p === 'object') {
       const o = p as Record<string, unknown>;
-      return {
-        id: typeof o.id === 'string' ? o.id : 'unknown',
-        name: typeof o.name === 'string' ? o.name : 'Unknown',
-        isEliminated: !!o.isEliminated,
-        lives: typeof o.lives === 'number' ? o.lives : 0,
-      };
+      const id = typeof o.id === 'string' ? o.id : 'unknown';
+      const name = typeof o.name === 'string' ? o.name : 'Unknown';
+      const isEliminated = !!o.isEliminated;
+      const lives = typeof o.lives === 'number' ? o.lives : 0;
+      let bp: { remaining: number[]; total: number[] } | undefined;
+      const rawBp: unknown = o.bonusProgress;
+      if (isObj(rawBp)) {
+        const rem = (rawBp as { remaining?: unknown }).remaining;
+        const tot = (rawBp as { total?: unknown }).total;
+        if (Array.isArray(rem) && Array.isArray(tot)) {
+          const remainingNums: number[] = rem.filter(
+            (n): n is number => typeof n === 'number',
+          );
+          const totalNums: number[] = tot.filter(
+            (n): n is number => typeof n === 'number',
+          );
+          bp = { remaining: remainingNums, total: totalNums };
+        }
+      }
+      return { id, name, isEliminated, lives, bonusProgress: bp };
     }
     return { id: 'unknown', name: 'Unknown', isEliminated: false, lives: 0 };
   });
