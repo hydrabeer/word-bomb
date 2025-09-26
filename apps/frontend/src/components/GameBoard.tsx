@@ -178,8 +178,18 @@ export function GameBoard({
     ? Math.min(100, Math.max(0, (bombCountdown / gameState.bombDuration) * 100))
     : 100;
 
+  // Red reactive ring parameters (single color theme)
+  const progressRemaining = countdownPercentage / 100; // 1 -> full time, 0 -> expired
+  const progressElapsed = 1 - progressRemaining;
+  // Single-ring visual: opacity pulse tied directly to elapsed progress (one pulse over the turn)
+  const pulsePhase = Math.sin(progressElapsed * Math.PI); // 0 -> 1 -> 0 over the turn
+  const ringStrokeOpacity = 0.7 + pulsePhase * 0.25; // 0.7 - 0.95 peak mid-turn
+  const ringGlowOpacity = 0.35 + pulsePhase * 0.4; // for outer glow wrapper
+  const circumference = 2 * Math.PI * 45; // r=45 for SVG circle
+  const strokeDashoffset = progressElapsed * circumference;
+
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 shadow-lg">
+  <div className="flex h-full w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 shadow-lg">
       {/* Game Stats Bar */}
       <div className="grid grid-cols-3 items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2 text-center text-sm shadow-inner backdrop-blur-sm">
         <div className="flex flex-col items-start text-left">
@@ -195,15 +205,10 @@ export function GameBoard({
           <span className="text-xs uppercase tracking-wider text-indigo-300">
             Time
           </span>
-          <div className="mt-1 h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
+          <div className="mt-1 h-1.5 w-28 overflow-hidden rounded-full bg-white/10">
             <div
-              key={`${gameState.currentPlayerId}-${gameState.bombDuration}-${gameState.fragment}`}
-              className={`h-full origin-left ${
-                isUrgent
-                  ? 'bg-gradient-to-r from-red-500 to-orange-400'
-                  : 'bg-gradient-to-r from-emerald-500 to-emerald-400'
-              } animate-bomb-progress`}
-              style={{ animationDuration: `${gameState.bombDuration}s` }}
+              className="h-full origin-left bg-gradient-to-r from-red-500 via-red-400 to-red-500"
+              style={{ width: `${countdownPercentage}%`, transition: 'width 0.15s linear' }}
             />
           </div>
         </div>
@@ -231,19 +236,44 @@ export function GameBoard({
 
       {/* Bomb Area */}
       <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-        {/* Bomb Pulse Ring - Visual Countdown */}
+        {/* Red Reactive Bomb Ring */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div
-            className={`absolute h-[120px] w-[120px] rounded-full border-4 transition-transform duration-100 sm:h-[180px] sm:w-[180px] ${
-              isUrgent
-                ? 'border-red-600/50 shadow-lg shadow-red-500/20'
-                : 'border-pink-600/30'
-            }`}
-            style={{
-              transform: `scale(${1 + (1 - countdownPercentage / 100) * 0.4})`,
-              opacity: 0.1 + (1 - countdownPercentage / 100) * 0.8,
-            }}
-          />
+          <div className="relative flex items-center justify-center">
+            <div
+              className="bomb-arc-glow-wrapper"
+              style={{
+                opacity: ringGlowOpacity,
+                // Breathing scale (slight) synced exactly with pulsePhase
+                transform: `scale(${1 + pulsePhase * 0.035})`,
+                transition: 'transform 0.15s linear, opacity 0.15s linear',
+                filter: `drop-shadow(0 0 ${8 + pulsePhase * 6}px rgba(239,68,68,${0.45 + pulsePhase * 0.35})) drop-shadow(0 0 ${18 + pulsePhase * 10}px rgba(239,68,68,${0.25 + pulsePhase * 0.25}))`,
+              }}
+            >
+              <svg
+                className="relative h-[146px] w-[146px] sm:h-[206px] sm:w-[206px]"
+                viewBox="0 0 100 100"
+                role="presentation"
+              >
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  stroke="#ef4444"
+                  strokeWidth="8"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeOpacity={ringStrokeOpacity}
+                  style={{
+                    strokeDasharray: circumference,
+                    strokeDashoffset,
+                    transition: 'stroke-dashoffset 0.15s linear, stroke-opacity 0.2s linear',
+                    transform: 'rotate(-90deg)',
+                    transformOrigin: '50% 50%',
+                  }}
+                />
+              </svg>
+            </div>
+          </div>
         </div>
 
         {/* Danger Zone - shows near timeout */}
@@ -285,8 +315,13 @@ export function GameBoard({
               <PlayerBubble
                 key={view.player.id}
                 {...view}
-                lastWordAcceptedBy={lastWordAcceptedBy}
                 isUrgent={isUrgent}
+                flash={lastWordAcceptedBy === view.player.id}
+                shake={
+                  rejected &&
+                  gameState?.currentPlayerId === view.player.id &&
+                  !!view.highlighted
+                }
                 rotation={-rotationOffset} // So contents stay upright
               />
             ))}
@@ -294,63 +329,53 @@ export function GameBoard({
         </div>
       </div>
 
-      {/* Bottom bar */}
+      {/* Bottom bar (fixed height for consistency across states) */}
       <div
-        className={`border-t border-white/10 bg-black/20 px-4 py-4 shadow-inner backdrop-blur-sm transition-all duration-300 ${
-          isMobile ? 'sticky bottom-0 left-0 z-30 w-full' : ''
+        className={`border-t border-white/10 bg-black/20 px-4 shadow-inner backdrop-blur-sm transition-all duration-300 ${
+          isMobile
+            ? 'sticky bottom-0 left-0 z-30 w-full py-3'
+            : 'h-20 flex items-center'
         }`}
       >
-        <div className="relative mx-auto flex max-w-xl items-center justify-center gap-3">
+        <div className="relative mx-auto flex h-14 w-full max-w-2xl items-center gap-4">
           {isMyTurn ? (
-            <>
-              <label className="relative block flex-1">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={inputWord}
-                  onChange={(e) => setInputWord(e.target.value)}
-                  onKeyDown={onKeyDownHandler}
-                  placeholder="Type a word..."
-                  inputMode="text"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="none"
-                  enterKeyHint="done"
-                  className={`peer w-full rounded-lg border ${
-                    rejected
-                      ? 'animate-shake border-red-500 bg-red-500/10'
-                      : inputWord
-                            .toLowerCase()
-                            .includes(gameState.fragment.toLowerCase())
-                        ? 'border-emerald-500 bg-emerald-900/10'
-                        : 'border-indigo-600/30 focus:border-emerald-400'
-                  } bg-indigo-900/50 px-4 py-3 pt-5 text-base text-white placeholder-transparent transition-all focus:outline-none focus:ring-2 focus:ring-emerald-400`}
-                  style={{
-                    fontSize: '16px', // prevents zoom on iOS Safari
-                  }}
-                />
-                <span className="pointer-events-none absolute left-4 top-2 text-sm text-indigo-300 opacity-0 transition-all duration-200 peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-indigo-300 peer-placeholder-shown:opacity-100 peer-focus:top-1 peer-focus:text-xs peer-focus:text-indigo-200 peer-focus:opacity-100">
-                  Type a word containing &ldquo;{gameState.fragment}&rdquo;...
-                </span>
-              </label>
-              {!isMobile && (
-                <button
-                  onClick={handleSubmitWord}
-                  className={`rounded-lg px-4 py-3 font-medium text-white shadow-lg transition-transform ${
-                    inputWord
+            <div
+              className={`flex h-full w-full items-center justify-center rounded-lg px-4 backdrop-blur-sm transition-colors ${
+                rejected
+                  ? 'animate-shake border border-red-500 bg-red-500/10'
+                  : inputWord
                       .toLowerCase()
                       .includes(gameState.fragment.toLowerCase())
-                      ? 'bg-emerald-600 shadow-emerald-600/20 hover:bg-emerald-500'
-                      : 'bg-indigo-600 shadow-indigo-600/20 hover:bg-indigo-500'
-                  } disabled:opacity-50`}
-                  disabled={inputWord.length < gameState.fragment.length}
-                >
-                  Submit
-                </button>
-              )}
-            </>
+                    ? 'border border-emerald-500 bg-emerald-900/10'
+                    : 'border border-indigo-700/30 bg-indigo-900/50'
+              }`}
+            >
+              <label htmlFor="play-input" className="sr-only">
+                Enter a word
+              </label>
+              <input
+                id="play-input"
+                ref={inputRef}
+                type="text"
+                value={inputWord}
+                maxLength={30}
+                onChange={(e) => {
+                  const v = e.target.value.slice(0, 30);
+                  setInputWord(v);
+                }}
+                onKeyDown={onKeyDownHandler}
+                placeholder={`Type a word containing "${gameState.fragment}"...`}
+                inputMode="text"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                enterKeyHint="done"
+                className="h-full w-full bg-transparent text-center text-base text-white placeholder:text-indigo-300 focus:outline-none"
+                style={{ fontSize: '16px' }}
+              />
+            </div>
           ) : (
-            <div className="flex w-full items-center justify-center rounded-lg border border-indigo-700/30 bg-indigo-900/50 px-4 py-3 text-center text-base font-medium text-indigo-200 backdrop-blur-sm">
+            <div className="flex h-full w-full items-center justify-center rounded-lg border border-indigo-700/30 bg-indigo-900/50 px-4 text-center text-base font-medium text-indigo-200 backdrop-blur-sm">
               <span className="mr-2 text-indigo-300">Waiting for:</span>
               <span className="font-semibold text-emerald-400">
                 {

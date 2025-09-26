@@ -10,6 +10,10 @@ import { noop } from '@game/domain/utils/noop';
 import type { Player } from '@game/domain/players/Player';
 import type { BasicResponse } from '@word-bomb/types';
 import { RoomBroadcaster } from '../core/RoomBroadcaster';
+import {
+  buildGameStartedPayload,
+  buildTurnStartedPayload,
+} from '../core/serialization';
 
 import type { TypedServer, TypedSocket } from './typedSocket';
 
@@ -183,6 +187,26 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       } else {
         room.setPlayerConnected(playerId, true);
         emitPlayers(io, room);
+      }
+
+      // If a game is already in progress, immediately emit the current game
+      // snapshot so late joiners become spectators. They are NOT added to the
+      // active game.player list (only seated-at-start players are). We send
+      // both gameStarted and a synthetic turnStarted so the client sets up
+      // timers/UI. (The bomb timer will show full duration remaining for the
+      // current turn; improving this with remaining time would require a
+      // protocol change and engine time tracking.)
+      if (room.game) {
+        try {
+          const game = room.game;
+          socket.emit('gameStarted', buildGameStartedPayload(room, game));
+          socket.emit('turnStarted', buildTurnStartedPayload(game));
+        } catch (e) {
+          console.warn(
+            '[JOIN ROOM] Failed to emit existing game state to late joiner:',
+            e,
+          );
+        }
       }
       callback({ success: true });
     } catch (err) {

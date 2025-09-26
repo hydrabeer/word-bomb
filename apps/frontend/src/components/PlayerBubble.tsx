@@ -10,7 +10,8 @@ function PlayerBubbleComponent({
   y,
   highlighted,
   isUrgent,
-  lastWordAcceptedBy,
+  flash,
+  shake,
   rotation = 0,
 }: {
   player: GameState['players'][number];
@@ -20,7 +21,8 @@ function PlayerBubbleComponent({
   y: number;
   highlighted: string | JSX.Element | null;
   isUrgent: boolean;
-  lastWordAcceptedBy: string | null;
+  flash: boolean; // triggers green acceptance flash
+  shake: boolean; // triggers rejection shake animation
   rotation?: number;
 }) {
   return (
@@ -28,78 +30,68 @@ function PlayerBubbleComponent({
       className="absolute left-1/2 top-1/2 transition-transform duration-500 ease-in-out"
       style={{
         transform: `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rotation}deg)`,
+        width: 0,
+        height: 0,
       }}
     >
-      <div
-        className={`absolute -inset-3 -z-10 rounded-xl transition-transform duration-300 ${
-          isActive
-            ? 'border border-emerald-500/30 bg-emerald-500/10'
-            : isEliminated
-              ? 'border border-red-500/10 bg-red-500/5'
-              : 'bg-indigo-500/5'
-        } backdrop-blur-sm ${isActive ? 'scale-110' : 'scale-100'} ${
-          isActive && isUrgent ? 'animate-pulse' : ''
-        }`}
-      />
-
-      {lastWordAcceptedBy === player.id && (
-        <div className="flash-ring bg-emerald-500/30" />
+      {/* Centered acceptance flash ring (100x100). Root has zero size; we offset by half dimensions. */}
+      {flash && (
+        <div
+          className="flash-ring bg-emerald-400/70"
+          style={{ position: 'absolute', left: 0, top: 0, marginLeft: -50, marginTop: -50 }}
+        />
       )}
-
+      {/* Hearts + Name (independent fixed stack) */}
       <div
-        className={`rounded-full px-3 py-1 transition-transform ${
-          isEliminated
-            ? 'line-through opacity-40'
-            : isActive
-              ? 'font-semibold'
-              : ''
-        } ${
-          isActive
-            ? 'border border-emerald-500/30 bg-emerald-950/30 text-emerald-300'
-            : isEliminated
-              ? 'border border-red-500/30 bg-red-950/30 text-red-300'
-              : 'border border-indigo-500/30 bg-indigo-950/30 text-indigo-200'
-        } shadow-lg backdrop-blur-sm`}
+        className="absolute flex flex-col items-center"
+        style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%) translateY(-12px)' }}
       >
-        <div className="flex items-center gap-1.5">
-          <span className="whitespace-nowrap text-center text-sm sm:text-base">
+        <div className="flex items-center justify-center gap-1 mb-1 h-6 sm:h-7 w-max">
+          {isEliminated ? (
+            <span className="text-xl leading-none">💀</span>
+          ) : (
+            Array(player.lives)
+              .fill('❤️')
+              .map((heart, i) => (
+                <span
+                  key={i}
+                  className={`inline-block text-lg sm:text-xl leading-none ${
+                    isActive && isUrgent ? 'animate-pulse' : ''
+                  }`}
+                  style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}
+                >
+                  {heart}
+                </span>
+              ))
+          )}
+        </div>
+        <div
+          className={`flex items-center justify-center font-semibold tracking-wide leading-tight h-5 sm:h-6 w-max ${
+            isEliminated
+              ? 'line-through opacity-40 text-red-300'
+              : isActive
+                ? 'text-emerald-300'
+                : 'text-indigo-200'
+          } drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]`}
+        >
+          <span
+            className="whitespace-nowrap text-sm sm:text-base md:text-lg"
+            title={player.name}
+          >
             {player.name}
-          </span>
-          <span className="text-xs">
-            {isEliminated
-              ? '💀'
-              : Array(player.lives)
-                  .fill('❤️')
-                  .map((heart, i) => (
-                    <span
-                      key={i}
-                      className={`inline-block scale-75 transform ${
-                        isActive && isUrgent ? 'animate-pulse' : ''
-                      }`}
-                    >
-                      {heart}
-                    </span>
-                  ))}
           </span>
         </div>
       </div>
-
+      {/* Word (separate absolutely centered) */}
       <div
-        className={`mt-2 rounded px-2 py-1 text-center backdrop-blur-sm transition-transform ${
-          isActive ? 'border border-white/10 bg-black/20' : 'bg-black/10'
-        }`}
-        style={{
-          minHeight: '2.25rem', // stable height
-          minWidth: '3ch', // enough for 2–3 letters, prevents shrink
-        }}
+        className="absolute flex items-center justify-center"
+        style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%) translateY(28px)' }}
       >
         <span
-          className={`inline-block text-lg font-bold uppercase tracking-wide text-white shadow-sm sm:text-xl ${
+          className={`whitespace-nowrap text-lg sm:text-xl md:text-2xl font-bold uppercase tracking-wide text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${
             isActive && highlighted ? 'animate-typing' : ''
-          }`}
-          style={{
-            visibility: highlighted ? 'visible' : 'hidden',
-          }}
+          } ${isEliminated ? 'opacity-30' : ''} ${shake ? 'animate-shake text-red-300' : ''}`}
+          style={{ visibility: highlighted ? 'visible' : 'hidden' }}
         >
           {highlighted ?? '\u200B'}
         </span>

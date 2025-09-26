@@ -111,6 +111,60 @@ a {
   }
 }
 
+/* Subtle red pulse for bomb ring that can have its duration adjusted inline */
+@keyframes bomb-ring-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.25;
+  }
+}
+
+.animate-bomb-ring-pulse {
+  animation-name: bomb-ring-pulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes bomb-arc-glow {
+  0%, 100% { opacity: var(--glow-min,0.5); }
+  50% { opacity: var(--glow-max,0.85); }
+}
+
+.bomb-arc-glow-wrapper {
+  position: relative;
+}
+.bomb-arc-glow-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  /* Ring-only glow: keep center clear, concentrate light near stroke radius */
+  background: radial-gradient(
+    circle at 50% 50%,
+    transparent 55%,
+    rgba(239,68,68,0.55) 66%,
+    rgba(239,68,68,0.4) 72%,
+    rgba(239,68,68,0.22) 80%,
+    transparent 90%
+  );
+  filter: blur(6px);
+  pointer-events: none;
+  animation: bomb-arc-glow 1.8s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+
+.animate-bomb-arc-glow { /* now only opacity breathing handled externally */
+  animation: bomb-arc-glow 1.8s ease-in-out infinite;
+}
+
 .animate-pulse-fast {
   animation: pulse-fast 0.5s ease-in-out infinite;
 }

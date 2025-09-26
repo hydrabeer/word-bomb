@@ -26,9 +26,16 @@ export async function loadDictionary(): Promise<void> {
 
   try {
     const raw = fs.readFileSync(filePath, 'utf-8');
-    const words = raw.split('\n');
+    let words = raw.split('\n').filter(Boolean);
+    const before = words.length;
+    // Enforce maximum word length of 30 characters (game input cap is 30)
+    words = words.filter((w) => w.length <= 30);
+    const removed = before - words.length;
+    if (removed > 0) {
+      console.log(`⚠️  Filtered ${removed.toString()} over-length words (>30 chars)`);
+    }
     dictionary = new Set(words);
-    console.log(`✅ Loaded ${dictionary.size.toString()} words`);
+    console.log(`✅ Loaded ${dictionary.size.toString()} words (max length 30)`);
 
     buildFragmentIndex(words);
   } catch (err) {

@@ -151,7 +151,7 @@ export default function RoomPage() {
         } ${
           // When playing on desktop, center contents
           !isMobile && visualState === 'playing'
-            ? 'flex items-center justify-center'
+            ? 'flex'
             : ''
         }`}
       >
