@@ -1,7 +1,7 @@
 // ChatMessageItem.tsx
 import dayjs from 'dayjs';
 import { FaUser } from 'react-icons/fa';
-import { formatMessage } from '../utils/formatMessage';
+import Linkify from 'linkify-react';
 
 export interface ChatMessage {
   sender: string;
@@ -20,7 +20,17 @@ export function ChatMessageItem({
   isCurrentUser = false,
 }: ChatMessageItemProps) {
   const timeFormatted = dayjs(msg.timestamp).format('HH:mm');
-  const formattedMessage = formatMessage(msg.message);
+  const linkifyOptions = {
+    defaultProtocol: 'https',
+    target: '_blank',
+    attributes: {
+      rel: 'noopener noreferrer',
+      className: 'underline text-indigo-200 hover:text-white break-words',
+    },
+    validate: {
+      url: (value: string) => /^(https?:\/\/|www\.)/i.test(value),
+    },
+  } as const;
 
   if (msg.type === 'system') {
     return (
@@ -30,7 +40,7 @@ export function ChatMessageItem({
         role="status"
         aria-live="polite"
       >
-        {formattedMessage}
+        <Linkify options={linkifyOptions}>{msg.message}</Linkify>
       </div>
     );
   }
@@ -75,10 +85,9 @@ export function ChatMessageItem({
             wordBreak: 'break-word',
           }}
         >
-          <span
-            className="inline-block w-full overflow-hidden"
-            dangerouslySetInnerHTML={{ __html: formattedMessage }}
-          />
+          <span className="inline-block w-full overflow-hidden">
+            <Linkify options={linkifyOptions}>{msg.message}</Linkify>
+          </span>
         </div>
       </div>
     </div>
