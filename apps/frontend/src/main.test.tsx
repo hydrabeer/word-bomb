@@ -2,14 +2,27 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import React from 'react';
 
 // Stub page components so the routes render lightweight elements
-vi.mock('./pages/HomePage.tsx', () => ({ default: () => React.createElement('div', null, 'Home') }));
-vi.mock('./pages/RoomRoute.tsx', () => ({ default: () => React.createElement('div', null, 'RoomRoute') }));
-vi.mock('./pages/NotFoundPage.tsx', () => ({ default: () => React.createElement('div', null, 'NotFound') }));
-vi.mock('./pages/DisconnectedPage.tsx', () => ({ default: () => React.createElement('div', null, 'Disconnected') }));
+vi.mock('./pages/HomePage.tsx', () => ({
+  default: () => React.createElement('div', null, 'Home'),
+}));
+vi.mock('./pages/RoomRoute.tsx', () => ({
+  default: () => React.createElement('div', null, 'RoomRoute'),
+}));
+vi.mock('./pages/NotFoundPage.tsx', () => ({
+  default: () => React.createElement('div', null, 'NotFound'),
+}));
+vi.mock('./pages/DisconnectedPage.tsx', () => ({
+  default: () => React.createElement('div', null, 'Disconnected'),
+}));
 
 // Spy on ReactDOM.createRoot and the render call
 let renderSpy: ReturnType<typeof vi.fn>;
-const createRootSpy = vi.fn(() => ({ render: renderSpy } as unknown as { render: (el: React.ReactNode) => void }));
+const createRootSpy = vi.fn(
+  () =>
+    ({ render: renderSpy }) as unknown as {
+      render: (el: React.ReactNode) => void;
+    },
+);
 
 vi.mock('react-dom/client', () => ({
   createRoot: createRootSpy,

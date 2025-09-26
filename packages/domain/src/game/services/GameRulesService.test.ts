@@ -3,7 +3,11 @@ import { Game } from '../Game';
 import { Player } from '../../players/Player';
 import { BonusProgress } from '../BonusProgress';
 import type { GameRoomRules } from '../../rooms/GameRoomRules';
-import { GameRulesService, type WordValidator, type FragmentProvider } from './GameRulesService';
+import {
+  GameRulesService,
+  type WordValidator,
+  type FragmentProvider,
+} from './GameRulesService';
 
 const mockBonusTemplate = new Array(26).fill(1) as number[];
 
@@ -106,9 +110,24 @@ describe('GameRulesService', () => {
     expect(spyMark).toHaveBeenCalledWith(word);
     expect(game.hasWordBeenUsed(word)).toBe(true);
     expect(tryBonusSpy).toHaveBeenCalledTimes(word.length);
-    expect(tryBonusSpy).toHaveBeenNthCalledWith(1, 'c', rules.maxLives, rules.bonusTemplate);
-    expect(tryBonusSpy).toHaveBeenNthCalledWith(2, 'a', rules.maxLives, rules.bonusTemplate);
-    expect(tryBonusSpy).toHaveBeenNthCalledWith(3, 'b', rules.maxLives, rules.bonusTemplate);
+    expect(tryBonusSpy).toHaveBeenNthCalledWith(
+      1,
+      'c',
+      rules.maxLives,
+      rules.bonusTemplate,
+    );
+    expect(tryBonusSpy).toHaveBeenNthCalledWith(
+      2,
+      'a',
+      rules.maxLives,
+      rules.bonusTemplate,
+    );
+    expect(tryBonusSpy).toHaveBeenNthCalledWith(
+      3,
+      'b',
+      rules.maxLives,
+      rules.bonusTemplate,
+    );
     expect(spyAdjust).toHaveBeenCalledOnce();
   });
 

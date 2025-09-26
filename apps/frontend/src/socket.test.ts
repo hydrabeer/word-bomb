@@ -2,7 +2,13 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import type { Socket } from 'socket.io-client';
 
 // Strongly typed io mock
-const ioMock = vi.fn<(url: string, opts: { autoConnect: boolean; transports: string[] }) => Socket>();
+const ioMock =
+  vi.fn<
+    (
+      url: string,
+      opts: { autoConnect: boolean; transports: string[] },
+    ) => Socket
+  >();
 const socketInstance = {} as unknown as Socket;
 
 vi.mock('socket.io-client', () => ({ io: ioMock }));

@@ -7,9 +7,10 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 // Mock navigate from react-router-dom but keep the rest
 const navigateMock = vi.fn();
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>(
-    'react-router-dom',
-  );
+  const actual =
+    await vi.importActual<typeof import('react-router-dom')>(
+      'react-router-dom',
+    );
   return {
     ...actual,
     useNavigate: () => navigateMock,
@@ -25,11 +26,7 @@ vi.mock('../socket', () => {
     // simulate starting a connection attempt; actual connection occurs on 'connect' event
   });
   const emitSpy = vi.fn(
-    (
-      _event: string,
-      _payload?: unknown,
-      ack?: (res?: unknown) => void,
-    ) => {
+    (_event: string, _payload?: unknown, ack?: (res?: unknown) => void) => {
       if (ack) ack({ success: true });
     },
   );
@@ -121,12 +118,14 @@ describe('DisconnectedPage', () => {
       (socketModule as unknown as SocketTestHelpers).__emitSpy,
     ).toHaveBeenCalledWith(
       'joinRoom',
-      expect.objectContaining({ roomCode: 'ROOMX', playerId: 'me', name: 'Me' }),
+      expect.objectContaining({
+        roomCode: 'ROOMX',
+        playerId: 'me',
+        name: 'Me',
+      }),
       expect.any(Function),
     );
-    expect(
-      screen.getByText('Reconnected! Redirecting...'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Reconnected! Redirecting...')).toBeInTheDocument();
     expect(navigateMock).toHaveBeenCalledWith('/ROOMX');
   });
 
@@ -139,9 +138,7 @@ describe('DisconnectedPage', () => {
     act(() => {
       (socketModule as unknown as SocketTestHelpers).__triggerOnce('connect');
     });
-    expect(
-      screen.getByText('Reconnected! Redirecting...'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Reconnected! Redirecting...')).toBeInTheDocument();
     act(() => {
       vi.advanceTimersByTime(400);
     });
@@ -176,13 +173,14 @@ describe('DisconnectedPage', () => {
 
   it('max attempts disables Try Again and Home navigates', () => {
     renderAt('/disconnected?reason=x');
-    const tryBtn = screen.getByRole('button', { name: /try again|reconnecting/i });
+    const tryBtn = screen.getByRole('button', {
+      name: /try again|reconnecting/i,
+    });
     const homeBtn = screen.getByRole('button', { name: /home/i });
 
     // clicking during reconnecting should not increase connects
-    const initialCalls = (
-      (socketModule as unknown as SocketTestHelpers).__connectSpy
-    ).mock.calls.length;
+    const initialCalls = (socketModule as unknown as SocketTestHelpers)
+      .__connectSpy.mock.calls.length;
     fireEvent.click(tryBtn);
     expect(
       (socketModule as unknown as SocketTestHelpers).__connectSpy,
