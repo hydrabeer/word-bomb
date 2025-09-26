@@ -1,3 +1,4 @@
+/// <reference types="node" />
 // @ts-check
 
 import eslint from '@eslint/js';
@@ -7,6 +8,10 @@ import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import vitest from 'eslint-plugin-vitest';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default tseslint.config(
   // Base ESLint + TypeScript configs
@@ -59,7 +64,7 @@ export default tseslint.config(
       parserOptions: {
         projectService: true,
         project: ['./tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
+        tsconfigRootDir: __dirname,
       },
     },
   },

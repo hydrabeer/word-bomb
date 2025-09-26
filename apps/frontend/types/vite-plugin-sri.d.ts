@@ -1,6 +1,8 @@
 declare module 'vite-plugin-sri' {
-  const _default: (options?: {
+  export interface SriOptions {
     algorithms?: ('sha256' | 'sha384' | 'sha512')[];
-  }) => unknown;
+  }
+
+  const _default: (options?: SriOptions) => import('vite').Plugin;
   export default _default;
 }
