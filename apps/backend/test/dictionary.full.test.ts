@@ -279,4 +279,12 @@ describe('dictionary module full coverage', () => {
     // fragmentCounts empty; should throw
     expect(() => getRandomFragment(1)).toThrow(/No fragments/);
   });
+
+  it('getRandomFragment returns deterministic fallback in test env when empty', async () => {
+    setEnv({ NODE_ENV: 'test' });
+    vi.resetModules();
+    const { getRandomFragment } = await freshDictionary();
+    // Without loading dictionary, fragmentCounts is empty; in test env it should return 'aa'.
+    expect(getRandomFragment(1)).toBe('aa');
+  });
 });

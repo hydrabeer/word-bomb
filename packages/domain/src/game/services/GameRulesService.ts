@@ -35,11 +35,14 @@ export class GameRulesService {
     if (word.trim().length < 2) return 'Invalid word (too short).';
     if (!word.toLowerCase().includes(this.game.fragment.toLowerCase()))
       return "Word doesn't contain the fragment.";
+    if (this.game.hasWordBeenUsed(word)) return 'Word already used this game.';
     if (!this.validator.isValid(word)) return 'Not a valid word.';
     return null;
   }
 
   applyAcceptedWord(player: Player, word: string): void {
+    // Mark as used to prevent reuse in this game
+    this.game.markWordUsed(word);
     for (const letter of word) {
       player.tryBonusLetter(
         letter,

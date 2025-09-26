@@ -44,6 +44,9 @@ export class Game {
   /** The current bomb duration in seconds */
   private bombDuration: number;
 
+  /** Tracks words that have been used in the current game (lowercased) */
+  private usedWords: Set<string> = new Set<string>();
+
   /**
    * Constructs a new Game instance with validated initial properties.
    * @param props The validated GameProps to initialize with
@@ -124,5 +127,21 @@ export class Game {
    */
   setFragment(fragment: string) {
     this.fragment = fragment;
+  }
+
+  /**
+   * Returns whether the provided word has already been used in this game.
+   * Matching is case-insensitive.
+   */
+  public hasWordBeenUsed(word: string): boolean {
+    return this.usedWords.has(word.toLowerCase());
+  }
+
+  /**
+   * Marks a word as used for the remainder of this game.
+   * Stored case-insensitively.
+   */
+  public markWordUsed(word: string): void {
+    this.usedWords.add(word.toLowerCase());
   }
 }
