@@ -16,6 +16,10 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
+      exclude: [
+        // types-only socket wrappers shouldn't count toward coverage
+        'src/socket/typedSocket.ts',
+      ],
     },
   },
 });
