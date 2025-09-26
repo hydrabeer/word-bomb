@@ -113,8 +113,16 @@ export default function RoomPage() {
         !isMobile ? (isChatOpen ? 'md:pr-96' : 'md:pr-0') : ''
       }`}
     >
+      {/* Skip link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-black"
+      >
+        Skip to main content
+      </a>
+
       {/* Top Bar */}
-      <div className="relative flex -translate-y-[7px] items-center justify-between border-b border-white/10 bg-gradient-to-r from-indigo-800/70 to-purple-800/70 p-3 text-base text-white backdrop-blur-sm">
+      <header className="relative flex -translate-y-[7px] items-center justify-between border-b border-white/10 bg-gradient-to-r from-indigo-800/70 to-purple-800/70 p-3 text-base text-white backdrop-blur-sm">
         <div className="flex translate-y-1 items-center gap-3">
           <button
             onClick={() => {
@@ -127,6 +135,7 @@ export default function RoomPage() {
             }}
             className="flex h-9 cursor-copy items-center gap-2 rounded-md bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
             title="Click to copy room link"
+            aria-label={`Copy room invite link for ${roomCode}`}
           >
             <FaLink className="h-4 w-4 text-white/80" />
             {inviteCopied ? 'Copied!' : `Room ${roomCode}`}
@@ -140,10 +149,11 @@ export default function RoomPage() {
             </span>
           </div>
         )}
-      </div>
+      </header>
 
       {/* Main Area */}
-      <div
+      <main
+        id="main-content"
         className={`relative flex-1 transition-all duration-300 ${
           // Desktop: always hide scroll; Mobile: allow scroll only during game
           isMobile
@@ -158,6 +168,8 @@ export default function RoomPage() {
           // When playing on desktop, center contents
           !isMobile && visualState === 'playing' ? 'flex' : ''
         }`}
+        role="main"
+        aria-live="polite"
       >
         {/* Active Game */}
         {visualState === 'playing' && gameState && (
@@ -308,7 +320,7 @@ export default function RoomPage() {
             </div>
           </div>
         )}
-      </div>
+      </main>
 
       {/* Bottom Join + Chat container (mobile only) */}
       {visualState !== 'playing' && (
@@ -326,6 +338,8 @@ export default function RoomPage() {
               onClick={() => setIsChatOpen(!isChatOpen)}
               className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 transition-colors hover:bg-white/20 focus:ring-2 focus:ring-emerald-400"
               aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
+              aria-controls="mobile-chat-panel"
+              aria-expanded={isChatOpen}
             >
               {isChatOpen ? (
                 <FaChevronDown className="h-4 w-4" />
@@ -336,8 +350,17 @@ export default function RoomPage() {
           </div>
 
           {/* 💬 Chat Panel – mobile */}
-          <div className="h-[33vh] border-t border-white/10 bg-white/5 shadow-lg backdrop-blur-sm">
-            <Chat roomCode={roomCode} />
+          <div
+            id="mobile-chat-panel"
+            className="h-[33vh] border-t border-white/10 bg-white/5 shadow-lg backdrop-blur-sm"
+            aria-hidden={!isChatOpen}
+          >
+            <Chat
+              roomCode={roomCode}
+              headingId="mobile-chat-heading"
+              autoFocus={isChatOpen}
+              regionRole="region"
+            />
           </div>
         </div>
       )}
@@ -350,13 +373,21 @@ export default function RoomPage() {
       )}
 
       {/* Chat Panel – desktop only*/}
-      <div
+      <aside
         className={`fixed right-0 top-0 z-40 hidden h-[100dvh] w-96 flex-col border-l border-white/10 bg-white/5 shadow-lg backdrop-blur-sm transition-transform duration-300 ease-in-out md:flex ${
           isChatOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
+        id="desktop-chat-panel"
+        aria-hidden={!isChatOpen}
+        aria-labelledby="desktop-chat-heading"
+        role="complementary"
       >
-        <Chat roomCode={roomCode} />
-      </div>
+        <Chat
+          roomCode={roomCode}
+          headingId="desktop-chat-heading"
+          autoFocus={isChatOpen}
+        />
+      </aside>
 
       {/* Chat Toggle Button - desktop, with improved design */}
       <div
@@ -377,6 +408,8 @@ export default function RoomPage() {
               : 'bg-white/5 hover:bg-white/10'
           } focus:outline-none`}
           aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
+          aria-controls="desktop-chat-panel"
+          aria-expanded={isChatOpen}
         >
           <div className="relative flex h-[100dvh] w-full items-center justify-center overflow-hidden">
             <div

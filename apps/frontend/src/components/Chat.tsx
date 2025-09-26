@@ -17,9 +17,18 @@ import { FaPaperPlane } from 'react-icons/fa';
 interface ChatProps {
   roomCode: string;
   className?: string;
+  headingId?: string; // used to link region to heading for a11y
+  autoFocus?: boolean; // when true, focus textarea
+  regionRole?: 'complementary' | 'region'; // default complementary
 }
 
-export default function Chat({ roomCode, className }: ChatProps) {
+export default function Chat({
+  roomCode,
+  className,
+  headingId,
+  autoFocus = false,
+  regionRole = 'complementary',
+}: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +57,19 @@ export default function Chat({ roomCode, className }: ChatProps) {
   useEffect(() => {
     adjustTextareaHeight();
   }, [newMessage, adjustTextareaHeight]);
+
+  // Focus textarea when autoFocus toggles on
+  useEffect(() => {
+    if (autoFocus) {
+      const el = textareaRef.current;
+      if (el) {
+        el.focus();
+        // place caret at end
+        const len = el.value.length;
+        el.setSelectionRange(len, len);
+      }
+    }
+  }, [autoFocus]);
 
   useEffect(() => {
     const handleNewMessage = (data: ChatMessagePayload) => {
@@ -102,10 +124,12 @@ export default function Chat({ roomCode, className }: ChatProps) {
   return (
     <div
       className={`flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 shadow-lg ${className || ''}`}
-      aria-label="Chat interface"
+      role={regionRole}
+      aria-label={headingId ? undefined : 'Chat interface'}
+      aria-labelledby={headingId}
     >
       <div className="border-b border-white/10 bg-gradient-to-r from-indigo-800/70 to-purple-800/70 p-3 text-white backdrop-blur-sm">
-        <h3 className="flex items-center text-base font-medium">
+        <h3 id={headingId} className="flex items-center text-base font-medium">
           <span className="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500">
             <span className="text-xs font-bold text-black">C</span>
           </span>

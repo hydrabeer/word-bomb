@@ -46,7 +46,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col items-center bg-gradient-to-br from-indigo-950 to-purple-900 px-4 py-12 text-white">
       {/* Hero section */}
-      <div className="mb-12 w-full max-w-6xl text-center">
+      <header className="mb-12 w-full max-w-6xl text-center">
         <h1 className="mb-4 bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-6xl font-bold tracking-tight text-transparent">
           Word Bomb
         </h1>
@@ -54,10 +54,13 @@ export default function HomePage() {
           Challenge your friends with words and quick thinking in this
           fast-paced word game
         </p>
-      </div>
+      </header>
 
       {/* Main content */}
-      <div className="w-full max-w-5xl rounded-3xl border border-white/10 bg-indigo-900/30 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-sm">
+      <main
+        className="w-full max-w-5xl rounded-3xl border border-white/10 bg-indigo-900/30 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-sm"
+        role="main"
+      >
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
           {/* Left column - Profile & Create */}
           <div className="space-y-8">
@@ -87,6 +90,7 @@ export default function HomePage() {
                     className="w-full rounded-lg border border-indigo-600/30 bg-indigo-900/30 px-4 py-3 text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                     autoFocus
                     aria-label="Your display name"
+                    aria-describedby="name-constraints"
                   />
                   <button
                     onClick={handleSaveName}
@@ -110,6 +114,9 @@ export default function HomePage() {
                   </button>
                 </div>
               )}
+              <p id="name-constraints" className="sr-only">
+                Name must be between 1 and 20 characters.
+              </p>
             </div>
 
             {/* Create Room card */}
@@ -127,6 +134,7 @@ export default function HomePage() {
                   void handleCreateRoom();
                 }}
                 className="space-y-5"
+                aria-labelledby="create-room-heading"
               >
                 <div>
                   <label
@@ -142,6 +150,7 @@ export default function HomePage() {
                     maxLength={30}
                     placeholder="Enter room name"
                     className="w-full rounded-lg border border-indigo-600/30 bg-indigo-900/30 px-4 py-3 text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    aria-describedby="roomname-constraints"
                   />
                 </div>
                 <button
@@ -152,6 +161,9 @@ export default function HomePage() {
                 >
                   Create & Play
                 </button>
+                <p id="roomname-constraints" className="sr-only">
+                  Room name up to 30 characters.
+                </p>
               </form>
             </div>
           </div>
@@ -172,6 +184,7 @@ export default function HomePage() {
                   void handleJoinRoom();
                 }}
                 className="space-y-5"
+                aria-labelledby="join-room-heading"
               >
                 <div>
                   <label
@@ -193,6 +206,7 @@ export default function HomePage() {
                     maxLength={4}
                     pattern="[A-Z]{4}"
                     className="text-md w-full rounded-lg border border-indigo-600/30 bg-indigo-900/30 px-4 py-5 text-center tracking-widest text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 sm:text-xl lg:text-2xl"
+                    aria-describedby="joincode-constraints"
                   />
                 </div>
 
@@ -208,16 +222,19 @@ export default function HomePage() {
                 <p className="text-center text-sm leading-relaxed text-indigo-200">
                   Enter the 4-letter code provided by your friend
                 </p>
+                <p id="joincode-constraints" className="sr-only">
+                  Enter exactly four uppercase letters.
+                </p>
               </form>
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       {/* Footer */}
-      <div className="mt-12 text-center text-sm leading-relaxed text-indigo-300">
+      <footer className="mt-12 text-center text-sm leading-relaxed text-indigo-300">
         Challenge friends with quick thinking and wordplay
-      </div>
+      </footer>
     </div>
   );
 }
