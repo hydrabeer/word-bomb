@@ -2,7 +2,7 @@ name: Run tests and upload coverage
 
 on:
   push:
-    branches: [ "**" ]
+    branches: ['**']
 
 jobs:
   test:
@@ -21,8 +21,10 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Enable Corepack (pnpm)
-        run: corepack enable
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.0
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
