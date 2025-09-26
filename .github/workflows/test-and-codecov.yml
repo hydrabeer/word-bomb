@@ -1,0 +1,40 @@
+name: Run tests and upload coverage
+
+on:
+  push:
+    branches: [ "**" ]
+
+jobs:
+  test:
+    name: Run tests and collect coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history helps Codecov determine commit parents for PRs and merging
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests (Vitest) with coverage in all workspaces
+        run: pnpm test:coverage
+
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: '**/coverage/lcov.info'
+          flags: unit-tests
+          fail_ci_if_error: true
+          verbose: true

@@ -1,5 +1,7 @@
 # Word Bomb
 
+[![codecov](https://codecov.io/gh/hydrabeer/word-bomb/graph/badge.svg?token=CZU4XTPVQK)](https://codecov.io/gh/hydrabeer/word-bomb)
+
 # Table of Contents
 
 - [Overview](#overview)
