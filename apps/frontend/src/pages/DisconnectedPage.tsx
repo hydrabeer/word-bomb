@@ -212,7 +212,9 @@ export default function DisconnectedPage() {
         aria-busy={status === 'reconnecting'}
         className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 text-center shadow-xl backdrop-blur-sm"
       >
-        <h1 id="disconnected-heading" className="mb-4 text-3xl font-bold">Disconnected</h1>
+        <h1 id="disconnected-heading" className="mb-4 text-3xl font-bold">
+          Disconnected
+        </h1>
         <p id="disconnected-reason" className="mb-2 text-indigo-200">
           Reason: {reason}
         </p>

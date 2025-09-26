@@ -18,13 +18,15 @@ export default function NotFoundPage() {
         aria-labelledby="notfound-heading"
         className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 text-center shadow-xl backdrop-blur-sm"
       >
-        <h1 id="notfound-heading" className="mb-4 text-3xl font-bold">404</h1>
+        <h1 id="notfound-heading" className="mb-4 text-3xl font-bold">
+          404
+        </h1>
         <p className="mb-8 text-base leading-relaxed text-indigo-200">
           The page you&apos;re looking for doesn&apos;t exist.
         </p>
         <Link
           to="/"
-          className="inline-flex items-center justify-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-black shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 no-underline hover:no-underline visited:text-black"
+          className="inline-flex items-center justify-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-black no-underline shadow-lg shadow-emerald-500/20 transition-colors visited:text-black hover:bg-emerald-400 hover:no-underline focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95"
         >
           Go Home
         </Link>
