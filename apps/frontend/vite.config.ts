@@ -1,11 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import path from 'path';
 import sri from 'vite-plugin-sri';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -17,7 +14,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@game/domain': resolve(__dirname, '../../packages/domain/src'),
+      '@game/domain': path.resolve(__dirname, '../../packages/domain/src'),
     },
     dedupe: ['zod'],
   },
