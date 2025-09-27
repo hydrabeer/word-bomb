@@ -15,7 +15,12 @@ vi.mock('../src/dictionary', () => ({
 }));
 
 import { roomManager } from '../src/room/roomManagerSingleton';
-import { createRoomHandler, getRoomHandler } from '../src/routes/rooms';
+import {
+  createRoomHandler,
+  getRoomHandler,
+  resetRoomCodeGenerator,
+  setRoomCodeGenerator,
+} from '../src/routes/rooms';
 import {
   getDictionaryStats,
   isUsingFallbackDictionary,
@@ -67,13 +72,14 @@ describe('rooms router handlers', () => {
     (isUsingFallbackDictionary as ReturnType<typeof vi.fn>).mockReturnValue(
       false,
     );
+    resetRoomCodeGenerator();
   });
 
   it('createRoomHandler creates a room and returns a deterministic code', () => {
     (roomManager.create as ReturnType<typeof vi.fn>).mockImplementation(
       () => ({}),
     );
-    const mathRandomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    setRoomCodeGenerator(() => 'AAAA');
     const { response, statusMock, jsonMock } = createMockResponse<{
       code: string;
     }>();
@@ -81,33 +87,29 @@ describe('rooms router handlers', () => {
     const request = {
       body: { name: '  Trivia night  ' },
     } as unknown as Request;
-    try {
-      createRoomHandler(request, response as unknown as Response);
+    createRoomHandler(request, response as unknown as Response);
 
-      expect(statusMock).toHaveBeenCalledWith(201);
-      expect(jsonMock).toHaveBeenCalledWith({ code: 'AAAA' });
-      expect(getDictionaryStats).toHaveBeenCalled();
-      expect(isUsingFallbackDictionary).toHaveBeenCalled();
+    expect(statusMock).toHaveBeenCalledWith(201);
+    expect(jsonMock).toHaveBeenCalledWith({ code: 'AAAA' });
+    expect(getDictionaryStats).toHaveBeenCalled();
+    expect(isUsingFallbackDictionary).toHaveBeenCalled();
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const createMock = roomManager.create as ReturnType<typeof vi.fn>;
-      expect(createMock).toHaveBeenCalledTimes(1);
-      const [code, rules, trimmedName] = createMock.mock.calls[0] as [
-        string,
-        Record<string, unknown>,
-        string,
-      ];
-      expect(code).toBe('AAAA');
-      expect(rules).toMatchObject({
-        maxLives: 3,
-        startingLives: 3,
-        minTurnDuration: 5,
-        minWordsPerPrompt: 500,
-      });
-      expect(trimmedName).toBe('Trivia night');
-    } finally {
-      mathRandomSpy.mockRestore();
-    }
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const createMock = roomManager.create as ReturnType<typeof vi.fn>;
+    expect(createMock).toHaveBeenCalledTimes(1);
+    const [code, rules, trimmedName] = createMock.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+      string,
+    ];
+    expect(code).toBe('AAAA');
+    expect(rules).toMatchObject({
+      maxLives: 3,
+      startingLives: 3,
+      minTurnDuration: 5,
+      minWordsPerPrompt: 500,
+    });
+    expect(trimmedName).toBe('Trivia night');
   });
 
   it('createRoomHandler returns 400 when roomManager.create throws non-duplicate error', () => {
@@ -135,18 +137,14 @@ describe('rooms router handlers', () => {
     const hasMock = roomManager.has as ReturnType<typeof vi.fn>;
     hasMock.mockReturnValue(false);
 
-    const mathRandomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    setRoomCodeGenerator(() => 'AAAA');
     const { response, statusMock, jsonMock } = createMockResponse<{
       error: string;
     }>();
 
     const request = { body: {} } as unknown as Request;
 
-    try {
-      createRoomHandler(request, response as unknown as Response);
-    } finally {
-      mathRandomSpy.mockRestore();
-    }
+    createRoomHandler(request, response as unknown as Response);
 
     expect(statusMock).toHaveBeenCalledWith(503);
     expect(jsonMock).toHaveBeenCalledWith({
