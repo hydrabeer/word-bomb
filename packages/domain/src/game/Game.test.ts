@@ -81,6 +81,20 @@ describe('Game', () => {
     expect(current.name).toBe('Alice');
   });
 
+  it('exposes only active players', () => {
+    game.players[1].isEliminated = true;
+    const active = game.getActivePlayers();
+    expect(active).toHaveLength(1);
+    expect(active[0].name).toBe('Alice');
+  });
+
+  it('throws when advancing turns with no active players', () => {
+    game.players.forEach((p) => (p.isEliminated = true));
+    expect(() => {
+      game.nextTurn();
+    }).toThrow('No active players remaining');
+  });
+
   it('updates the fragment correctly', () => {
     game.setFragment('ous');
     expect(game.fragment).toBe('ous');
