@@ -29,18 +29,23 @@
     "test": "pnpm -r run test",
     "test:coverage": "pnpm -r run test:coverage",
     "test:generate": "node scripts/generate-test.js",
-    "test:watch": "vitest watch"
+    "test:watch": "vitest watch",
+    "dep:graph": "scripts/gen-dep-audit.zsh",
+    "dep:arch": "node scripts/arch-clean.mjs && node scripts/arch-intra.mjs",
+    "dep:rules": "dependency-cruiser -T err --config .dependency-cruiser.mjs --ts-config ./tsconfig.base.json tools/depcruise-entries.ts || dependency-cruiser -T err --config .dependency-cruiser.mjs --ts-config ./tsconfig.base.json apps/frontend/src/main.tsx apps/backend/src/index.ts packages/types/src/index.ts packages/domain/src/index.ts",
+    "dep:report": "node scripts/arch-report.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/eslint-plugin": "^1.3.13",
     "@vitest/ui": "^3.2.4",
     "concurrently": "^9.1.2",
-    "eslint": "^9.31.0",
+    "dependency-cruiser": "^17.0.1",
+    "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-vitest": "^0.5.4",
     "happy-dom": "^17.4.4",
     "jsdom": "^26.1.0",
     "prettier": "^3.6.2",
@@ -53,7 +58,17 @@
   "packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971",
   "pnpm": {
     "overrides": {
-      "brace-expansion@1": "1.1.12"
+      "brace-expansion@1": "1.1.12",
+      "@typescript-eslint/eslint-plugin": "8.38.0",
+      "@typescript-eslint/parser": "8.38.0",
+      "@typescript-eslint/utils": "8.38.0",
+      "@typescript-eslint/types": "8.38.0",
+      "@typescript-eslint/typescript-estree": "8.38.0",
+      "@typescript-eslint/visitor-keys": "8.38.0",
+      "@typescript-eslint/scope-manager": "8.38.0",
+      "@jridgewell/trace-mapping": "0.3.25",
+      "aria-query": "5.3.2",
+      "debug": "4.4.3"
     }
   }
 }
