@@ -9,6 +9,20 @@ vi.mock('../src/room/roomManagerSingleton', () => ({
   },
 }));
 
+const { roomCodeGeneratorMock, createRoomCodeGeneratorMock } = vi.hoisted(
+  () => {
+    const generator = vi.fn(() => 'AAAA');
+    return {
+      roomCodeGeneratorMock: generator,
+      createRoomCodeGeneratorMock: vi.fn(() => generator),
+    };
+  },
+);
+
+vi.mock('../src/routes/roomCodeGenerator', () => ({
+  createRoomCodeGenerator: createRoomCodeGeneratorMock,
+}));
+
 vi.mock('../src/dictionary', () => ({
   getDictionaryStats: vi.fn(() => ({ wordCount: 1000, fragmentCount: 100 })),
   isUsingFallbackDictionary: vi.fn(() => false),
@@ -57,9 +71,13 @@ function createMockResponse<TPayload>(): {
 
 describe('rooms router handlers', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
     (roomManager.create as ReturnType<typeof vi.fn>).mockReset();
     (roomManager.has as ReturnType<typeof vi.fn>).mockReset();
+    roomCodeGeneratorMock.mockReset();
+    roomCodeGeneratorMock.mockReturnValue('AAAA');
+    createRoomCodeGeneratorMock.mockReset();
+    createRoomCodeGeneratorMock.mockReturnValue(roomCodeGeneratorMock);
     (getDictionaryStats as ReturnType<typeof vi.fn>).mockReturnValue({
       wordCount: 1000,
       fragmentCount: 100,
@@ -73,7 +91,6 @@ describe('rooms router handlers', () => {
     (roomManager.create as ReturnType<typeof vi.fn>).mockImplementation(
       () => ({}),
     );
-    const mathRandomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
     const { response, statusMock, jsonMock } = createMockResponse<{
       code: string;
     }>();
@@ -81,33 +98,29 @@ describe('rooms router handlers', () => {
     const request = {
       body: { name: '  Trivia night  ' },
     } as unknown as Request;
-    try {
-      createRoomHandler(request, response as unknown as Response);
+    createRoomHandler(request, response as unknown as Response);
 
-      expect(statusMock).toHaveBeenCalledWith(201);
-      expect(jsonMock).toHaveBeenCalledWith({ code: 'AAAA' });
-      expect(getDictionaryStats).toHaveBeenCalled();
-      expect(isUsingFallbackDictionary).toHaveBeenCalled();
+    expect(statusMock).toHaveBeenCalledWith(201);
+    expect(jsonMock).toHaveBeenCalledWith({ code: 'AAAA' });
+    expect(getDictionaryStats).toHaveBeenCalled();
+    expect(isUsingFallbackDictionary).toHaveBeenCalled();
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const createMock = roomManager.create as ReturnType<typeof vi.fn>;
-      expect(createMock).toHaveBeenCalledTimes(1);
-      const [code, rules, trimmedName] = createMock.mock.calls[0] as [
-        string,
-        Record<string, unknown>,
-        string,
-      ];
-      expect(code).toBe('AAAA');
-      expect(rules).toMatchObject({
-        maxLives: 3,
-        startingLives: 3,
-        minTurnDuration: 5,
-        minWordsPerPrompt: 500,
-      });
-      expect(trimmedName).toBe('Trivia night');
-    } finally {
-      mathRandomSpy.mockRestore();
-    }
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const createMock = roomManager.create as ReturnType<typeof vi.fn>;
+    expect(createMock).toHaveBeenCalledTimes(1);
+    const [code, rules, trimmedName] = createMock.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+      string,
+    ];
+    expect(code).toBe('AAAA');
+    expect(rules).toMatchObject({
+      maxLives: 3,
+      startingLives: 3,
+      minTurnDuration: 5,
+      minWordsPerPrompt: 500,
+    });
+    expect(trimmedName).toBe('Trivia night');
   });
 
   it('createRoomHandler returns 400 when roomManager.create throws non-duplicate error', () => {
@@ -135,18 +148,13 @@ describe('rooms router handlers', () => {
     const hasMock = roomManager.has as ReturnType<typeof vi.fn>;
     hasMock.mockReturnValue(false);
 
-    const mathRandomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
     const { response, statusMock, jsonMock } = createMockResponse<{
       error: string;
     }>();
 
     const request = { body: {} } as unknown as Request;
 
-    try {
-      createRoomHandler(request, response as unknown as Response);
-    } finally {
-      mathRandomSpy.mockRestore();
-    }
+    createRoomHandler(request, response as unknown as Response);
 
     expect(statusMock).toHaveBeenCalledWith(503);
     expect(jsonMock).toHaveBeenCalledWith({

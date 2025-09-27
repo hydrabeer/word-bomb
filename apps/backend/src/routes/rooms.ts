@@ -3,8 +3,11 @@ import { Request, Response, Router } from 'express';
 import { roomManager } from '../room/roomManagerSingleton';
 import { getDictionaryStats, isUsingFallbackDictionary } from '../dictionary';
 import type { GameRoomRules } from '@game/domain';
+import { createRoomCodeGenerator } from './roomCodeGenerator';
 
 const router: Router = Router();
+
+const roomCodeGenerator = createRoomCodeGenerator();
 
 class RoomCodeAllocationError extends Error {
   constructor(message: string) {
@@ -56,20 +59,12 @@ router.get('/:code', getRoomHandler);
 export default router;
 
 // Generate a room code (e.g. 4 uppercase letters)
-function generateRoomCode(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  return Array.from(
-    { length: 4 },
-    () => chars[Math.floor(Math.random() * chars.length)],
-  ).join('');
-}
-
 function createRoomWithUniqueCode(rules: GameRoomRules, name: string): string {
   const MAX_ATTEMPTS = 100;
   let attempts = 0;
 
   while (attempts < MAX_ATTEMPTS) {
-    const code = generateRoomCode();
+    const code = roomCodeGenerator();
     if (roomManager.has(code)) {
       attempts += 1;
       continue;
