@@ -9,18 +9,27 @@ vi.mock('../src/room/roomManagerSingleton', () => ({
   },
 }));
 
+const { roomCodeGeneratorMock, createRoomCodeGeneratorMock } = vi.hoisted(
+  () => {
+    const generator = vi.fn(() => 'AAAA');
+    return {
+      roomCodeGeneratorMock: generator,
+      createRoomCodeGeneratorMock: vi.fn(() => generator),
+    };
+  },
+);
+
+vi.mock('../src/routes/roomCodeGenerator', () => ({
+  createRoomCodeGenerator: createRoomCodeGeneratorMock,
+}));
+
 vi.mock('../src/dictionary', () => ({
   getDictionaryStats: vi.fn(() => ({ wordCount: 1000, fragmentCount: 100 })),
   isUsingFallbackDictionary: vi.fn(() => false),
 }));
 
 import { roomManager } from '../src/room/roomManagerSingleton';
-import {
-  createRoomHandler,
-  getRoomHandler,
-  resetRoomCodeGenerator,
-  setRoomCodeGenerator,
-} from '../src/routes/rooms';
+import { createRoomHandler, getRoomHandler } from '../src/routes/rooms';
 import {
   getDictionaryStats,
   isUsingFallbackDictionary,
@@ -62,9 +71,13 @@ function createMockResponse<TPayload>(): {
 
 describe('rooms router handlers', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
     (roomManager.create as ReturnType<typeof vi.fn>).mockReset();
     (roomManager.has as ReturnType<typeof vi.fn>).mockReset();
+    roomCodeGeneratorMock.mockReset();
+    roomCodeGeneratorMock.mockReturnValue('AAAA');
+    createRoomCodeGeneratorMock.mockReset();
+    createRoomCodeGeneratorMock.mockReturnValue(roomCodeGeneratorMock);
     (getDictionaryStats as ReturnType<typeof vi.fn>).mockReturnValue({
       wordCount: 1000,
       fragmentCount: 100,
@@ -72,14 +85,12 @@ describe('rooms router handlers', () => {
     (isUsingFallbackDictionary as ReturnType<typeof vi.fn>).mockReturnValue(
       false,
     );
-    resetRoomCodeGenerator();
   });
 
   it('createRoomHandler creates a room and returns a deterministic code', () => {
     (roomManager.create as ReturnType<typeof vi.fn>).mockImplementation(
       () => ({}),
     );
-    setRoomCodeGenerator(() => 'AAAA');
     const { response, statusMock, jsonMock } = createMockResponse<{
       code: string;
     }>();
@@ -137,7 +148,6 @@ describe('rooms router handlers', () => {
     const hasMock = roomManager.has as ReturnType<typeof vi.fn>;
     hasMock.mockReturnValue(false);
 
-    setRoomCodeGenerator(() => 'AAAA');
     const { response, statusMock, jsonMock } = createMockResponse<{
       error: string;
     }>();

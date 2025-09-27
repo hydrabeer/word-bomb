@@ -28,11 +28,7 @@ describe('createRoomCodeGenerator', () => {
   });
 
   it('falls back to the first alphabet character when random points outside the alphabet', () => {
-    const generator = createRoomCodeGenerator(
-      () => 1,
-      'XYZ',
-      3,
-    );
+    const generator = createRoomCodeGenerator(() => 1, 'XYZ', 3);
 
     expect(generator()).toBe('XXX');
   });
