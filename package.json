@@ -21,7 +21,7 @@
   "scripts": {
     "build": "tsc -b tsconfig.all.json",
     "build:watch": "tsc -b --watch tsconfig.all.json",
-    "dev": "pnpm -r dev",
+    "dev": "concurrently -k -p name -n backend,frontend -c bgBlue.bold,bgMagenta.bold \"pnpm -w dev:backend\" \"pnpm -w dev:frontend\"",
     "dev:backend": "pnpm --filter backend dev",
     "dev:frontend": "pnpm --filter frontend dev",
     "format": "prettier --write .",
