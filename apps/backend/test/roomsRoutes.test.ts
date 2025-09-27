@@ -29,7 +29,12 @@ vi.mock('../src/dictionary', () => ({
 }));
 
 import { roomManager } from '../src/room/roomManagerSingleton';
-import { createRoomHandler, getRoomHandler } from '../src/routes/rooms';
+import {
+  createRoomHandler,
+  getRoomHandler,
+  resetRoomCodeGenerator,
+  setRoomCodeGenerator,
+} from '../src/routes/rooms';
 import {
   getDictionaryStats,
   isUsingFallbackDictionary,
@@ -85,12 +90,14 @@ describe('rooms router handlers', () => {
     (isUsingFallbackDictionary as ReturnType<typeof vi.fn>).mockReturnValue(
       false,
     );
+    resetRoomCodeGenerator();
   });
 
   it('createRoomHandler creates a room and returns a deterministic code', () => {
     (roomManager.create as ReturnType<typeof vi.fn>).mockImplementation(
       () => ({}),
     );
+    setRoomCodeGenerator(() => 'AAAA');
     const { response, statusMock, jsonMock } = createMockResponse<{
       code: string;
     }>();
@@ -147,7 +154,7 @@ describe('rooms router handlers', () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const hasMock = roomManager.has as ReturnType<typeof vi.fn>;
     hasMock.mockReturnValue(false);
-
+    setRoomCodeGenerator(() => 'AAAA');
     const { response, statusMock, jsonMock } = createMockResponse<{
       error: string;
     }>();

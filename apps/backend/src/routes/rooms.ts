@@ -3,11 +3,22 @@ import { Request, Response, Router } from 'express';
 import { roomManager } from '../room/roomManagerSingleton';
 import { getDictionaryStats, isUsingFallbackDictionary } from '../dictionary';
 import type { GameRoomRules } from '@game/domain';
-import { createRoomCodeGenerator } from './roomCodeGenerator';
+import {
+  createRoomCodeGenerator,
+  type RoomCodeGenerator,
+} from './roomCodeGenerator';
 
 const router: Router = Router();
 
-const roomCodeGenerator = createRoomCodeGenerator();
+let roomCodeGenerator: RoomCodeGenerator = createRoomCodeGenerator();
+
+export function setRoomCodeGenerator(generator: RoomCodeGenerator): void {
+  roomCodeGenerator = generator;
+}
+
+export function resetRoomCodeGenerator(): void {
+  roomCodeGenerator = createRoomCodeGenerator();
+}
 
 class RoomCodeAllocationError extends Error {
   constructor(message: string) {
