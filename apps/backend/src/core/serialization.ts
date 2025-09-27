@@ -62,10 +62,7 @@ function buildBaseGamePayload(game: Game) {
     fragment: game.fragment,
     bombDuration: game.getBombDuration(),
     players: game.players.map((pl) => toGamePlayerView(pl, game.rules)),
-  } satisfies Pick<
-    GameStartedPayload,
-    'fragment' | 'bombDuration' | 'players'
-  >;
+  } satisfies Pick<GameStartedPayload, 'fragment' | 'bombDuration' | 'players'>;
 }
 
 function getCurrentPlayerId(game: Game): string {
