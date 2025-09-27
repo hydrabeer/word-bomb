@@ -106,6 +106,16 @@ describe('Player', () => {
     expect(player.lives).toBe(3);
   });
 
+  it('exposes a snapshot of bonus progress', () => {
+    const totalTemplate = Array.from({ length: 26 }, () => 3);
+    const snap = player.getBonusProgressSnapshot(totalTemplate);
+    expect(snap.remaining).toHaveLength(26);
+    expect(snap.total).toEqual(totalTemplate);
+    // ensure defensive copy
+    totalTemplate[0] = 99;
+    expect(snap.total[0]).toBe(3);
+  });
+
   it('fails validation with invalid name', () => {
     expect(
       () =>

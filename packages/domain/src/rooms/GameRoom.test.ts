@@ -77,6 +77,16 @@ describe('GameRoom', () => {
     expect(result?.isSeated).toBe(true);
   });
 
+  it('updates player connectivity without removing them', () => {
+    const p = makePlayerProps({ isConnected: true });
+    room.addPlayer(p);
+    room.setPlayerConnected(p.id, false);
+    expect(room.getPlayer(p.id)?.isConnected).toBe(false);
+
+    room.setPlayerConnected('missing-id', true); // no throw, no effect
+    expect(room.getPlayer(p.id)?.isConnected).toBe(false);
+  });
+
   it('throws when starting game with fewer than 2 seated players', () => {
     const p = makePlayerProps();
     room.addPlayer(p);
