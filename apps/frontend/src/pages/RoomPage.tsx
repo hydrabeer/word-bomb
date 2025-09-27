@@ -70,10 +70,15 @@ export default function RoomPage() {
     }
   }, [roomCode, navigate]);
 
-  // (Removed in favor of useIsMobile hook)
-
   // Centralized socket disconnect navigation (also handles network loss indirectly)
   useSocketConnection();
+
+  useEffect(() => {
+    if (!roomCode) return;
+    const leaderName = players.find((p) => p.id === leaderId)?.name?.trim();
+    const label = leaderName ? `${leaderName}'s Room` : 'Room';
+    document.title = `[${roomCode}] ${label}`;
+  }, [roomCode, players, leaderId]);
 
   // Handle input change with typing update
   const handleInputChange = (value: string) => {
