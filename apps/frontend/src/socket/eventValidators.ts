@@ -59,37 +59,59 @@ const parsePlayersArray = (value: unknown): InternalPlayerShape[] | null => {
   return result;
 };
 
+const parseNullableString = (value: unknown): string | null | undefined => {
+  if (value === null) return null;
+  if (typeof value === 'string') return value;
+  return undefined;
+};
+
+interface BaseTurnData {
+  fragment: string;
+  bombDuration: number;
+  players: InternalPlayerShape[];
+}
+
+const parseBaseTurnData = (
+  value: Record<string, unknown>,
+): BaseTurnData | null => {
+  const fragment = value.fragment;
+  const bombDuration = value.bombDuration;
+  const playersRaw = value.players;
+
+  if (typeof fragment !== 'string' || typeof bombDuration !== 'number') {
+    return null;
+  }
+
+  const players = parsePlayersArray(playersRaw);
+  if (!players) return null;
+
+  return { fragment, bombDuration, players };
+};
+
 export function validateGameStarted(v: unknown): Result<GameStartedV> {
   if (!isObj(v)) return { ok: false };
   const obj: Record<string, unknown> = v;
   const roomCode = obj.roomCode;
-  const fragment = obj.fragment;
-  const bombDuration = obj.bombDuration;
-  const currentPlayer = obj.currentPlayer;
-  const leaderId = obj.leaderId;
-  const playersRaw = obj.players;
+  if (typeof roomCode !== 'string') return { ok: false };
 
-  if (
-    typeof roomCode !== 'string' ||
-    typeof fragment !== 'string' ||
-    typeof bombDuration !== 'number'
-  )
+  const base = parseBaseTurnData(obj);
+  if (!base) return { ok: false };
+
+  const currentPlayer = parseNullableString(obj.currentPlayer);
+  const leaderId = parseNullableString(obj.leaderId);
+  if (currentPlayer === undefined || leaderId === undefined) {
     return { ok: false };
-  if (!(typeof currentPlayer === 'string' || currentPlayer === null))
-    return { ok: false };
-  if (!(typeof leaderId === 'string' || leaderId === null))
-    return { ok: false };
-  const players = parsePlayersArray(playersRaw);
-  if (!players) return { ok: false };
+  }
+
   return {
     ok: true,
     data: {
       roomCode,
-      fragment,
-      bombDuration,
-      currentPlayer: currentPlayer,
-      leaderId: leaderId,
-      players,
+      fragment: base.fragment,
+      bombDuration: base.bombDuration,
+      currentPlayer,
+      leaderId,
+      players: base.players,
     },
   };
 }
@@ -97,24 +119,19 @@ export function validateGameStarted(v: unknown): Result<GameStartedV> {
 export function validateTurnStarted(v: unknown): Result<TurnStartedV> {
   if (!isObj(v)) return { ok: false };
   const obj: Record<string, unknown> = v;
-  const playerId = obj.playerId;
-  const fragment = obj.fragment;
-  const bombDuration = obj.bombDuration;
-  const playersRaw = obj.players;
+  const base = parseBaseTurnData(obj);
+  if (!base) return { ok: false };
 
-  if (!(typeof playerId === 'string' || playerId === null))
-    return { ok: false };
-  if (typeof fragment !== 'string' || typeof bombDuration !== 'number')
-    return { ok: false };
-  const players = parsePlayersArray(playersRaw);
-  if (!players) return { ok: false };
+  const playerId = parseNullableString(obj.playerId);
+  if (playerId === undefined) return { ok: false };
+
   return {
     ok: true,
     data: {
-      playerId: playerId,
-      fragment,
-      bombDuration,
-      players,
+      playerId,
+      fragment: base.fragment,
+      bombDuration: base.bombDuration,
+      players: base.players,
     },
   };
 }
