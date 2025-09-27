@@ -22,9 +22,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Add server to known_hosts
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          for i in {1..10}; do
+            ssh-keyscan -T 5 -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null && exit 0
+            sleep 2
+          done
+          # As a last resort, don't fail the job just because keyscan failed
+          exit 0
 
       - name: Deploy over SSH
         env:
