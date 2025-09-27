@@ -47,10 +47,11 @@ describe('useRoomRules', () => {
     expect(result.current.rules.maxLives).toBe(4);
 
     // Attempt update and expect failure path to set error
-    const res = await result.current.updateRules(result.current.rules);
-    expect(res.success).toBe(false);
-    // allow state update to flush
-    await new Promise((r) => setTimeout(r, 0));
+    let res: { success: boolean } | undefined;
+    await act(async () => {
+      res = await result.current.updateRules(result.current.rules);
+    });
+    expect(res?.success).toBe(false);
     expect(result.current.error).toBeTruthy();
   });
 });
