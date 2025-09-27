@@ -185,6 +185,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
             emitPlayers(io, old);
             system(prevRoom, `${oldName} left the room.`);
           }
+          // If player wasn't in prevRoom, suppress any leave announcement.
           void socket.leave(socketRoomId(prevRoom));
           console.log(`[JOIN ROOM] Socket ${socket.id} left room:${prevRoom}`);
         }
@@ -239,8 +240,14 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     );
     const room = roomManager.get(roomCode);
     if (!room) return;
+    // Only announce/act if this player is actually in the room.
+    const player = room.getPlayer(playerId);
+    if (!player) {
+      // Ignore stray leave events (e.g., race conditions from route changes).
+      return;
+    }
+    const playerName = player.name;
     room.removePlayer(playerId);
-    const playerName = room.getPlayer(playerId)?.name ?? 'Someone';
     system(roomCode, `${playerName} left the room.`);
 
     void socket.leave(socketRoomId(roomCode));
