@@ -12,12 +12,15 @@ export class GameRoomManager {
     return this.rooms.has(code);
   }
 
-  create(code: string, rules: GameRoomRules): GameRoom {
+  create(code: string, rules: GameRoomRules, name?: string): GameRoom {
     if (this.rooms.has(code)) {
       throw new Error(`Room ${code} already exists`);
     }
 
     const room = new GameRoom({ code }, rules);
+    if (typeof name === 'string') {
+      room.name = name;
+    }
     this.rooms.set(code, room);
     return room;
   }

@@ -15,6 +15,7 @@ type Status = 'invalidFormat' | 'loading' | 'notfound' | 'ready';
 export default function RoomRoute() {
   const { roomCode = '' } = useParams<{ roomCode: string }>();
   const [status, setStatus] = useState<Status>('loading');
+  const [roomName, setRoomName] = useState<string>('');
 
   useEffect(() => {
     let cancelled = false;
@@ -25,9 +26,14 @@ export default function RoomRoute() {
     }
     setStatus('loading');
     checkRoomExists(roomCode)
-      .then((ok) => {
+      .then((res) => {
         if (cancelled) return;
-        setStatus(ok ? 'ready' : 'notfound');
+        if (!res.exists) {
+          setStatus('notfound');
+          return;
+        }
+        setRoomName(res.name ?? '');
+        setStatus('ready');
       })
       .catch(() => {
         if (cancelled) return;
@@ -56,5 +62,10 @@ export default function RoomRoute() {
     return <RoomNotFoundPage roomCode={roomCode} />;
   }
 
-  return <RoomPage />;
+  // Set tab title as soon as we know the room name
+  if (roomName) {
+    document.title = `[${roomCode}] ${roomName}`;
+  }
+
+  return <RoomPage roomName={roomName} />;
 }

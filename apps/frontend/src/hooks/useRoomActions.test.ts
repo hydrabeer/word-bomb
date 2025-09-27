@@ -4,7 +4,11 @@ import { useRoomActions } from './useRoomActions';
 
 vi.mock('../api/rooms', () => ({
   createRoom: vi.fn(() => Promise.resolve({ code: 'NEW123' })),
-  checkRoomExists: vi.fn((code: string) => Promise.resolve(code === 'OK')),
+  checkRoomExists: vi.fn((code: string) =>
+    Promise.resolve(
+      code === 'OK' ? { exists: true, name: 'Room OK' } : { exists: false },
+    ),
+  ),
 }));
 
 import * as api from '../api/rooms';
@@ -20,16 +24,16 @@ describe('useRoomActions', () => {
     expect(code).toBe('NEW123');
     expect(api.createRoom).toHaveBeenCalledTimes(1);
 
-    let ok = false;
+    let res: { exists: boolean } | { exists: false } = { exists: false };
     await act(async () => {
-      ok = await result.current.validateRoom('OK');
+      res = await result.current.validateRoom('OK');
     });
-    expect(ok).toBe(true);
+    expect(res.exists).toBe(true);
     expect(api.checkRoomExists).toHaveBeenCalledWith('OK');
 
     await act(async () => {
-      ok = await result.current.validateRoom('NOPE');
+      res = await result.current.validateRoom('NOPE');
     });
-    expect(ok).toBe(false);
+    expect(res.exists).toBe(false);
   });
 });

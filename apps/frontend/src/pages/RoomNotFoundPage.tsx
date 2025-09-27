@@ -9,7 +9,7 @@ export default function RoomNotFoundPage({ roomCode }: Props) {
   const mainRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     mainRef.current?.focus();
-    document.title = `Room Not Found — ${roomCode}`;
+    document.title = `Room Not Found — ${roomCode}`; // Ensure title is set correctly
   }, [roomCode]);
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-indigo-950 to-purple-900 px-6 text-white">

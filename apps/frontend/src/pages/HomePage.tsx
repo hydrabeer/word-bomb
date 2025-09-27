@@ -29,7 +29,7 @@ export default function HomePage() {
 
   const handleCreateRoom = async () => {
     if (!roomName.trim()) return;
-    const code = await createNewRoom();
+    const code = await createNewRoom(roomName.trim());
     void navigate(`/${code}`);
   };
 

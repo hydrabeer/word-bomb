@@ -83,7 +83,10 @@ describe('RoomPage', () => {
     render(
       <MemoryRouter initialEntries={[`/${roomCode}`]}>
         <Routes>
-          <Route path="/:roomCode" element={<RoomPage />} />
+          <Route
+            path="/:roomCode"
+            element={<RoomPage roomName="Test Room" />}
+          />
         </Routes>
       </MemoryRouter>,
     );

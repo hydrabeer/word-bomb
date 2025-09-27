@@ -16,6 +16,7 @@ import { FaPaperPlane } from 'react-icons/fa';
 
 interface ChatProps {
   roomCode: string;
+  roomName?: string;
   className?: string;
   headingId?: string; // used to link region to heading for a11y
   autoFocus?: boolean; // when true, focus textarea
@@ -24,6 +25,7 @@ interface ChatProps {
 
 export default function Chat({
   roomCode,
+  roomName,
   className,
   headingId,
   autoFocus = false,
@@ -140,7 +142,7 @@ export default function Chat({
           <span className="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500">
             <span className="text-xs font-bold text-black">C</span>
           </span>
-          Chat - Room {roomCode}
+          {roomName ? <>{roomName} — Chat</> : <>Chat — Room {roomCode}</>}
         </h3>
       </div>
 

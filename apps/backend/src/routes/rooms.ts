@@ -5,9 +5,16 @@ import { roomManager } from '../room/roomManagerSingleton';
 const router: Router = Router();
 
 // POST /api/rooms
-router.post('/', (_: Request, res: Response) => {
+router.post('/', (req: Request, res: Response) => {
   try {
     const code = generateRoomCode();
+    // Optional name provided by client
+    const body: Record<string, unknown> = (req.body ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const nameRaw = typeof body.name === 'string' ? body.name : '';
+    const name = nameRaw.trim().slice(0, 30);
     const rules = {
       maxLives: 3,
       bonusTemplate: Array(26).fill(1),
@@ -15,7 +22,7 @@ router.post('/', (_: Request, res: Response) => {
       minWordsPerPrompt: 500,
     };
 
-    roomManager.create(code, rules);
+    roomManager.create(code, rules, name);
 
     res.status(201).json({ code });
   } catch (err) {
@@ -31,8 +38,8 @@ router.get('/:code', (req: Request, res: Response) => {
     res.status(404).json({ error: 'Room not found' });
     return;
   }
-
-  res.status(200).json({ exists: true });
+  const room = roomManager.get(code);
+  res.status(200).json({ exists: true, name: room?.name ?? '' });
 });
 
 export default router;

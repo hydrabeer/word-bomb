@@ -19,6 +19,9 @@ export class GameRoom {
   /** 4-letter uppercase room code */
   public readonly code: string;
 
+  /** Human-friendly room title shown in UI */
+  public name = '';
+
   /** Custom rules for this room */
   public rules: GameRoomRules;
 

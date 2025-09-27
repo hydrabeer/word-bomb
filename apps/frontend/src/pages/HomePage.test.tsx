@@ -11,7 +11,7 @@ vi.mock('../utils/playerProfile', () => ({
 vi.mock('../hooks/useRoomActions', () => ({
   useRoomActions: () => ({
     createNewRoom: vi.fn().mockResolvedValue('ROOM'),
-    validateRoom: vi.fn().mockResolvedValue(true),
+    validateRoom: vi.fn().mockResolvedValue({ exists: true, name: 'Room' }),
   }),
 }));
 

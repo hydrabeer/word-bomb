@@ -18,7 +18,7 @@ import { useVisualState } from '../hooks/useVisualState.ts';
 import { useIsMobile } from '../hooks/useIsMobile.ts';
 import { formatDurationSeconds } from '../utils/formatTime.ts';
 
-export default function RoomPage() {
+export default function RoomPage({ roomName }: { roomName?: string }) {
   const navigate = useNavigate();
   const { roomCode = '' } = useParams<{ roomCode: string }>();
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -73,12 +73,7 @@ export default function RoomPage() {
   // Centralized socket disconnect navigation (also handles network loss indirectly)
   useSocketConnection();
 
-  useEffect(() => {
-    if (!roomCode) return;
-    const leaderName = players.find((p) => p.id === leaderId)?.name?.trim();
-    const label = leaderName ? `${leaderName}'s Room` : 'Room';
-    document.title = `[${roomCode}] ${label}`;
-  }, [roomCode, players, leaderId]);
+  // Title is set in RoomRoute when fetching room metadata; no-op here
 
   // Handle input change with typing update
   const handleInputChange = (value: string) => {
@@ -126,12 +121,14 @@ export default function RoomPage() {
         Skip to main content
       </a>
 
-      {/* Top Bar */}
-      <header className="relative flex -translate-y-[7px] items-center justify-between border-b border-white/10 bg-gradient-to-r from-indigo-800/70 to-purple-800/70 p-3 text-base text-white backdrop-blur-sm">
-        {/* Page heading for a11y (visually hidden) */}
+      {/* Top bar */}
+      <header className="relative flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3 shadow-sm backdrop-blur-sm">
+        {/* Accessible page title for screen readers */}
         <h1 id="page-title" className="sr-only">
-          Word Bomb Room {roomCode}
+          {roomName ? roomName : `Word Bomb Room ${roomCode}`}
         </h1>
+
+        {/* Copy invite link */}
         <div className="flex translate-y-1 items-center gap-3">
           <button
             onClick={() => {
@@ -144,7 +141,11 @@ export default function RoomPage() {
             }}
             className="flex h-9 cursor-copy items-center gap-2 rounded-md bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
             title="Click to copy room link"
-            aria-label={`Copy room invite link for ${roomCode}`}
+            aria-label={
+              roomName
+                ? `Copy room invite link for ${roomName}`
+                : `Copy room invite link for Room ${roomCode}`
+            }
           >
             <FaLink className="h-4 w-4 text-white/80" />
             {inviteCopied ? 'Copied!' : `Room ${roomCode}`}
@@ -267,9 +268,8 @@ export default function RoomPage() {
             {/* Lobby Card */}
             <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8 shadow-lg backdrop-blur-sm">
               <h2 className="mb-6 text-2xl font-semibold leading-relaxed text-white md:text-3xl">
-                Room{' '}
                 <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
-                  {roomCode}
+                  {roomName ?? `Room ${roomCode}`}
                 </span>
               </h2>
 
@@ -397,6 +397,7 @@ export default function RoomPage() {
           >
             <Chat
               roomCode={roomCode}
+              roomName={roomName}
               headingId="mobile-chat-heading"
               autoFocus={isChatOpen}
               regionRole="region"
@@ -424,6 +425,7 @@ export default function RoomPage() {
       >
         <Chat
           roomCode={roomCode}
+          roomName={roomName}
           headingId="desktop-chat-heading"
           autoFocus={isChatOpen}
           /* Avoid nested complementary landmarks inside the aside */
