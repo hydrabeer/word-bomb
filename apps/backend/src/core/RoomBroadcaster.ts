@@ -74,6 +74,6 @@ export class RoomBroadcaster {
   }
 
   countdownStopped(roomCode: string): void {
-    this.io.to(socketRoomId(roomCode)).emit('gameCountdownStopped');
+    this.emit(roomCode, 'gameCountdownStopped');
   }
 }
