@@ -115,10 +115,14 @@ export class Player {
    * @param maxLives The number of lives to restore
    * @param resetTemplate The bonus progress template to apply
    */
-  resetForNextGame(maxLives: number, resetTemplate: number[]): void {
+  resetForNextGame(
+    startingLives: number,
+    maxLives: number,
+    resetTemplate: number[],
+  ): void {
     this.isEliminated = false;
     this.isSeated = false;
-    this.lives = maxLives;
+    this.lives = Math.min(startingLives, maxLives);
     this.bonusProgress.reset(resetTemplate);
   }
 

@@ -8,6 +8,7 @@ import type { ServerToClientEvents } from '@word-bomb/types';
 
 const rules: GameRoomRules = {
   maxLives: 3,
+  startingLives: 3,
   bonusTemplate: new Array(26).fill(1),
   minTurnDuration: 1,
   minWordsPerPrompt: 1,

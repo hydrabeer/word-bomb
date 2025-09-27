@@ -7,6 +7,7 @@ import type { Player } from '@game/domain/players/Player';
 
 export const defaultRules: GameRoomRules = {
   maxLives: 3,
+  startingLives: 3,
   bonusTemplate: new Array(26).fill(1),
   minTurnDuration: 5,
   minWordsPerPrompt: 2,

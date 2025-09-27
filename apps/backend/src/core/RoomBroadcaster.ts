@@ -29,6 +29,17 @@ export class RoomBroadcaster {
     this.emit(roomCode, 'playersUpdated', buildPlayersUpdatedPayload(room));
   }
 
+  rules(room: GameRoom): void {
+    const { bonusTemplate, ...rest } = room.rules;
+    this.emit(room.code, 'roomRulesUpdated', {
+      roomCode: room.code,
+      rules: {
+        ...rest,
+        bonusTemplate: [...bonusTemplate],
+      },
+    });
+  }
+
   gameStarted(room: GameRoom, game: Game): void {
     this.emit(room.code, 'gameStarted', buildGameStartedPayload(room, game));
   }

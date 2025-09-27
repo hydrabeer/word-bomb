@@ -25,6 +25,7 @@ const makePlayer = (name: string, eliminated = false): Player =>
 
 const rules: GameRoomRules = {
   maxLives: 3,
+  startingLives: 3,
   bonusTemplate: mockBonusTemplate,
   minTurnDuration: 5,
   minWordsPerPrompt: 2,

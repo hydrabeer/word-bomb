@@ -15,7 +15,11 @@ export function createNewGame(room: GameRoom): Game | null {
   );
 
   seatedPlayers.forEach((p) => {
-    p.resetForNextGame(room.rules.maxLives, room.rules.bonusTemplate);
+    p.resetForNextGame(
+      room.rules.startingLives,
+      room.rules.maxLives,
+      room.rules.bonusTemplate,
+    );
   });
 
   const fragment = getRandomFragment(room.rules.minWordsPerPrompt);

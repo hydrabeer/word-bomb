@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   FaChevronRight,
@@ -17,6 +17,8 @@ import { useWordSubmission } from '../hooks/useWordSubmission';
 import { useVisualState } from '../hooks/useVisualState.ts';
 import { useIsMobile } from '../hooks/useIsMobile.ts';
 import { formatDurationSeconds } from '../utils/formatTime.ts';
+import { useRoomRules, type LobbyRules } from '../hooks/useRoomRules';
+import { RoomRulesDialog } from '../components/RoomRulesDialog';
 
 export default function RoomPage({ roomName }: { roomName?: string }) {
   const navigate = useNavigate();
@@ -24,6 +26,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
   const [isChatOpen, setIsChatOpen] = useState(true);
   const isMobile = useIsMobile();
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
 
   // Custom hooks (order matters!): we must attach all socket listeners BEFORE
   // emitting joinRoom, otherwise on a page reload while a game is active the
@@ -44,6 +47,16 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
 
   const { players, leaderId, playerId, me, toggleSeated, startGame } =
     usePlayerManagement(roomCode);
+
+  const {
+    rules: roomRules,
+    updateRules: updateRoomRules,
+    isUpdating: isRulesUpdating,
+    error: roomRulesError,
+    hasServerRules,
+  } = useRoomRules(roomCode);
+
+  const isLeader = leaderId === playerId;
 
   // Join room AFTER listeners above are wired.
   useGameRoom(roomCode);
@@ -82,6 +95,11 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
       updateLiveInput(playerId, value);
     }
   };
+
+  const handleSaveRules = useCallback(
+    (next: LobbyRules) => updateRoomRules(next),
+    [updateRoomRules],
+  );
 
   const formattedElapsed = formatDurationSeconds(elapsedGameTime);
 
@@ -267,11 +285,29 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
 
             {/* Lobby Card */}
             <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8 shadow-lg backdrop-blur-sm">
-              <h2 className="mb-6 text-2xl font-semibold leading-relaxed text-white md:text-3xl">
-                <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
-                  {roomName ?? `Room ${roomCode}`}
-                </span>
-              </h2>
+              <div className="mb-6 flex flex-col gap-4 text-left sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold leading-relaxed text-white md:text-3xl">
+                    <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
+                      {roomName ?? `Room ${roomCode}`}
+                    </span>
+                  </h2>
+                  {hasServerRules && roomRules && (
+                    <p className="mt-2 text-sm text-indigo-200/80 sm:text-left">
+                      Lives {roomRules.startingLives}/{roomRules.maxLives} • WPP
+                      ≥ {roomRules.minWordsPerPrompt} • Min turn{' '}
+                      {roomRules.minTurnDuration}s
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRulesOpen(true)}
+                  className="inline-flex items-center justify-center rounded-md border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-indigo-900"
+                >
+                  {isLeader ? 'Edit room rules' : 'View room rules'}
+                </button>
+              </div>
 
               {/* Countdown / Waiting Status (fixed height to avoid vertical shift; no placeholder so text stays centered) */}
               <div className="mb-8 text-lg leading-relaxed text-indigo-200">
@@ -434,6 +470,15 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
       </aside>
 
       {/* Removed old desktop floating chat toggle; unified control is in top bar */}
+      <RoomRulesDialog
+        open={isRulesOpen}
+        onClose={() => setIsRulesOpen(false)}
+        rules={roomRules}
+        isLeader={Boolean(isLeader)}
+        isUpdating={isRulesUpdating}
+        serverError={roomRulesError}
+        onSave={handleSaveRules}
+      />
     </div>
   );
 }

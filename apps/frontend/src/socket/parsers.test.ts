@@ -8,6 +8,7 @@ import {
   parseGameEnded,
   parseWordAccepted,
   parseActionAck,
+  parseRoomRulesUpdated,
 } from './parsers';
 
 describe('socket parsers', () => {
@@ -269,5 +270,53 @@ describe('socket parsers', () => {
   it('parseActionAck non-object input invalid', () => {
     expect(parseActionAck(null)).toBeNull();
     expect(parseActionAck('nope')).toBeNull();
+  });
+
+  it('parseRoomRulesUpdated parses valid payload', () => {
+    const template = Array.from({ length: 26 }, (_, idx) =>
+      idx % 2 === 0 ? 2 : 1,
+    );
+    const res = parseRoomRulesUpdated({
+      roomCode: 'ROOM',
+      rules: {
+        maxLives: 4,
+        startingLives: 3,
+        bonusTemplate: template,
+        minTurnDuration: 5,
+        minWordsPerPrompt: 250,
+      },
+    });
+    expect(res).not.toBeNull();
+    expect(res!.roomCode).toBe('ROOM');
+    expect(res!.rules.bonusTemplate).toEqual(template);
+  });
+
+  it('parseRoomRulesUpdated rejects invalid shapes', () => {
+    expect(parseRoomRulesUpdated(null)).toBeNull();
+    expect(parseRoomRulesUpdated({})).toBeNull();
+    expect(
+      parseRoomRulesUpdated({
+        roomCode: 'ROOM',
+        rules: {
+          maxLives: '4',
+          startingLives: 2,
+          bonusTemplate: [],
+          minTurnDuration: 5,
+          minWordsPerPrompt: 100,
+        },
+      }),
+    ).toBeNull();
+    expect(
+      parseRoomRulesUpdated({
+        roomCode: 'ROOM',
+        rules: {
+          maxLives: 4,
+          startingLives: 2,
+          bonusTemplate: Array.from({ length: 25 }, () => 1),
+          minTurnDuration: 5,
+          minWordsPerPrompt: 100,
+        },
+      }),
+    ).toBeNull();
   });
 });

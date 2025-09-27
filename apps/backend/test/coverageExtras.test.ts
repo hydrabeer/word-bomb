@@ -42,6 +42,7 @@ describe('coverage extras', () => {
   describe('GameEngine unit', () => {
     const rules: GameRoomRules = {
       maxLives: 2,
+      startingLives: 2,
       bonusTemplate: Array.from({ length: 26 }, () => 1),
       minTurnDuration: 1,
       minWordsPerPrompt: 1,
@@ -177,6 +178,7 @@ describe('coverage extras', () => {
       // create room then invalid name (>20 chars)
       roomManager.create('ZZZZ', {
         maxLives: 3,
+        startingLives: 3,
         bonusTemplate: new Array(26).fill(1),
         minTurnDuration: 1,
         minWordsPerPrompt: 1,
@@ -197,6 +199,7 @@ describe('coverage extras', () => {
       const ctx = useServer();
       roomManager.create('TIME', {
         maxLives: 3,
+        startingLives: 3,
         bonusTemplate: new Array(26).fill(1),
         minTurnDuration: 1,
         minWordsPerPrompt: 1,
@@ -245,12 +248,14 @@ describe('coverage extras', () => {
       const ctx = useServer();
       roomManager.create('AAAA', {
         maxLives: 3,
+        startingLives: 3,
         bonusTemplate: new Array(26).fill(1),
         minTurnDuration: 1,
         minWordsPerPrompt: 1,
       });
       roomManager.create('BBBB', {
         maxLives: 3,
+        startingLives: 3,
         bonusTemplate: new Array(26).fill(1),
         minTurnDuration: 1,
         minWordsPerPrompt: 1,

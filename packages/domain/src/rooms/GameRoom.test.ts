@@ -4,11 +4,13 @@ import type { GameRoomRules } from './GameRoomRules';
 import { randomUUID } from 'crypto';
 import { PlayerProps } from '../players/Player';
 import { BonusProgress } from '../game/BonusProgress';
+import type { Game } from '../game/Game';
 
-const bonusTemplate = new Array(26).fill(1) as number[];
+const bonusTemplate: number[] = Array.from({ length: 26 }, () => 1);
 
 const mockRules: GameRoomRules = {
   maxLives: 3,
+  startingLives: 3,
   bonusTemplate,
   minTurnDuration: 5,
   minWordsPerPrompt: 1,
@@ -135,6 +137,39 @@ describe('GameRoom', () => {
 
     expect(player1?.isSeated).toBe(false);
     expect(player2?.isSeated).toBe(false);
+  });
+
+  it('updateRules applies validated changes and caps lives', () => {
+    const p1 = makePlayerProps();
+    const p2 = makePlayerProps();
+    room.addPlayer(p1);
+    room.addPlayer(p2);
+    const player = room.getPlayer(p1.id);
+    expect(player).toBeDefined();
+    if (!player) throw new Error('player missing');
+    player.lives = 5;
+    player.bonusProgress.reset(Array.from({ length: 26 }, () => 1));
+
+    const nextRules: GameRoomRules = {
+      maxLives: 4,
+      startingLives: 2,
+      bonusTemplate: Array.from({ length: 26 }, () => 2),
+      minTurnDuration: 6,
+      minWordsPerPrompt: 200,
+    };
+
+    room.updateRules(nextRules);
+
+    expect(room.rules).toEqual(nextRules);
+    expect(player.lives).toBe(4);
+    expect(player.bonusProgress.toArray()).toEqual(nextRules.bonusTemplate);
+  });
+
+  it('updateRules throws while game active', () => {
+    room.game = {} as unknown as Game;
+    expect(() => room.updateRules({ ...mockRules, startingLives: 2 })).toThrow(
+      'Cannot change rules while a game is running.',
+    );
   });
 
   it('starts and cancels game start timer', () => {

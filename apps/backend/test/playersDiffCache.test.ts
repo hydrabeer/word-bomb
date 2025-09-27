@@ -8,6 +8,7 @@ import {
 
 const rules: GameRoomRules = {
   maxLives: 3,
+  startingLives: 3,
   bonusTemplate: new Array(26).fill(1),
   minTurnDuration: 5,
   minWordsPerPrompt: 1,

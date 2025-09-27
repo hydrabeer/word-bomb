@@ -16,6 +16,7 @@ function makeFakeIo() {
 
 const rules: GameRoomRules = {
   maxLives: 3,
+  startingLives: 3,
   bonusTemplate: new Array(26).fill(1),
   minTurnDuration: 5,
   minWordsPerPrompt: 5,
@@ -71,6 +72,28 @@ describe('RoomBroadcaster', () => {
     broadcaster.players(room);
     const events: string[] = emitMock.mock.calls.map((c) => c[0] as string);
     expect(events).toEqual(['playersUpdated']);
+  });
+
+  it('emits roomRulesUpdated with cloned template', () => {
+    const { room } = buildRoomAndGame();
+    emitMock.mockClear();
+    broadcaster.rules(room);
+    expect(emitMock).toHaveBeenCalledWith('roomRulesUpdated', {
+      roomCode: room.code,
+      rules: expect.objectContaining({
+        maxLives: rules.maxLives,
+        startingLives: rules.startingLives,
+        minTurnDuration: rules.minTurnDuration,
+        minWordsPerPrompt: rules.minWordsPerPrompt,
+        bonusTemplate: expect.arrayContaining([expect.any(Number)]),
+      }),
+    });
+    // mutate emitted array should not affect source
+    const payload = emitMock.mock.calls[0][1] as {
+      rules: { bonusTemplate: number[] };
+    };
+    payload.rules.bonusTemplate[0] = 99;
+    expect(room.rules.bonusTemplate[0]).toBe(rules.bonusTemplate[0]);
   });
 
   it('emits gameStarted, turnStarted, gameEnded, playerUpdated, wordAccepted, countdown events', () => {

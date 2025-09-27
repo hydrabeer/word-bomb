@@ -3,6 +3,7 @@ import { GameRulesSchema } from './GameRoomRules';
 
 const validRules = {
   maxLives: 3,
+  startingLives: 3,
   bonusTemplate: new Array(26).fill(1),
   minTurnDuration: 5,
   minWordsPerPrompt: 10,
@@ -34,6 +35,22 @@ describe('GameRulesSchema', () => {
     const result = GameRulesSchema.safeParse({
       ...validRules,
       bonusTemplate: new Array(25).fill(1), // not 26
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects if startingLives is less than 1', () => {
+    const result = GameRulesSchema.safeParse({
+      ...validRules,
+      startingLives: 0,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects if startingLives exceeds maxLives', () => {
+    const result = GameRulesSchema.safeParse({
+      ...validRules,
+      startingLives: validRules.maxLives + 1,
     });
     expect(result.success).toBe(false);
   });

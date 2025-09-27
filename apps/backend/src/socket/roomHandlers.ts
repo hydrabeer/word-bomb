@@ -10,6 +10,7 @@ import { noop } from '@game/domain/utils/noop';
 import type { Player } from '@game/domain/players/Player';
 import type { BasicResponse } from '@word-bomb/types';
 import { RoomBroadcaster } from '../core/RoomBroadcaster';
+import { GameRulesSchema } from '@game/domain/rooms/GameRoomRules';
 import {
   buildGameStartedPayload,
   buildTurnStartedPayload,
@@ -57,6 +58,10 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     playerId: string;
     word: string;
     clientActionId?: string;
+  }
+  interface UpdateRoomRulesParsed {
+    roomCode: string;
+    rules: unknown;
   }
 
   const parseJoinRoom = (raw: unknown): JoinRoomParsed | null => {
@@ -113,6 +118,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       clientActionId:
         typeof clientActionId === 'string' ? clientActionId : undefined,
     };
+  };
+  const parseUpdateRoomRules = (raw: unknown): UpdateRoomRulesParsed | null => {
+    if (!isObject(raw)) return null;
+    const { roomCode, rules } = raw;
+    if (typeof roomCode !== 'string') return null;
+    return { roomCode, rules };
   };
   const broadcaster = new RoomBroadcaster(io);
 
@@ -222,6 +233,16 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
           );
         }
       }
+
+      const { bonusTemplate, ...restRules } = room.rules;
+      socket.emit('roomRulesUpdated', {
+        roomCode,
+        rules: {
+          ...restRules,
+          bonusTemplate: [...bonusTemplate],
+        },
+      });
+
       callback({ success: true });
     } catch (err) {
       console.error('[JOIN ROOM] Error:', err);
@@ -429,6 +450,52 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     }
   }
   socket.on('submitWord', handleSubmitWord);
+
+  function handleUpdateRoomRules(
+    raw: unknown,
+    cb?: (res: BasicResponse) => void,
+  ) {
+    const callback = normalizeCb(cb);
+    const parsed = parseUpdateRoomRules(raw);
+    if (!parsed) {
+      callback({ success: false, error: 'Invalid payload' });
+      return;
+    }
+    const { roomCode, rules } = parsed;
+    const room = roomManager.get(roomCode);
+    if (!room) {
+      callback({ success: false, error: 'Room not found' });
+      return;
+    }
+    const playerId = getCurrentPlayerId();
+    if (!playerId) {
+      callback({ success: false, error: 'Player not recognized' });
+      return;
+    }
+    if (room.getLeaderId() !== playerId) {
+      callback({ success: false, error: 'Only the leader can change rules.' });
+      return;
+    }
+    const validation = GameRulesSchema.safeParse(rules);
+    if (!validation.success) {
+      const firstIssue = validation.error.issues[0];
+      callback({
+        success: false,
+        error: firstIssue?.message ?? 'Invalid rules provided',
+      });
+      return;
+    }
+    try {
+      room.updateRules(validation.data);
+      broadcaster.rules(room);
+      const leaderName = room.getPlayer(playerId)?.name ?? 'Leader';
+      system(roomCode, `${leaderName} updated the room rules.`);
+      callback({ success: true });
+    } catch (error) {
+      callback({ success: false, error: (error as Error).message });
+    }
+  }
+  socket.on('updateRoomRules', handleUpdateRoomRules);
 
   // disconnect event
   socket.on('disconnect', () => {

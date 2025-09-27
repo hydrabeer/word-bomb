@@ -13,6 +13,7 @@ import {
 
 const rules: GameRoomRules = {
   maxLives: 3,
+  startingLives: 3,
   bonusTemplate: new Array(26).fill(1),
   minTurnDuration: 5,
   minWordsPerPrompt: 10,
@@ -69,6 +70,7 @@ describe('serialization player views', () => {
     player.isEliminated = true;
     const view = toGamePlayerView(player, {
       maxLives: rules.maxLives,
+      startingLives: rules.startingLives,
       bonusTemplate: rules.bonusTemplate,
       minTurnDuration: rules.minTurnDuration,
       minWordsPerPrompt: rules.minWordsPerPrompt,

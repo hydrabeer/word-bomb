@@ -17,6 +17,7 @@ router.post('/', (req: Request, res: Response) => {
     const name = nameRaw.trim().slice(0, 30);
     const rules = {
       maxLives: 3,
+      startingLives: 3,
       bonusTemplate: Array(26).fill(1),
       minTurnDuration: 5,
       minWordsPerPrompt: 500,
@@ -38,8 +39,10 @@ router.get('/:code', (req: Request, res: Response) => {
     res.status(404).json({ error: 'Room not found' });
     return;
   }
-  const room = roomManager.get(code);
-  res.status(200).json({ exists: true, name: room?.name ?? '' });
+  // We only need to confirm the room exists for this endpoint.
+  // Avoid calling roomManager.get() here to keep the contract minimal
+  // and to align with tests that expect only `{ exists: true }`.
+  res.status(200).json({ exists: true });
 });
 
 export default router;

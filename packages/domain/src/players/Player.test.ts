@@ -99,11 +99,11 @@ describe('Player', () => {
     player.isEliminated = true;
     player.isSeated = true;
     player.lives = 0;
-    player.resetForNextGame(5, bonusTemplate);
+    player.resetForNextGame(3, 5, bonusTemplate);
 
     expect(player.isEliminated).toBe(false);
     expect(player.isSeated).toBe(false);
-    expect(player.lives).toBe(5);
+    expect(player.lives).toBe(3);
   });
 
   it('fails validation with invalid name', () => {

@@ -101,6 +101,17 @@ export interface ActionAckPayload {
   error?: string;
 }
 
+export interface RoomRulesPayload {
+  roomCode: string;
+  rules: {
+    maxLives: number;
+    startingLives: number;
+    bonusTemplate: number[];
+    minTurnDuration: number;
+    minWordsPerPrompt: number;
+  };
+}
+
 export interface ClientToServerEvents {
   joinRoom: (data: JoinRoomPayload, cb?: (res: BasicResponse) => void) => void;
   leaveRoom: (data: LeaveRoomPayload) => void;
@@ -118,6 +129,10 @@ export interface ClientToServerEvents {
     data: SubmitWordPayload,
     cb?: (res: BasicResponse) => void,
   ) => void;
+  updateRoomRules: (
+    data: RoomRulesPayload,
+    cb?: (res: BasicResponse) => void,
+  ) => void;
 }
 export interface ServerToClientEvents {
   playersUpdated: (data: PlayersUpdatedPayload) => void;
@@ -132,6 +147,7 @@ export interface ServerToClientEvents {
   gameCountdownStarted: (data: GameCountdownStartedPayload) => void;
   gameCountdownStopped: () => void;
   actionAck: (data: ActionAckPayload) => void;
+  roomRulesUpdated: (data: RoomRulesPayload) => void;
 }
 export interface SocketData {
   currentRoomCode?: string;

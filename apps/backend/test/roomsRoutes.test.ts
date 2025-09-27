@@ -78,6 +78,7 @@ describe('rooms routes', () => {
       // Second argument are default rules
       expect(firstCall[1]).toMatchObject({
         maxLives: 3,
+        startingLives: 3,
         minTurnDuration: 5,
         minWordsPerPrompt: 500,
       });

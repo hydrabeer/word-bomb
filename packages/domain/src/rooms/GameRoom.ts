@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Player } from '../players/Player';
 import { createPlayer } from '../players/createPlayer';
-import { GameRoomRules } from './GameRoomRules';
+import { GameRoomRules, GameRulesSchema } from './GameRoomRules';
 import { Game } from '../game/Game';
 
 export const GameRoomSchema = z.object({
@@ -41,7 +41,7 @@ export class GameRoom {
   constructor(props: GameRoomProps, rules: GameRoomRules) {
     const parsed = GameRoomSchema.parse(props);
     this.code = parsed.code;
-    this.rules = rules;
+    this.rules = GameRulesSchema.parse(rules);
   }
 
   /**
@@ -58,7 +58,7 @@ export class GameRoom {
       id,
       name,
       isLeader,
-      lives: this.rules.maxLives,
+      lives: this.rules.startingLives,
       bonusTemplate: this.rules.bonusTemplate,
     });
 
@@ -160,7 +160,11 @@ export class GameRoom {
 
     // Reset all players for the new game.
     playersInGame.forEach((p) => {
-      p.resetForNextGame(this.rules.maxLives, this.rules.bonusTemplate);
+      p.resetForNextGame(
+        this.rules.startingLives,
+        this.rules.maxLives,
+        this.rules.bonusTemplate,
+      );
     });
 
     this.cancelGameStartTimer();
@@ -176,6 +180,26 @@ export class GameRoom {
     this.getAllPlayers().forEach((p) => {
       p.isSeated = false;
     });
+  }
+
+  /**
+   * Updates the room's rules while in the seating phase. Existing players have
+   * their bonus progress template realigned and any lives above the new
+   * maximum capped.
+   */
+  updateRules(next: GameRoomRules): void {
+    if (this.game) {
+      throw new Error('Cannot change rules while a game is running.');
+    }
+    const parsed = GameRulesSchema.parse(next);
+    this.rules = parsed;
+
+    for (const player of this.getAllPlayers()) {
+      player.bonusProgress.reset(parsed.bonusTemplate);
+      if (player.lives > parsed.maxLives) {
+        player.lives = parsed.maxLives;
+      }
+    }
   }
 
   /**

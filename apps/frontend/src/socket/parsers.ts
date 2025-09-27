@@ -194,3 +194,53 @@ export function parseActionAck(v: unknown): ActionAckParsed | null {
     error: typeof v.error === 'string' ? v.error : undefined,
   };
 }
+
+export interface RoomRulesParsed {
+  roomCode: string;
+  rules: {
+    maxLives: number;
+    startingLives: number;
+    bonusTemplate: number[];
+    minTurnDuration: number;
+    minWordsPerPrompt: number;
+  };
+}
+
+export function parseRoomRulesUpdated(v: unknown): RoomRulesParsed | null {
+  if (!isObj(v) || typeof v.roomCode !== 'string') return null;
+  const rawRules = (v as { rules?: unknown }).rules;
+  if (!isObj(rawRules)) return null;
+  const {
+    maxLives,
+    startingLives,
+    bonusTemplate,
+    minTurnDuration,
+    minWordsPerPrompt,
+  } = rawRules;
+  if (
+    typeof maxLives !== 'number' ||
+    typeof startingLives !== 'number' ||
+    typeof minTurnDuration !== 'number' ||
+    typeof minWordsPerPrompt !== 'number' ||
+    !Array.isArray(bonusTemplate)
+  )
+    return null;
+  const templateNumbers = bonusTemplate.filter(
+    (n): n is number => typeof n === 'number',
+  );
+  if (
+    templateNumbers.length !== bonusTemplate.length ||
+    templateNumbers.length !== 26
+  )
+    return null;
+  return {
+    roomCode: v.roomCode,
+    rules: {
+      maxLives,
+      startingLives,
+      minTurnDuration,
+      minWordsPerPrompt,
+      bonusTemplate: [...templateNumbers],
+    },
+  };
+}

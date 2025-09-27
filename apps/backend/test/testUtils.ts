@@ -66,6 +66,7 @@ export function ensureRoom(code: string) {
   if (!roomManager.has(code)) {
     roomManager.create(code, {
       maxLives: 3,
+      startingLives: 3,
       bonusTemplate: Array.from({ length: 26 }, () => 1),
       minTurnDuration: 5,
       minWordsPerPrompt: 1,
