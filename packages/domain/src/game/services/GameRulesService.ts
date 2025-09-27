@@ -61,7 +61,7 @@ export class GameRulesService {
   }
 
   checkGameOver(): { ended: boolean; winnerId?: string } {
-    const remaining = this.game.players.filter((p) => !p.isEliminated);
+    const remaining = this.game.getActivePlayers();
     if (remaining.length <= 1) {
       return { ended: true, winnerId: remaining[0]?.id };
     }

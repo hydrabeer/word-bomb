@@ -98,15 +98,32 @@ export class Game {
   }
 
   /**
+   * Returns a snapshot of all players that are still active in the game.
+   * Primarily used to coordinate turn order and detect game-over states.
+   */
+  public getActivePlayers(): Player[] {
+    return this.players.filter((p) => !p.isEliminated);
+  }
+
+  /**
+   * Ensures that at least one active player remains in the game.
+   * @throws If no active players remain
+   */
+  private requireActivePlayers(): Player[] {
+    const active = this.getActivePlayers();
+    if (active.length === 0) {
+      throw new Error('No active players remaining');
+    }
+    return active;
+  }
+
+  /**
    * Gets the player whose turn it currently is.
    * @returns The current (non-eliminated) player
    * @throws If no active players remain
    */
   public getCurrentPlayer(): Player {
-    const active = this.players.filter((p) => !p.isEliminated);
-    if (active.length === 0) {
-      throw new Error('No active players remaining');
-    }
+    const active = this.requireActivePlayers();
     return active[this.currentTurnIndex % active.length];
   }
 
@@ -115,7 +132,7 @@ export class Game {
    * Wraps around if at the end of the list.
    */
   public nextTurn(): void {
-    const active = this.players.filter((p) => !p.isEliminated);
+    const active = this.requireActivePlayers();
     if (active.length > 1) {
       this.currentTurnIndex = (this.currentTurnIndex + 1) % active.length;
     }
