@@ -10,7 +10,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import roomsRouter from './routes/rooms';
 import { registerRoomHandlers } from './socket/roomHandlers';
-import { loadDictionary } from './dictionary';
+import { loadDictionary, getDictionaryStats } from './dictionary';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -49,6 +49,16 @@ app.use(cors());
 // Sets up an API endpoint for creating and joining rooms
 app.use(express.json());
 app.use('/api/rooms', roomsRouter);
+
+// Lightweight health and readiness endpoints
+app.get('/healthz', (_req, res) => {
+  res.status(200).send('ok');
+});
+app.get('/readyz', (_req, res) => {
+  const stats = getDictionaryStats();
+  const ready = stats.wordCount > 0 && stats.fragmentCount > 0;
+  res.status(ready ? 200 : 503).json({ ready, ...stats });
+});
 
 // Adapter: Express app signature is (req, res, next). Node's createServer expects (req, res).
 // We provide a no-op next function and ensure a void return; no ESLint suppression needed.
@@ -134,3 +144,35 @@ io.of('/').adapter.on('leave-room', (room: string, id: string) => {
     console.log(`👋 [Adapter] socket ${id} left ${room}`);
   }
 });
+
+// Graceful shutdown: close server and clear game engine timers so process exits fast
+import { shutdownEngines } from './game/engineRegistry';
+
+function shutdown(signal: NodeJS.Signals) {
+  console.log(`\n🛑 Received ${signal}, shutting down...`);
+  try {
+    shutdownEngines();
+  } catch (e) {
+    console.warn('⚠️ Error during engines shutdown:', e);
+  }
+  const maybeClose = (
+    server as unknown as { close?: (cb: (err?: Error) => void) => void }
+  ).close;
+  if (typeof maybeClose === 'function') {
+    maybeClose((err?: Error) => {
+      if (err) {
+        console.error('❌ Error closing HTTP server:', err);
+        process.exitCode = 1;
+      }
+      process.exit();
+    });
+  } else {
+    // In tests, server may be a simple mock without close()
+    process.exit();
+  }
+  // Safety timeout
+  setTimeout(() => process.exit(0), 5000).unref();
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

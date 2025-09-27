@@ -162,3 +162,16 @@ export function getRandomFragment(minWordsPerPrompt: number): string {
 
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
+
+/**
+ * Exposes basic dictionary statistics for health/readiness endpoints.
+ */
+export function getDictionaryStats(): {
+  wordCount: number;
+  fragmentCount: number;
+} {
+  return {
+    wordCount: dictionary.size,
+    fragmentCount: fragmentCounts.size,
+  };
+}
