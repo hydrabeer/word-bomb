@@ -21,7 +21,7 @@ export interface TestContext {
   close: () => Promise<void>;
 }
 
-export function setupTestServer(): TestContext {
+export async function setupTestServer(): Promise<TestContext> {
   const app = express();
   // Wrap express app so the listener has a strict void return (discard possible Promise from Express 5 async handling)
   const httpServer = createServer((req, res) => {
@@ -41,9 +41,32 @@ export function setupTestServer(): TestContext {
     registerRoomHandlers(io, socket);
   });
 
-  httpServer.listen();
-  const address = httpServer.address() as AddressInfo;
-  const url = `http://localhost:${String(address.port)}`;
+  await new Promise<void>((resolve, reject) => {
+    function handleError(error: Error) {
+      httpServer.off('listening', handleListening);
+      reject(error);
+    }
+
+    function handleListening() {
+      httpServer.off('error', handleError);
+      resolve();
+    }
+
+    httpServer.once('error', handleError);
+    httpServer.once('listening', handleListening);
+    httpServer.listen(0, '127.0.0.1');
+  });
+
+  const address = httpServer.address();
+  if (address === null || typeof address !== 'object') {
+    await new Promise<void>((resolve) => {
+      httpServer.close(() => {
+        resolve();
+      });
+    });
+    throw new Error('Failed to obtain test server address');
+  }
+  const url = `http://127.0.0.1:${String((address as AddressInfo).port)}`;
 
   function createClient(): Socket<ServerToClientEvents, ClientToServerEvents> {
     return Client(url, {
@@ -53,26 +76,42 @@ export function setupTestServer(): TestContext {
     });
   }
 
-  async function close() {
+  async function close(): Promise<void> {
     io.removeAllListeners();
     await new Promise<void>((resolve) => {
-      void io.close(() => {
+      io.close(() => {
         resolve();
       });
     });
-    httpServer.close();
+    await new Promise<void>((resolve, reject) => {
+      httpServer.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      });
+    });
   }
 
   return { io, httpServer, url, createClient, close };
 }
 
 export function withServer(): () => TestContext {
-  let ctx: TestContext; // assigned in beforeAll
-  beforeAll(() => {
-    ctx = setupTestServer();
+  let ctx: TestContext | undefined;
+  beforeAll(async () => {
+    ctx = await setupTestServer();
   });
   afterAll(async () => {
-    return ctx.close();
+    if (ctx) {
+      await ctx.close();
+      ctx = undefined;
+    }
   });
-  return () => ctx;
+  return () => {
+    if (!ctx) {
+      throw new Error('Test server not initialized');
+    }
+    return ctx;
+  };
 }

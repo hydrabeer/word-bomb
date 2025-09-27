@@ -5,7 +5,7 @@ import { roomManager } from '../room/roomManagerSingleton';
 const router: Router = Router();
 
 // POST /api/rooms
-router.post('/', (req: Request, res: Response) => {
+export function createRoomHandler(req: Request, res: Response): void {
   try {
     const code = generateRoomCode();
     // Optional name provided by client
@@ -29,10 +29,10 @@ router.post('/', (req: Request, res: Response) => {
   } catch (err) {
     res.status(400).json({ error: (err as Error).message });
   }
-});
+}
 
 // GET /api/rooms/:code
-router.get('/:code', (req: Request, res: Response) => {
+export function getRoomHandler(req: Request, res: Response): void {
   const { code } = req.params;
 
   if (!roomManager.has(code)) {
@@ -43,7 +43,10 @@ router.get('/:code', (req: Request, res: Response) => {
   // Avoid calling roomManager.get() here to keep the contract minimal
   // and to align with tests that expect only `{ exists: true }`.
   res.status(200).json({ exists: true });
-});
+}
+
+router.post('/', createRoomHandler);
+router.get('/:code', getRoomHandler);
 
 export default router;
 
