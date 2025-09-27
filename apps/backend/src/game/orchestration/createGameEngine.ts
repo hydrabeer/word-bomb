@@ -5,6 +5,7 @@ import type { ServerToClientEvents } from '@word-bomb/types';
 import { emitPlayers } from './emitPlayers';
 import { RoomBroadcaster } from '../../core/RoomBroadcaster';
 import { socketRoomId } from '../../utils/socketRoomId';
+import { deleteGameEngine } from '../engineRegistry';
 
 export function createGameEngine(
   io: TypedServer,
@@ -42,6 +43,7 @@ export function createGameEngine(
         room.endGame();
         room.game = undefined;
         emitPlayers(io, room);
+        deleteGameEngine(room.code);
       },
     },
   });

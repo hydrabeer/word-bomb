@@ -329,8 +329,8 @@ describeCoverage('coverage extras', () => {
         name: 'Mover',
       });
       await joinedB;
-      // ensure still success path (implicit by lack of error) and manager holds both rooms
-      expect(roomManager.get('AAAA')?.hasPlayer(requireId(s.id))).toBe(false); // left first
+      // ensure still success path (implicit by lack of error). First room should be empty (and now cleaned up).
+      expect(roomManager.has('AAAA')).toBe(false);
       expect(roomManager.get('BBBB')?.hasPlayer(requireId(s.id))).toBe(true);
     });
   });

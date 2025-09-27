@@ -1,7 +1,12 @@
 // apps/backend/src/socket/roomHandlers.ts
 
 import { roomManager } from '../room/roomManagerSingleton';
-import { ChatMessageSchema, GameRulesSchema, noop } from '@game/domain';
+import {
+  ChatMessageSchema,
+  GameRulesSchema,
+  noop,
+  GameRoom,
+} from '@game/domain';
 import { getGameEngine } from '../game/engineRegistry';
 import { emitPlayers } from '../game/orchestration/emitPlayers';
 import { socketRoomId } from '../utils/socketRoomId';
@@ -13,6 +18,8 @@ import {
   buildGameStartedPayload,
   buildTurnStartedPayload,
 } from '../core/serialization';
+import { deleteGameEngine } from '../game/engineRegistry';
+import { removePlayersDiffCacheForRoom } from '../game/orchestration/playersDiffCache';
 
 import type { TypedServer, TypedSocket } from './typedSocket';
 
@@ -161,6 +168,33 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     (socket.data as { currentPlayerId?: string }).currentPlayerId = playerId;
   };
 
+  const clearCurrentRoomCode = (): void => {
+    delete (socket.data as { currentRoomCode?: string }).currentRoomCode;
+  };
+
+  const clearCurrentPlayerId = (): void => {
+    delete (socket.data as { currentPlayerId?: string }).currentPlayerId;
+  };
+
+  const disposeRoom = (code: string, roomInstance: GameRoom): void => {
+    try {
+      roomInstance.cancelGameStartTimer();
+    } catch (err) {
+      console.warn(`[ROOM CLEANUP] Failed to cancel timer for ${code}`, err);
+    }
+    deleteGameEngine(code);
+    removePlayersDiffCacheForRoom(code);
+    roomManager.delete(code);
+    console.log(`[ROOM CLEANUP] Disposed room ${code}`);
+  };
+
+  const cleanupRoomIfEmpty = (code: string): void => {
+    const maybeRoom = roomManager.get(code);
+    if (!maybeRoom) return;
+    if (maybeRoom.getAllPlayers().length > 0) return;
+    disposeRoom(code, maybeRoom);
+  };
+
   function handleJoinRoom(raw: unknown, cb?: (res: BasicResponse) => void) {
     const callback = normalizeCb(cb);
     const parsed = parseJoinRoom(raw);
@@ -193,6 +227,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
             old.removePlayer(playerId);
             emitPlayers(io, old);
             system(prevRoom, `${oldName} left the room.`);
+            cleanupRoomIfEmpty(prevRoom);
           }
           // If player wasn't in prevRoom, suppress any leave announcement.
           void socket.leave(socketRoomId(prevRoom));
@@ -271,6 +306,15 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     void socket.leave(socketRoomId(roomCode));
     emitPlayers(io, room);
     system(roomCode, `${playerName} left the room.`);
+
+    if (getCurrentPlayerId() === playerId) {
+      clearCurrentPlayerId();
+    }
+    if (getCurrentRoomCode() === roomCode) {
+      clearCurrentRoomCode();
+    }
+
+    cleanupRoomIfEmpty(roomCode);
   }
   socket.on('leaveRoom', handleLeaveRoom);
 
@@ -424,6 +468,18 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
 
+    if (!room.game) {
+      callback({ success: false, error: 'Game not running.' });
+      if (clientActionId) {
+        socket.emit('actionAck', {
+          clientActionId,
+          success: false,
+          error: 'Game not running.',
+        });
+      }
+      return;
+    }
+
     const engine = getGameEngine(roomCode);
     if (!engine) {
       console.warn(`[SUBMIT] No engine for room ${roomCode}`);
@@ -527,8 +583,16 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
           stillRoom.removePlayer(playerId);
           emitPlayers(io, stillRoom);
           system(roomCode, `${name} removed due to inactivity.`);
+          cleanupRoomIfEmpty(roomCode);
         }
       }, DISCONNECT_GRACE_MS); // grace period
+    }
+
+    if (getCurrentPlayerId() === playerId) {
+      clearCurrentPlayerId();
+    }
+    if (getCurrentRoomCode() === roomCode) {
+      clearCurrentRoomCode();
     }
   });
 

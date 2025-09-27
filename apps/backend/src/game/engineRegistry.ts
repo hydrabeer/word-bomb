@@ -17,6 +17,7 @@ export const gameEngines = {
 
 export const setGameEngine = gameEngines.set;
 export const getGameEngine = gameEngines.get;
+export const deleteGameEngine = gameEngines.delete;
 
 /**
  * Clears scheduled timers on all registered engines, then clears the registry.

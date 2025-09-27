@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setupTestServer, withServer } from './helpers';
 import { roomManager } from '../src/room/roomManagerSingleton';
+import { getGameEngine } from '../src/game/engineRegistry';
 import type { TestContext } from './helpers';
 
 import type {
@@ -340,6 +341,90 @@ describeRoomHandlers('roomHandlers integration', () => {
     });
     const ack = await waitForActionAck(s1, clientActionId);
     expect(ack.clientActionId).toBe(clientActionId);
+  });
+
+  it('rejects submitWord after game has ended and removes engine from registry', async () => {
+    const ctx = useServer();
+    const code = createRoomCode();
+    ensureRoom(code);
+
+    const s1 = ctx.createClient();
+    const s2 = ctx.createClient();
+    await Promise.all([waitForConnect(s1), waitForConnect(s2)]);
+
+    const p1 = requireId(s1.id);
+    const p2 = requireId(s2.id);
+
+    const joinP1 = waitForPlayersCount(s1, 1);
+    await joinRoom(s1, { roomCode: code, playerId: p1, name: 'Alpha' });
+    await joinP1;
+    const joinP2 = waitForPlayersCount(s1, 2);
+    await joinRoom(s2, { roomCode: code, playerId: p2, name: 'Bravo' });
+    await joinP2;
+
+    await setSeated(s1, { roomCode: code, playerId: p1, seated: true });
+    await setSeated(s2, { roomCode: code, playerId: p2, seated: true });
+
+    const gameStarted = new Promise<void>((resolve) => {
+      s1.once('gameStarted', () => {
+        resolve();
+      });
+    });
+    const turnStarted = new Promise<void>((resolve) => {
+      s1.once('turnStarted', () => {
+        resolve();
+      });
+    });
+    const start = await startGame(s1, code);
+    expect(start.success).toBe(true);
+    await Promise.all([gameStarted, turnStarted]);
+
+    const room = roomManager.get(code);
+    if (!room?.game) {
+      throw new Error('Expected room to have an active game');
+    }
+    const currentPlayer = room.game.getCurrentPlayer();
+    const currentPlayerId = currentPlayer.id;
+    const otherPlayers = room.game.players.filter(
+      (pl) => pl.id !== currentPlayerId,
+    );
+    for (const opponent of otherPlayers) {
+      opponent.isEliminated = true;
+      opponent.lives = 0;
+    }
+
+    const finishAction = 'finish-game';
+    const finishAck = waitForActionAck(s1, finishAction);
+    const gameEnded = new Promise<void>((resolve) => {
+      s1.once('gameEnded', () => {
+        resolve();
+      });
+    });
+    s1.emit('submitWord', {
+      roomCode: code,
+      playerId: currentPlayerId,
+      word: 'aab',
+      clientActionId: finishAction,
+    });
+    const finish = await finishAck;
+    expect(finish.success).toBe(true);
+    await gameEnded;
+
+    // room is known to exist here; assert game cleared
+    expect(room.game).toBeUndefined();
+    expect(getGameEngine(code)).toBeUndefined();
+
+    const retryAction = 'after-end';
+    const retryAckPromise = waitForActionAck(s1, retryAction);
+    s1.emit('submitWord', {
+      roomCode: code,
+      playerId: currentPlayerId,
+      word: 'aab',
+      clientActionId: retryAction,
+    });
+    const retryAck = await retryAckPromise;
+    expect(retryAck.success).toBe(false);
+    expect(retryAck.error).toBe('Game not running.');
   });
 
   // Extra coverage merged from roomHandlers.extra.test.ts

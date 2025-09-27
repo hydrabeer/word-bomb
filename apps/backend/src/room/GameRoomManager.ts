@@ -11,6 +11,10 @@ export class GameRoomManager {
     return this.rooms.has(code);
   }
 
+  delete(code: string): boolean {
+    return this.rooms.delete(code);
+  }
+
   create(code: string, rules: GameRoomRules, name?: string): GameRoom {
     if (this.rooms.has(code)) {
       throw new Error(`Room ${code} already exists`);

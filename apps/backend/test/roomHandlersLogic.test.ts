@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import type { TypedServer, TypedSocket } from '../src/socket/typedSocket';
 import type { BasicResponse } from '@word-bomb/types';
 import type { GameRoomRules } from '@game/domain';
@@ -11,6 +12,7 @@ vi.mock('../src/room/roomManagerSingleton', () => ({
     has: vi.fn(),
     create: vi.fn(),
     clear: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -24,6 +26,7 @@ vi.mock('../src/game/orchestration/startGameForRoom', () => ({
 
 vi.mock('../src/game/engineRegistry', () => ({
   getGameEngine: vi.fn(),
+  deleteGameEngine: vi.fn(),
 }));
 
 const systemMessageMock = vi.fn();
@@ -38,15 +41,10 @@ vi.mock('../src/core/RoomBroadcaster', () => ({
 
 const { roomManager } = await import('../src/room/roomManagerSingleton');
 const { emitPlayers } = await import('../src/game/orchestration/emitPlayers');
-const { startGameForRoom } = await import(
-  '../src/game/orchestration/startGameForRoom'
-);
 const { getGameEngine } = await import('../src/game/engineRegistry');
 
-type MockFn<
-  TArgs extends unknown[] = unknown[],
-  TResult = unknown,
-> = ReturnType<typeof vi.fn<TArgs, TResult>>;
+type Fn<A extends unknown[] = unknown[], R = unknown> = (...args: A) => R;
+type MockFn<A extends unknown[] = unknown[], R = unknown> = Mock<Fn<A, R>>;
 
 interface PlayerState {
   id: string;
@@ -129,6 +127,7 @@ function createMockRoom(options: CreateRoomOptions = {}): MockRoom {
     getAllPlayers: vi.fn(() => Array.from(players.values())),
     isGameTimerRunning: vi.fn(() => timerRunning),
     startGameStartTimer: vi.fn((cb: () => void, _delay: number) => {
+      void _delay;
       timerRunning = true;
       timerCallback = cb;
     }),
@@ -155,7 +154,7 @@ function createMockRoom(options: CreateRoomOptions = {}): MockRoom {
 class FakeSocket {
   public readonly id: string;
   public readonly data: Record<string, unknown> = {};
-  public readonly emitted: Array<{ event: string; payload: unknown }> = [];
+  public readonly emitted: { event: string; payload: unknown }[] = [];
   public readonly joinedRooms: string[] = [];
   public readonly leftRooms: string[] = [];
   private readonly handlers = new Map<
@@ -197,11 +196,11 @@ class FakeSocket {
 }
 
 class FakeIo {
-  public readonly targeted: Array<{
+  public readonly targeted: {
     room: string;
     event: string;
     payload: unknown;
-  }> = [];
+  }[] = [];
 
   to(room: string) {
     return {
@@ -270,7 +269,9 @@ describe('registerRoomHandlers', () => {
       success: false,
       error: 'Invalid payload',
     });
-    expect(roomManager.get).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const roomGetMock = roomManager.get as unknown as ReturnType<typeof vi.fn>;
+    expect(roomGetMock).not.toHaveBeenCalled();
   });
 
   it('rejects joinRoom when name is invalid', () => {
@@ -284,7 +285,9 @@ describe('registerRoomHandlers', () => {
       success: false,
       error: 'Invalid player name',
     });
-    expect(roomManager.get).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const roomGetMock2 = roomManager.get as unknown as ReturnType<typeof vi.fn>;
+    expect(roomGetMock2).not.toHaveBeenCalled();
   });
 
   it('joins room, adds player, and emits rules snapshot', () => {
@@ -403,6 +406,15 @@ describe('registerRoomHandlers', () => {
   it('emits actionAck with engine result on submitWord', () => {
     const room = createMockRoom({ code: 'ROOM' });
     room.hasPlayer.mockReturnValue(true);
+    const current: PlayerState = {
+      id: 'P1',
+      name: 'Alpha',
+      isSeated: true,
+      isConnected: true,
+    };
+    room.game = {
+      getCurrentPlayer: () => current,
+    };
     (getGameEngine as MockFn<[string]>).mockReturnValue({
       submitWord: vi.fn(() => ({ success: true })),
     });

@@ -4,6 +4,7 @@ import https from 'https';
 
 let dictionary = new Set<string>();
 let fragmentCounts = new Map<string, number>();
+let usingFallbackDictionary = false;
 
 // Minimal built-in fallback to keep tests and dev environment working when
 // the local words.txt is not present (CI doesn't commit the large dictionary).
@@ -49,6 +50,7 @@ export async function loadDictionary(): Promise<void> {
   if (isTest && process.env.DICTIONARY_TEST_MODE !== 'full') {
     dictionary = new Set(DEFAULT_WORDS);
     buildFragmentIndex(DEFAULT_WORDS);
+    usingFallbackDictionary = true;
     console.log(
       `ℹ️ Using built-in fallback dictionary with ${dictionary.size.toString()} words (test fast path)`,
     );
@@ -77,6 +79,7 @@ export async function loadDictionary(): Promise<void> {
       );
     }
     dictionary = new Set(words);
+    usingFallbackDictionary = false;
     console.log(
       `✅ Loaded ${dictionary.size.toString()} words (max length 30)`,
     );
@@ -88,6 +91,7 @@ export async function loadDictionary(): Promise<void> {
       // Fallback to a tiny built-in dictionary for dev/test so CI remains deterministic.
       dictionary = new Set(DEFAULT_WORDS);
       buildFragmentIndex(DEFAULT_WORDS);
+      usingFallbackDictionary = true;
       console.log(
         `ℹ️ Using built-in fallback dictionary with ${dictionary.size.toString()} words`,
       );
@@ -167,8 +171,20 @@ export function getRandomFragment(minWordsPerPrompt: number): string {
     if (process.env.NODE_ENV === 'test') {
       return 'aa';
     }
+
+    const fallback = Array.from(fragmentCounts.entries()).sort(
+      (a, b) => b[1] - a[1],
+    )[0]?.[0];
+
+    if (fallback) {
+      console.warn(
+        `⚠️  No fragments meet minWordsPerPrompt=${minWordsPerPrompt.toString()}; using '${fallback}' instead`,
+      );
+      return fallback;
+    }
+
     throw new Error(
-      `No fragments meet the minWordsPerPrompt requirement of ${minWordsPerPrompt.toString()}`,
+      `No fragments available to satisfy minWordsPerPrompt=${minWordsPerPrompt.toString()}`,
     );
   }
 
@@ -186,4 +202,8 @@ export function getDictionaryStats(): {
     wordCount: dictionary.size,
     fragmentCount: fragmentCounts.size,
   };
+}
+
+export function isUsingFallbackDictionary(): boolean {
+  return usingFallbackDictionary;
 }

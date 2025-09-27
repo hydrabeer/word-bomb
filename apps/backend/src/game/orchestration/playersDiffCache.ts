@@ -86,3 +86,8 @@ export function resetPlayersDiffCache() {
   lastSnapshots.clear();
   lastLeaderIds.clear();
 }
+
+export function removePlayersDiffCacheForRoom(roomCode: string) {
+  lastSnapshots.delete(roomCode);
+  lastLeaderIds.delete(roomCode);
+}
