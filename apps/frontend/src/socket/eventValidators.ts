@@ -71,7 +71,9 @@ interface BaseTurnData {
   players: InternalPlayerShape[];
 }
 
-const parseBaseTurnData = (value: Record<string, unknown>): BaseTurnData | null => {
+const parseBaseTurnData = (
+  value: Record<string, unknown>,
+): BaseTurnData | null => {
   const fragment = value.fragment;
   const bombDuration = value.bombDuration;
   const playersRaw = value.players;
