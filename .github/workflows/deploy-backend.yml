@@ -1,0 +1,38 @@
+name: Deploy backend to OCI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "apps/backend/**"
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - "pnpm-workspace.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (no submodules needed)
+        uses: actions/checkout@v4
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy over SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}        # e.g. 40.233.78.175 or api.zmuir.com
+          SSH_USER: ${{ secrets.SSH_USER }}        # e.g. ubuntu
+          SSH_KEY:  ${{ secrets.SSH_KEY }}         # private key for this Action (NOT your personal key)
+        run: |
+          echo "$SSH_KEY" > key.pem
+          chmod 600 key.pem
+          ssh -i key.pem "$SSH_USER@$SSH_HOST"
+
