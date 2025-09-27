@@ -9,6 +9,20 @@ vi.mock('../src/room/roomManagerSingleton', () => ({
   },
 }));
 
+const { roomCodeGeneratorMock, createRoomCodeGeneratorMock } = vi.hoisted(
+  () => {
+    const generator = vi.fn(() => 'AAAA');
+    return {
+      roomCodeGeneratorMock: generator,
+      createRoomCodeGeneratorMock: vi.fn(() => generator),
+    };
+  },
+);
+
+vi.mock('../src/routes/roomCodeGenerator', () => ({
+  createRoomCodeGenerator: createRoomCodeGeneratorMock,
+}));
+
 vi.mock('../src/dictionary', () => ({
   getDictionaryStats: vi.fn(() => ({ wordCount: 1000, fragmentCount: 100 })),
   isUsingFallbackDictionary: vi.fn(() => false),
@@ -62,9 +76,13 @@ function createMockResponse<TPayload>(): {
 
 describe('rooms router handlers', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
     (roomManager.create as ReturnType<typeof vi.fn>).mockReset();
     (roomManager.has as ReturnType<typeof vi.fn>).mockReset();
+    roomCodeGeneratorMock.mockReset();
+    roomCodeGeneratorMock.mockReturnValue('AAAA');
+    createRoomCodeGeneratorMock.mockReset();
+    createRoomCodeGeneratorMock.mockReturnValue(roomCodeGeneratorMock);
     (getDictionaryStats as ReturnType<typeof vi.fn>).mockReturnValue({
       wordCount: 1000,
       fragmentCount: 100,
@@ -136,7 +154,6 @@ describe('rooms router handlers', () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const hasMock = roomManager.has as ReturnType<typeof vi.fn>;
     hasMock.mockReturnValue(false);
-
     setRoomCodeGenerator(() => 'AAAA');
     const { response, statusMock, jsonMock } = createMockResponse<{
       error: string;
