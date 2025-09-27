@@ -157,7 +157,7 @@ describe('RoomPage', () => {
     });
     expect(screen.getByText(/copied!/i)).toBeInTheDocument();
     // And flips back after 2s; advance timers instead of waiting
-    await act(async () => {
+    act(() => {
       vi.advanceTimersByTime(2000);
     });
     expect(screen.queryByText(/copied!/i)).not.toBeInTheDocument();

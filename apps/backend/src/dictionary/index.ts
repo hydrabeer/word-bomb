@@ -39,9 +39,21 @@ const DEFAULT_WORDS: string[] = [
  */
 export async function loadDictionary(): Promise<void> {
   const isProd = process.env.NODE_ENV === 'production';
+  const isTest = process.env.NODE_ENV === 'test';
   const localPath = path.resolve(__dirname, './words.txt');
   const prodPath = '/tmp/words.txt';
   const filePath = isProd ? prodPath : localPath;
+
+  // Fast path for tests: avoid reading the huge words.txt to keep CI quick and deterministic.
+  // Set DICTIONARY_TEST_MODE=full to force reading the local file during tests when desired.
+  if (isTest && process.env.DICTIONARY_TEST_MODE !== 'full') {
+    dictionary = new Set(DEFAULT_WORDS);
+    buildFragmentIndex(DEFAULT_WORDS);
+    console.log(
+      `ℹ️ Using built-in fallback dictionary with ${dictionary.size.toString()} words (test fast path)`,
+    );
+    return;
+  }
 
   if (isProd && process.env.DICTIONARY_URL) {
     try {

@@ -185,3 +185,24 @@ export async function disconnectAndReconnect(
   await joinRoom(re, { roomCode, playerId, name });
   return re;
 }
+
+// Extra small helpers to reduce arbitrary sleeps in tests
+import type { RoomRulesPayload } from '@word-bomb/types';
+
+export async function waitForRoomRulesUpdated(
+  socket: TestSocket,
+  timeoutMs = 600,
+): Promise<RoomRulesPayload> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      socket.off('roomRulesUpdated', handler);
+      reject(new Error('Timed out waiting for roomRulesUpdated'));
+    }, timeoutMs);
+    function handler(p: RoomRulesPayload) {
+      clearTimeout(timeout);
+      socket.off('roomRulesUpdated', handler);
+      resolve(p);
+    }
+    socket.on('roomRulesUpdated', handler);
+  });
+}

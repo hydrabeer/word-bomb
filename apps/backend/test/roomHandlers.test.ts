@@ -42,7 +42,6 @@ import {
   waitForPlayersCount,
   waitForDiff,
   waitForActionAck,
-  sleep,
 } from './testUtils';
 
 // Removed duplicate function definitions and unused types
@@ -105,16 +104,20 @@ describeRoomHandlers('roomHandlers integration', () => {
     sock.on('roomRulesUpdated', (payload) => {
       rulesEvents.push(payload);
     });
+    const rulesWait = new Promise<RoomRulesPayload>((resolve) => {
+      sock.once('roomRulesUpdated', (p) => {
+        resolve(p);
+      });
+    });
     await joinRoom(sock, {
       roomCode: code,
       playerId,
       name: 'Viewer',
     });
-    await sleep(30);
+    const latest = await rulesWait;
     expect(rulesEvents.length).toBeGreaterThan(0);
-    const latest = rulesEvents.at(-1);
-    expect(latest?.rules.maxLives).toBe(3);
-    expect(latest?.roomCode).toBe(code);
+    expect(latest.rules.maxLives).toBe(3);
+    expect(latest.roomCode).toBe(code);
   });
 
   it('broadcasts playersUpdated with 2 players', async () => {
@@ -368,10 +371,12 @@ describeRoomHandlers('roomHandlers integration', () => {
     ]);
     const p1 = requireId(s1.id);
     const p2 = requireId(s2.id);
+    const addA = waitForPlayersCount(s1, 1);
     await joinRoom(s1, { roomCode: code, playerId: p1, name: 'A' });
-    await sleep(30);
+    await addA;
+    const addB = waitForPlayersCount(s1, 2);
     await joinRoom(s2, { roomCode: code, playerId: p2, name: 'B' });
-    await sleep(30);
+    await addB;
     await setSeated(s1, { roomCode: code, playerId: p1, seated: true });
     await setSeated(s2, { roomCode: code, playerId: p2, seated: true });
 
@@ -404,7 +409,7 @@ describeRoomHandlers('roomHandlers integration', () => {
       playerId: current,
       input: 'a',
     });
-    await new Promise((r) => setTimeout(r, 30));
+    await new Promise((r) => setTimeout(r, 10));
     expect(typingEvents.some((e) => e.playerId === currentTurnPlayer)).toBe(
       true,
     );
@@ -446,14 +451,24 @@ describeRoomHandlers('roomHandlers integration', () => {
     const guestEvents: RoomRulesPayload[] = [];
     leader.on('roomRulesUpdated', (payload) => leaderEvents.push(payload));
     guest.on('roomRulesUpdated', (payload) => guestEvents.push(payload));
+    const leaderRules = new Promise<RoomRulesPayload>((resolve) => {
+      leader.once('roomRulesUpdated', (p) => {
+        resolve(p);
+      });
+    });
     await joinRoom(leader, {
       roomCode: code,
       playerId: leaderId,
       name: 'Leader',
     });
-    await sleep(20);
+    await leaderRules; // ensure leader received rules snapshot
+    const guestRules = new Promise<RoomRulesPayload>((resolve) => {
+      guest.once('roomRulesUpdated', (p) => {
+        resolve(p);
+      });
+    });
     await joinRoom(guest, { roomCode: code, playerId: guestId, name: 'Guest' });
-    await sleep(20);
+    await guestRules; // ensure guest received rules snapshot
 
     const nextRules = {
       maxLives: 5,
@@ -465,24 +480,33 @@ describeRoomHandlers('roomHandlers integration', () => {
       minWordsPerPrompt: 300,
     } as RoomRulesPayload['rules'];
 
+    const leaderNext = new Promise<RoomRulesPayload>((resolve) => {
+      leader.once('roomRulesUpdated', (p) => {
+        resolve(p);
+      });
+    });
+    const guestNext = new Promise<RoomRulesPayload>((resolve) => {
+      guest.once('roomRulesUpdated', (p) => {
+        resolve(p);
+      });
+    });
     const res = await new Promise<BasicResponse>((resolve) => {
       leader.emit(
         'updateRoomRules',
         { roomCode: code, rules: nextRules },
         (r) => {
-          resolve(r ?? { success: false, error: 'no response' });
+          resolve(r);
         },
       );
     });
     expect(res.success).toBe(true);
-    await sleep(40);
-    const leaderLatest = leaderEvents.at(-1);
-    const guestLatest = guestEvents.at(-1);
-    expect(leaderLatest?.rules.maxLives).toBe(nextRules.maxLives);
-    expect(guestLatest?.rules.minTurnDuration).toBe(nextRules.minTurnDuration);
-    expect(guestLatest?.rules.bonusTemplate[0]).toBe(
-      nextRules.bonusTemplate[0],
-    );
+    const [leaderLatest, guestLatest] = await Promise.all([
+      leaderNext,
+      guestNext,
+    ]);
+    expect(leaderLatest.rules.maxLives).toBe(nextRules.maxLives);
+    expect(guestLatest.rules.minTurnDuration).toBe(nextRules.minTurnDuration);
+    expect(guestLatest.rules.bonusTemplate[0]).toBe(nextRules.bonusTemplate[0]);
   });
 
   it('rejects rule updates from non-leader sockets', async () => {
@@ -494,14 +518,24 @@ describeRoomHandlers('roomHandlers integration', () => {
     await Promise.all([waitForConnect(leader), waitForConnect(guest)]);
     const leaderId = requireId(leader.id);
     const guestId = requireId(guest.id);
+    const leaderRules2 = new Promise<RoomRulesPayload>((resolve) => {
+      leader.once('roomRulesUpdated', (p) => {
+        resolve(p);
+      });
+    });
     await joinRoom(leader, {
       roomCode: code,
       playerId: leaderId,
       name: 'Leader',
     });
-    await sleep(20);
+    await leaderRules2;
+    const guestRules2 = new Promise<RoomRulesPayload>((resolve) => {
+      guest.once('roomRulesUpdated', (p) => {
+        resolve(p);
+      });
+    });
     await joinRoom(guest, { roomCode: code, playerId: guestId, name: 'Guest' });
-    await sleep(20);
+    await guestRules2;
 
     const invalidRules = {
       maxLives: 2,
@@ -516,7 +550,7 @@ describeRoomHandlers('roomHandlers integration', () => {
         'updateRoomRules',
         { roomCode: code, rules: invalidRules },
         (r) => {
-          resolve(r ?? { success: false, error: 'no response' });
+          resolve(r);
         },
       );
     });

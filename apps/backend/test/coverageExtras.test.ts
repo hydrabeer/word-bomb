@@ -11,6 +11,7 @@ import { setDisconnectGrace } from '../src/socket/roomHandlers';
 import { GameRoom, GameRoomRules } from '@game/domain';
 import { GameEngine } from '../src/game/GameEngine';
 import { createNewGame } from '../src/game/orchestration/createNewGame';
+import { waitForDiff, waitForPlayersCount } from './testUtils';
 
 async function canStartServer(): Promise<boolean> {
   try {
@@ -191,16 +192,18 @@ describeCoverage('coverage extras', () => {
           r();
         });
       });
-      let response: { success: boolean; error?: string } | undefined; // invalid room
-      s.emit(
-        'joinRoom',
-        { roomCode: 'NOPE', playerId: requireId(s.id), name: 'A' },
-        (r: { success: boolean; error?: string }) => {
-          response = r;
+      const res1 = await new Promise<{ success: boolean; error?: string }>(
+        (resolve) => {
+          s.emit(
+            'joinRoom',
+            { roomCode: 'NOPE', playerId: requireId(s.id), name: 'A' },
+            (r: { success: boolean; error?: string }) => {
+              resolve(r);
+            },
+          );
         },
       );
-      await new Promise((r) => setTimeout(r, 20));
-      expect(response?.success).toBe(false);
+      expect(res1.success).toBe(false);
       // create room then invalid name (>20 chars)
       roomManager.create('ZZZZ', {
         maxLives: 3,
@@ -209,15 +212,22 @@ describeCoverage('coverage extras', () => {
         minTurnDuration: 1,
         minWordsPerPrompt: 1,
       });
-      s.emit(
-        'joinRoom',
-        { roomCode: 'ZZZZ', playerId: requireId(s.id), name: 'x'.repeat(25) },
-        (r: { success: boolean; error?: string }) => {
-          response = r;
+      const res2 = await new Promise<{ success: boolean; error?: string }>(
+        (resolve) => {
+          s.emit(
+            'joinRoom',
+            {
+              roomCode: 'ZZZZ',
+              playerId: requireId(s.id),
+              name: 'x'.repeat(25),
+            },
+            (r: { success: boolean; error?: string }) => {
+              resolve(r);
+            },
+          );
         },
       );
-      await new Promise((r) => setTimeout(r, 20));
-      expect(response?.success).toBe(false);
+      expect(res2.success).toBe(false);
     });
 
     it('removes inactive player after disconnect grace timeout (short grace)', async () => {
@@ -246,27 +256,32 @@ describeCoverage('coverage extras', () => {
       ]);
       const pSockId = requireId(pSock.id);
       const diffs: { removed: string[] }[] = [];
+      const obsCount = waitForPlayersCount(observer, 1);
       observer.emit('joinRoom', {
         roomCode: 'TIME',
         playerId: requireId(observer.id),
         name: 'Obs',
       });
       observer.on('playersDiff', (d) => diffs.push(d));
+      const twoCount = waitForPlayersCount(observer, 2);
       pSock.emit('joinRoom', {
         roomCode: 'TIME',
         playerId: pSockId,
         name: 'GoneSoon',
       });
-      await new Promise((r) => setTimeout(r, 30));
+      await Promise.all([obsCount, twoCount]);
       pSock.disconnect(); // mark disconnected
-      await new Promise((r) => setTimeout(r, 120)); // wait past 50ms grace
-      // Expect a diff with removed id, but if diff missed due to timing, assert room state
-      const removedIds = diffs.flatMap((d) => d.removed);
-      if (!removedIds.includes(pSockId)) {
+      try {
+        const removal = await waitForDiff(
+          observer,
+          (d) => d.removed.includes(pSockId),
+          800,
+        );
+        expect(removal.removed).toContain(pSockId);
+      } catch {
+        // Fallback: assert state if event missed
         const room = roomManager.get('TIME');
         expect(room?.hasPlayer(pSockId)).toBe(false);
-      } else {
-        expect(removedIds).toContain(pSockId);
       }
     });
 
@@ -292,18 +307,28 @@ describeCoverage('coverage extras', () => {
           r();
         });
       });
+      const joinedA = new Promise<void>((resolve) => {
+        s.once('roomRulesUpdated', () => {
+          resolve();
+        });
+      });
       s.emit('joinRoom', {
         roomCode: 'AAAA',
         playerId: requireId(s.id),
         name: 'Mover',
       });
-      await new Promise((r) => setTimeout(r, 20));
+      await joinedA;
+      const joinedB = new Promise<void>((resolve) => {
+        s.once('roomRulesUpdated', () => {
+          resolve();
+        });
+      });
       s.emit('joinRoom', {
         roomCode: 'BBBB',
         playerId: requireId(s.id),
         name: 'Mover',
       });
-      await new Promise((r) => setTimeout(r, 20));
+      await joinedB;
       // ensure still success path (implicit by lack of error) and manager holds both rooms
       expect(roomManager.get('AAAA')?.hasPlayer(requireId(s.id))).toBe(false); // left first
       expect(roomManager.get('BBBB')?.hasPlayer(requireId(s.id))).toBe(true);

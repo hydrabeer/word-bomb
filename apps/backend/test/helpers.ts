@@ -2,7 +2,6 @@ import { createServer } from 'http';
 import express from 'express';
 import { Server } from 'socket.io';
 import { afterAll, beforeAll } from 'vitest';
-import type { AddressInfo } from 'net';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -66,29 +65,39 @@ export async function setupTestServer(): Promise<TestContext> {
     });
     throw new Error('Failed to obtain test server address');
   }
-  const url = `http://127.0.0.1:${String((address as AddressInfo).port)}`;
+  const url = `http://127.0.0.1:${String(address.port)}`;
 
   function createClient(): Socket<ServerToClientEvents, ClientToServerEvents> {
     return Client(url, {
       autoConnect: true,
       forceNew: true,
       reconnection: false,
+      // Prefer WebSocket directly to avoid HTTP long-polling upgrade overhead in tests
+      transports: ['websocket'],
+      timeout: 2000,
     });
   }
 
   async function close(): Promise<void> {
+    // Be defensive: ensure Socket.IO closes, but don't fail the shutdown if already closed
     io.removeAllListeners();
-    await new Promise<void>((resolve) => {
-      io.close(() => {
-        resolve();
+    try {
+      await new Promise<void>((resolve) => {
+        // io.close does not error; callback fires when done
+        void io.close(() => {
+          resolve();
+        });
       });
-    });
-    await new Promise<void>((resolve, reject) => {
-      httpServer.close((error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
+    } catch {
+      // ignore
+    }
+
+    // If HTTP server was never started or already closed, avoid rejecting with ERR_SERVER_NOT_RUNNING
+    if (!httpServer.listening) {
+      return; // nothing to do
+    }
+    await new Promise<void>((resolve) => {
+      httpServer.close(() => {
         resolve();
       });
     });
