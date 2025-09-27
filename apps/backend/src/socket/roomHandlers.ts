@@ -478,10 +478,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     }
     const validation = GameRulesSchema.safeParse(rules);
     if (!validation.success) {
-      const firstIssue = validation.error.issues[0];
+      const { issues } = validation.error;
+      const errorMessage =
+        issues.length > 0 ? issues[0].message : 'Invalid rules provided';
       callback({
         success: false,
-        error: firstIssue?.message ?? 'Invalid rules provided',
+        error: errorMessage,
       });
       return;
     }

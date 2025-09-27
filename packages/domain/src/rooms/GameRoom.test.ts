@@ -167,9 +167,9 @@ describe('GameRoom', () => {
 
   it('updateRules throws while game active', () => {
     room.game = {} as unknown as Game;
-    expect(() => room.updateRules({ ...mockRules, startingLives: 2 })).toThrow(
-      'Cannot change rules while a game is running.',
-    );
+    expect(() => {
+      room.updateRules({ ...mockRules, startingLives: 2 });
+    }).toThrow('Cannot change rules while a game is running.');
   });
 
   it('starts and cancels game start timer', () => {

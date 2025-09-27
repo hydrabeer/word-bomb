@@ -70,7 +70,12 @@ describe('coverage extras', () => {
           emits.push({ event: e as string, payload });
         }) as EmitTest,
         scheduler: {
-          schedule: (d, cb) => setTimeout(cb, d),
+          // Wrap cb in a function to satisfy no-implied-eval linters
+          schedule: (d: number, cb: () => void) => {
+            return setTimeout(() => {
+              cb();
+            }, d);
+          },
           cancel: (t) => {
             clearTimeout(t as NodeJS.Timeout);
           },
@@ -129,7 +134,12 @@ describe('coverage extras', () => {
           emits.push(e as string);
         }) as EmitTest,
         scheduler: {
-          schedule: (d, cb) => setTimeout(cb, d),
+          // Wrap cb in a function to satisfy no-implied-eval linters
+          schedule: (d: number, cb: () => void) => {
+            return setTimeout(() => {
+              cb();
+            }, d);
+          },
           cancel: (t) => {
             clearTimeout(t as NodeJS.Timeout);
           },

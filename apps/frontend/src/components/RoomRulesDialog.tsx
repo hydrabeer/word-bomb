@@ -96,7 +96,7 @@ export function RoomRulesDialog({
   const setAllBonus = (value: number) => {
     setDraft((prev) => ({
       ...prev,
-      bonusTemplate: Array(26).fill(value),
+      bonusTemplate: Array.from({ length: 26 }, () => value),
     }));
   };
 

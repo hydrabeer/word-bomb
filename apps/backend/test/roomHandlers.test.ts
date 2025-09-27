@@ -71,7 +71,7 @@ describe('roomHandlers integration', () => {
       name: 'Alice',
     });
     await secondJoinWait; // expect another emission but still 1 player
-    const ids = payload.players.map((p) => p.id);
+    const ids = payload.players.map((p: { id: string }) => p.id);
     expect(new Set(ids).size).toBe(1);
     expect(first.success).toBe(true);
     expect(second.success).toBe(true); // no error on duplicate join (server just ignores)
@@ -219,24 +219,37 @@ describe('roomHandlers integration', () => {
       name: 'Obs',
     });
     await addObserver;
-    const diffAddPromise = waitForDiff(observer, (d) =>
-      d.added.some((a) => a.id === p1),
-    );
+    const diffAddPromise = waitForDiff(observer, (d: PlayersDiffPayload) => {
+      const ok: boolean = d.added.some((a: { id: string }) => a.id === p1);
+      return ok;
+    });
     await joinRoom(s1, { roomCode: code, playerId: p1, name: 'Alpha' });
     await diffAddPromise;
-    const disconnectDiff = waitForDiff(observer, (d) =>
-      d.updated.some((u) => u.id === p1 && u.changes.isConnected === false),
-    );
+    const disconnectDiff = waitForDiff(observer, (d: PlayersDiffPayload) => {
+      const ok: boolean = d.updated.some(
+        (u: { id: string; changes: { isConnected?: boolean } }) =>
+          u.id === p1 && u.changes.isConnected === false,
+      );
+      return ok;
+    });
     s1.disconnect();
     await disconnectDiff;
     const s1b = ctx.createClient();
     await waitForConnect(s1b);
-    const reconnectDiff = waitForDiff(observer, (d) =>
-      d.updated.some((u) => u.id === p1 && u.changes.isConnected === true),
-    );
+    const reconnectDiff = waitForDiff(observer, (d: PlayersDiffPayload) => {
+      const ok: boolean = d.updated.some(
+        (u: { id: string; changes: { isConnected?: boolean } }) =>
+          u.id === p1 && u.changes.isConnected === true,
+      );
+      return ok;
+    });
     await joinRoom(s1b, { roomCode: code, playerId: p1, name: 'Alpha' });
     await reconnectDiff;
-    const flattenedUpdates = diffEvents.flatMap((e) => e.updated);
+    const flattenedUpdates = diffEvents.flatMap((e: PlayersDiffPayload) => {
+      const arr: { id: string; changes: { isConnected?: boolean } }[] =
+        e.updated;
+      return arr;
+    });
     const hasDisconnect = flattenedUpdates.some(
       (u) => u.changes.isConnected === false,
     );
@@ -265,13 +278,22 @@ describe('roomHandlers integration', () => {
     await addSolo;
     // observer joins; await both full state count=2 and diff add event
     const addObsCount = waitForPlayersCount(s2, 2);
-    const addObsDiff = waitForDiff(s2, (d) => d.added.some((a) => a.id === p2));
+    const addObsDiff = waitForDiff(s2, (d: PlayersDiffPayload) => {
+      const ok: boolean = d.added.some((a: { id: string }) => a.id === p2);
+      return ok;
+    });
     await joinRoom(s2, { roomCode: code, playerId: p2, name: 'Observer' });
     await Promise.all([addObsCount, addObsDiff]);
-    const removalDiff = waitForDiff(s2, (d) => d.removed.includes(p1));
+    const removalDiff = waitForDiff(s2, (d: PlayersDiffPayload) => {
+      const ok: boolean = d.removed.includes(p1);
+      return ok;
+    });
     s1.emit('leaveRoom', { roomCode: code, playerId: p1 });
     await removalDiff;
-    const removedIds = diffs.flatMap((d) => d.removed);
+    const removedIds = diffs.flatMap((d: PlayersDiffPayload) => {
+      const arr: string[] = d.removed;
+      return arr;
+    });
     expect(removedIds.includes(p1)).toBe(true);
   });
 
