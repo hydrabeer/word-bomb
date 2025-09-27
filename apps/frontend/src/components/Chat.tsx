@@ -71,8 +71,15 @@ export default function Chat({
     }
   }, [autoFocus]);
 
+  // Clear messages when room changes to avoid showing previous room history
+  useEffect(() => {
+    setMessages([]);
+  }, [roomCode]);
+
   useEffect(() => {
     const handleNewMessage = (data: ChatMessagePayload) => {
+      // Only accept messages for the active room
+      if (data.roomCode !== roomCode) return;
       const normalized: ChatMessage = {
         ...data,
         type: data.type ?? 'user',
@@ -84,7 +91,7 @@ export default function Chat({
     return () => {
       socket.off('chatMessage', handleNewMessage);
     };
-  }, []);
+  }, [roomCode]);
 
   const sendMessage = useCallback(() => {
     const trimmed = newMessage.trim();

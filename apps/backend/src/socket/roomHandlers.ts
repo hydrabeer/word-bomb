@@ -248,10 +248,10 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     }
     const playerName = player.name;
     room.removePlayer(playerId);
-    system(roomCode, `${playerName} left the room.`);
 
     void socket.leave(socketRoomId(roomCode));
     emitPlayers(io, room);
+    system(roomCode, `${playerName} left the room.`);
   }
   socket.on('leaveRoom', handleLeaveRoom);
 
