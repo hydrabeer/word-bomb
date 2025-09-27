@@ -5,11 +5,16 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "composite": true,
-    "rootDir": "./",
+    "rootDir": "src", // narrow to source only
     "outDir": "dist",
     "types": ["vitest/globals"]
   },
-  "include": ["src", "test", "vitest.config.ts"],
+  "include": ["src"], // ✅ only source gets built
+  "exclude": [
+    "test", // ✅ don’t compile tests
+    "**/*.test.*",
+    "vitest.config.ts" // avoid emitting the config
+  ],
   "references": [
     { "path": "../../packages/domain" },
     { "path": "../../packages/types" }
