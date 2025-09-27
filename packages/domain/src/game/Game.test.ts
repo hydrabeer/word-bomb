@@ -90,7 +90,9 @@ describe('Game', () => {
 
   it('throws when advancing turns with no active players', () => {
     game.players.forEach((p) => (p.isEliminated = true));
-    expect(() => game.nextTurn()).toThrow('No active players remaining');
+    expect(() => {
+      game.nextTurn();
+    }).toThrow('No active players remaining');
   });
 
   it('updates the fragment correctly', () => {
