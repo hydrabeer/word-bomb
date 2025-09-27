@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Game } from '@game/domain/game/Game';
-import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
-import { createPlayer } from '@game/domain/players/createPlayer';
+import { Game, GameRoomRules, createPlayer } from '@game/domain';
 import { GameEngine } from '../src/game/GameEngine';
 import { buildTurnStartedPayload } from '../src/core/serialization';
 

@@ -8,8 +8,7 @@ import {
   getRandomFragment,
 } from '../src/dictionary';
 import { setDisconnectGrace } from '../src/socket/roomHandlers';
-import { GameRoom } from '@game/domain/rooms/GameRoom';
-import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { GameRoom, GameRoomRules } from '@game/domain';
 import { GameEngine } from '../src/game/GameEngine';
 import { createNewGame } from '../src/game/orchestration/createNewGame';
 

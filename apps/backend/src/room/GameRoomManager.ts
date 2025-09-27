@@ -1,5 +1,4 @@
-import { GameRoom } from '@game/domain/rooms/GameRoom';
-import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { GameRoom, GameRoomRules } from '@game/domain';
 
 export class GameRoomManager {
   private readonly rooms = new Map<string, GameRoom>();

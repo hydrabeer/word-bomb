@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { GameRoomManager } from '../src/room/GameRoomManager';
-import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { GameRoomRules } from '@game/domain';
 
 const rules: GameRoomRules = {
   maxLives: 3,

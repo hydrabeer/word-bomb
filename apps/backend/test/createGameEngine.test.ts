@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { TypedServer } from '../src/socket/typedSocket';
 import { createGameEngine } from '../src/game/orchestration/createGameEngine';
-import { Game } from '@game/domain/game/Game';
-import { GameRoom } from '@game/domain/rooms/GameRoom';
-import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { Game, GameRoom, GameRoomRules } from '@game/domain';
 import { RoomBroadcaster } from '../src/core/RoomBroadcaster';
 import * as emitPlayersModule from '../src/game/orchestration/emitPlayers';
 import { socketRoomId } from '../src/utils/socketRoomId';

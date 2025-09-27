@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Game } from '@game/domain/game/Game';
-import { GameRoom } from '@game/domain/rooms/GameRoom';
-import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
-import { createPlayer } from '@game/domain/players/createPlayer';
+import { Game, GameRoom, GameRoomRules, createPlayer } from '@game/domain';
 import {
   toRoomPlayerView,
   toGamePlayerView,

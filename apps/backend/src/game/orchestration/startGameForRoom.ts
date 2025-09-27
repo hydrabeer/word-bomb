@@ -1,5 +1,5 @@
 import type { Server } from 'socket.io';
-import type { GameRoom } from '@game/domain/rooms/GameRoom';
+import type { GameRoom } from '@game/domain';
 import type { TypedServer } from '../../socket/typedSocket';
 import { setGameEngine } from '../engineRegistry';
 import { createNewGame } from './createNewGame';

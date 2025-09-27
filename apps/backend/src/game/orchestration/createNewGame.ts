@@ -1,5 +1,4 @@
-import { Game } from '@game/domain/game/Game';
-import { GameRoom } from '@game/domain/rooms/GameRoom';
+import { Game, GameRoom } from '@game/domain';
 import { getRandomFragment } from '../../dictionary';
 
 export function createNewGame(room: GameRoom): Game | null {

@@ -1,7 +1,6 @@
 import { socketRoomId } from '../utils/socketRoomId';
 import type { TypedServer } from '../socket/typedSocket';
-import type { GameRoom } from '@game/domain/rooms/GameRoom';
-import type { Game } from '@game/domain/game/Game';
+import type { Game, GameRoom } from '@game/domain';
 import type {
   ServerToClientEvents,
   PlayersDiffPayload,

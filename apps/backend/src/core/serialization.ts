@@ -1,6 +1,4 @@
-import { Game } from '@game/domain/game/Game';
-import { Player } from '@game/domain/players/Player';
-import { GameRoom } from '@game/domain/rooms/GameRoom';
+import { Game, GameRoom, Player } from '@game/domain';
 import type {
   GameStartedPayload,
   TurnStartedPayload,

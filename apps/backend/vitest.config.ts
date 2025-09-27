@@ -1,14 +1,15 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
 
-// Ensure tsconfig path alias "@game/domain/*" works in Vitest by mapping it here.
-// Without this, runtime module resolution fails with "Cannot find package '@game/domain/..." errors
-// because Vite/Vitest does not honor tsconfig "paths" automatically.
+// Ensure Vitest resolves the domain public API via the same entrypoint as runtime code.
 
 export default defineConfig({
   resolve: {
     alias: {
-      '@game/domain': path.resolve(__dirname, '../../packages/domain/src'),
+      '@game/domain': path.resolve(
+        __dirname,
+        '../../packages/domain/src/index.ts',
+      ),
     },
   },
   test: {

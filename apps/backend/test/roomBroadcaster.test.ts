@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RoomBroadcaster } from '../src/core/RoomBroadcaster';
 import type { TypedServer } from '../src/socket/typedSocket';
-import { GameRoom } from '@game/domain/rooms/GameRoom';
-import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
-import { Game } from '@game/domain/game/Game';
+import { Game, GameRoom, GameRoomRules } from '@game/domain';
 
 function makeFakeIo() {
   const toMock = vi.fn(() => fakeNamespace);

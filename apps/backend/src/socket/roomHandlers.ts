@@ -1,16 +1,14 @@
 // apps/backend/src/socket/roomHandlers.ts
 
 import { roomManager } from '../room/roomManagerSingleton';
-import { ChatMessageSchema } from '@game/domain/chat/ChatMessage';
+import { ChatMessageSchema, GameRulesSchema, noop } from '@game/domain';
 import { getGameEngine } from '../game/engineRegistry';
 import { emitPlayers } from '../game/orchestration/emitPlayers';
 import { socketRoomId } from '../utils/socketRoomId';
 import { startGameForRoom } from '../game/orchestration/startGameForRoom';
-import { noop } from '@game/domain/utils/noop';
-import type { Player } from '@game/domain/players/Player';
+import type { Player } from '@game/domain';
 import type { BasicResponse } from '@word-bomb/types';
 import { RoomBroadcaster } from '../core/RoomBroadcaster';
-import { GameRulesSchema } from '@game/domain/rooms/GameRoomRules';
 import {
   buildGameStartedPayload,
   buildTurnStartedPayload,

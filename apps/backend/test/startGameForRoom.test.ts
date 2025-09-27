@@ -8,7 +8,7 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
 } from '@word-bomb/types';
-import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { GameRoomRules } from '@game/domain';
 import { getGameEngine } from '../src/game/engineRegistry';
 import * as createGameEngineModule from '../src/game/orchestration/createGameEngine';
 

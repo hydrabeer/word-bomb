@@ -1,5 +1,5 @@
 // Maintains last emitted snapshot per room to compute diffs for players list.
-import { GameRoom } from '@game/domain/rooms/GameRoom';
+import { GameRoom } from '@game/domain';
 import type { PlayersDiffPayload } from '@word-bomb/types';
 
 interface PlayerLite {

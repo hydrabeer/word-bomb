@@ -1,9 +1,7 @@
-import { Game } from '@game/domain/game/Game';
+import { Game, GameRulesService, Player } from '@game/domain';
 import { isValidWord, getRandomFragment } from '../dictionary';
-import { Player } from '@game/domain/players/Player';
 import type { ServerToClientEvents } from '@word-bomb/types';
 import { buildTurnStartedPayload } from '../core/serialization';
-import { GameRulesService } from '@game/domain/game/services/GameRulesService';
 
 // Abstractions extracted for clean architecture
 export interface TurnScheduler {
