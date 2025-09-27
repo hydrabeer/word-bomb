@@ -39,12 +39,9 @@ export function buildPlayersUpdatedPayload(
 }
 
 export function buildTurnStartedPayload(game: Game): TurnStartedPayload {
-  const current = game.getCurrentPlayer();
   return {
-    playerId: current.id,
-    fragment: game.fragment,
-    bombDuration: game.getBombDuration(),
-    players: game.players.map((pl) => toGamePlayerView(pl, game.rules)),
+    playerId: getCurrentPlayerId(game),
+    ...buildBaseGamePayload(game),
   };
 }
 
@@ -52,13 +49,22 @@ export function buildGameStartedPayload(
   room: GameRoom,
   game: Game,
 ): GameStartedPayload {
-  const current = game.getCurrentPlayer();
   return {
     roomCode: game.roomCode,
+    currentPlayer: getCurrentPlayerId(game),
+    leaderId: room.getLeaderId() ?? null,
+    ...buildBaseGamePayload(game),
+  };
+}
+
+function buildBaseGamePayload(game: Game) {
+  return {
     fragment: game.fragment,
     bombDuration: game.getBombDuration(),
-    currentPlayer: current.id,
-    leaderId: room.getLeaderId() ?? null,
     players: game.players.map((pl) => toGamePlayerView(pl, game.rules)),
-  };
+  } satisfies Pick<GameStartedPayload, 'fragment' | 'bombDuration' | 'players'>;
+}
+
+function getCurrentPlayerId(game: Game): string {
+  return game.getCurrentPlayer().id;
 }
