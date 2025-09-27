@@ -49,6 +49,12 @@ describe('useBonusAlphabetSettings', () => {
     );
   });
 
+  it('ignores invalid JSON in storage gracefully', () => {
+    localStorage.setItem(STORAGE_KEY, '{not-json');
+    const { result } = renderHook(() => useBonusAlphabetSettings());
+    expect(result.current.settings).toHaveProperty('size');
+  });
+
   it('reset returns to defaults', () => {
     const { result } = renderHook(() => useBonusAlphabetSettings());
     act(() => result.current.setSettings({ size: 'sm' }));

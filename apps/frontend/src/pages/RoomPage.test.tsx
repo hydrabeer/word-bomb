@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { act } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import RoomPage from './RoomPage';
 
@@ -32,6 +33,27 @@ vi.mock('../hooks/useWordSubmission', () => ({
     rejected: false,
     handleSubmitWord: vi.fn(),
   }),
+}));
+
+// Stub heavy UI modules to speed up rendering in this test file
+vi.mock('../components/Chat', () => ({
+  default: (props: { headingId?: string }) => (
+    <div data-testid="Chat" aria-labelledby={props.headingId}>
+      Chat
+    </div>
+  ),
+}));
+vi.mock('../components/GameBoard', () => ({
+  GameBoard: (props: { gameState?: { fragment?: string } | null }) => (
+    <div data-testid="GameBoard">{props.gameState?.fragment ?? ''}</div>
+  ),
+}));
+vi.mock('react-icons/fa', () => ({
+  FaChevronRight: () => null,
+  FaChevronLeft: () => null,
+  FaChevronUp: () => null,
+  FaChevronDown: () => null,
+  FaLink: () => null,
 }));
 
 // We'll parametrize useGameState to simulate both lobby and playing modes
@@ -123,14 +145,23 @@ describe('RoomPage', () => {
   });
 
   it('copies invite link on click and shows feedback', async () => {
+    vi.useFakeTimers();
     mockUseGameStateReturn = { ...baseState };
     renderWithRoute('ROOM42');
     fireEvent.click(
       screen.getByRole('button', { name: /Copy room invite link/i }),
     );
-    await waitFor(() =>
-      expect(screen.getByText(/copied!/i)).toBeInTheDocument(),
-    );
+    // The UI flips to "Copied!" after the clipboard promise resolves
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.getByText(/copied!/i)).toBeInTheDocument();
+    // And flips back after 2s; advance timers instead of waiting
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(screen.queryByText(/copied!/i)).not.toBeInTheDocument();
+    vi.useRealTimers();
   });
 
   it('renders players list with leader and seated markers', () => {

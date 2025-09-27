@@ -42,4 +42,28 @@ describe('BonusAlphabet', () => {
     // D has remaining 0 -> no counter element
     expect(screen.queryByText('(0)')).toBeNull();
   });
+
+  it('applies settings: size, position, opacity; hides numbers when showNumbers=false', () => {
+    const progress = baseProgress();
+    const { container } = render(
+      <BonusAlphabet
+        progress={progress}
+        settings={{
+          size: 'sm',
+          position: 'bottom-left',
+          opacity: 0.5,
+          showNumbers: false,
+        }}
+      />,
+    );
+    const el = container.querySelector('[aria-hidden="true"]')!;
+    const rootEl: HTMLElement = el as HTMLElement;
+    expect(rootEl).toBeTruthy();
+    expect(rootEl.style.opacity).toBe('0.5');
+    // position class should include bottom-left
+    expect(rootEl.className).toContain('bottom-2');
+    expect(rootEl.className).toContain('left-2');
+    // When showNumbers=false, no numeric badges should be visible
+    expect(screen.queryByText('1')).toBeNull();
+  });
 });

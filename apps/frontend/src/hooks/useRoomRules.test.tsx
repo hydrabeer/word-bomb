@@ -25,6 +25,11 @@ import * as socketModule from '../socket';
 const { __emitServer } = socketModule as unknown as {
   __emitServer: (e: string, p: unknown) => void;
 };
+interface MockedSocket {
+  on: (e: string, cb: (p: unknown) => void) => void;
+  off: (e: string, cb: (p: unknown) => void) => void;
+  emit: (e: string, payload: unknown, ack?: (res: unknown) => void) => void;
+}
 
 describe('useRoomRules', () => {
   it('provides defaults and updates with server event; handles update error', async () => {
@@ -53,5 +58,27 @@ describe('useRoomRules', () => {
     });
     expect(res?.success).toBe(false);
     expect(result.current.error).toBeTruthy();
+  });
+
+  it('updates successfully and clears error/isUpdating flags', async () => {
+    const s = (socketModule as unknown as { socket: MockedSocket }).socket;
+    const emitSpy = vi
+      .spyOn(s, 'emit')
+      .mockImplementation((_, __, ack?: (res: unknown) => void) => {
+        ack?.({ success: true });
+      });
+
+    const { result } = renderHook(() => useRoomRules('ROOM'));
+    // Initially no server rules
+    expect(result.current.hasServerRules).toBe(false);
+    // Perform successful update
+    await act(async () => {
+      const out = await result.current.updateRules(result.current.rules);
+      expect(out.success).toBe(true);
+    });
+    expect(result.current.error).toBeNull();
+    expect(result.current.isUpdating).toBe(false);
+
+    emitSpy.mockRestore();
   });
 });

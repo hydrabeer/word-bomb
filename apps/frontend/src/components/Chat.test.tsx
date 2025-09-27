@@ -90,4 +90,30 @@ describe('Chat component', () => {
     expect(screen.getByText('Bob')).toBeTruthy();
     expect(screen.getByText('Hi')).toBeTruthy();
   });
+
+  it('shows alert and does not emit when message invalid (too long)', () => {
+    const alertSpy = vi
+      .spyOn(window, 'alert')
+      .mockImplementation((msg?: unknown) => void msg);
+    render(<Chat roomCode="ABCD" />);
+    const input = screen.getByTestId<HTMLTextAreaElement>('chat-input');
+    const longMsg = 'x'.repeat(301);
+    // Programmatically set value beyond maxLength to trigger zod failure
+    fireEvent.change(input, { target: { value: longMsg } });
+    const btn = screen.getByTestId('send-button');
+    fireEvent.click(btn);
+    expect(alertSpy).toHaveBeenCalled();
+    expect(emitFn).not.toHaveBeenCalledWith(
+      'chatMessage',
+      expect.objectContaining({ message: longMsg }),
+    );
+    alertSpy.mockRestore();
+  });
+
+  it('does nothing on submit when input is empty', () => {
+    render(<Chat roomCode="ABCD" />);
+    const btn = screen.getByTestId('send-button');
+    // Button disabled when empty
+    expect(btn).toBeDisabled();
+  });
 });

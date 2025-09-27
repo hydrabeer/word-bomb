@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { RoomRulesDialog } from './RoomRulesDialog';
 import type { LobbyRules, BasicResponse } from '../hooks/useRoomRules';
 
@@ -46,13 +46,9 @@ describe('RoomRulesDialog', () => {
       />,
     );
 
-    // Toggle a letter by querying a letter button (A)
-    const letterButtons = screen.getAllByRole('button');
-    // find a letter button by text content length 1
-    const letterButton =
-      letterButtons.find((b) => b.textContent && b.textContent.length === 1) ??
-      letterButtons[0];
-    fireEvent.click(letterButton);
+    // Toggle a specific letter (A) using its accessible label
+    const letterA = screen.getByRole('button', { name: /letter A/i });
+    fireEvent.click(letterA);
 
     // Use set-all buttons
     fireEvent.click(screen.getByRole('button', { name: 'Enable all' }));
@@ -62,7 +58,9 @@ describe('RoomRulesDialog', () => {
     const form = container.querySelector('form')!;
     fireEvent.submit(form);
     // ensure onSave was called
-    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    // Flush microtasks and assert instead of polling with waitFor
+    await Promise.resolve();
+    expect(onSave).toHaveBeenCalledTimes(1);
   });
 
   it('shows validation error when startingLives > maxLives and handles server error', async () => {
@@ -83,16 +81,49 @@ describe('RoomRulesDialog', () => {
     // Increase maxLives input lower than startingLives to trigger validation
     const form = container.querySelector('form')!;
     fireEvent.submit(form);
-    await screen.findByText('Starting lives cannot exceed max lives.');
+    // Validation error appears synchronously
+    expect(
+      screen.getByText('Starting lives cannot exceed max lives.'),
+    ).toBeInTheDocument();
 
     // Fix validation then submit to see submitError displayed
     const maxLives = getByLabelText('Max lives');
     fireEvent.change(maxLives, { target: { value: '6' } });
     fireEvent.submit(form);
-    // wait for async save error to render
+    // Wait for async submit error to render
     await screen.findByText('Server said nope');
     expect(onSave).toHaveBeenCalled();
-    expect(screen.getByText('Server said nope')).toBeInTheDocument();
+  });
+
+  it('allows editing numeric bonus values and submits updated template', async () => {
+    const onSave = vi
+      .fn<(next: LobbyRules) => Promise<BasicResponse>>()
+      .mockResolvedValue({ success: true });
+    const onClose = vi.fn();
+    const { container } = render(
+      <RoomRulesDialog
+        open
+        onClose={onClose}
+        rules={rules}
+        isLeader={true}
+        isUpdating={false}
+        serverError={null}
+        onSave={onSave}
+      />,
+    );
+    // Find the A tile's button and change its adjacent input to 3
+    const aBtn = screen.getByRole('button', { name: /letter A/i });
+    const tile = aBtn.parentElement!;
+    const numberInput = tile.querySelector('input[type="number"]')!;
+    fireEvent.change(numberInput, { target: { value: '3' } });
+    // Submit
+    const form = container.querySelector('form')!;
+    fireEvent.submit(form);
+    // No need to poll; microtask tick is enough
+    await Promise.resolve();
+    expect(onSave).toHaveBeenCalled();
+    const calledWith = onSave.mock.calls[0][0];
+    expect(calledWith.bonusTemplate[0]).toBe(3);
   });
 
   it('closes via Escape and overlay click, and respects isLeader/isUpdating disabling', () => {
@@ -141,5 +172,8 @@ describe('RoomRulesDialog', () => {
     inputs.forEach((inp) => {
       expect((inp as HTMLInputElement).disabled).toBe(true);
     });
+
+    // shows Saving… text when isUpdating
+    expect(screen.getByText('Saving…')).toBeInTheDocument();
   });
 });

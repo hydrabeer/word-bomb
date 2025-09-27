@@ -35,4 +35,20 @@ describe('useAutoScroll', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(el.scrollTop).toBeGreaterThanOrEqual(firstBottom);
   });
+
+  it('does not auto-scroll when user is far from bottom', async () => {
+    const { rerender, getByTestId } = render(
+      <TestComponent items={Array.from({ length: 10 }, (_, i) => String(i))} />,
+    );
+    const el = getByTestId('scroll');
+    // simulate user scrolled to top
+    el.scrollTop = 0;
+    el.dispatchEvent(new Event('scroll'));
+    const before = el.scrollTop;
+    rerender(
+      <TestComponent items={Array.from({ length: 20 }, (_, i) => String(i))} />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(el.scrollTop).toBe(before);
+  });
 });
