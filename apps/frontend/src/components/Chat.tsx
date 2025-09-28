@@ -112,7 +112,6 @@ export default function Chat({
     const result = ChatMessageSchema.safeParse(messagePayload);
 
     if (!result.success) {
-      console.warn('Invalid chat message input:', result.error);
       alert('Invalid message.');
       setIsLoading(false);
       return;

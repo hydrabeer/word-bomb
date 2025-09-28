@@ -1,19 +1,32 @@
 import { Game, GameRoom } from '@game/domain';
 import type { DictionaryPort } from '../../dictionary';
+import { getLogger } from '../../logging/context';
 
 export function createNewGame(
   room: GameRoom,
   dictionary: Pick<DictionaryPort, 'getRandomFragment'>,
 ): Game | null {
   const seatedPlayers = room.getAllPlayers().filter((p) => p.isSeated);
+  const log = getLogger();
 
   if (seatedPlayers.length < 2) {
-    console.log('[START GAME] Not enough seated players.');
+    log.info(
+      {
+        event: 'game_start_not_enough_players',
+        seatedCount: seatedPlayers.length,
+        roomCode: room.code,
+      },
+      '[START GAME] Not enough seated players.',
+    );
     return null;
   }
-  console.log(
-    '[START GAME] Seated players:',
-    seatedPlayers.map((p) => p.name),
+  log.info(
+    {
+      event: 'game_start_seated_players',
+      roomCode: room.code,
+      players: seatedPlayers.map((p) => p.name),
+    },
+    '[START GAME] Seated players registered',
   );
 
   seatedPlayers.forEach((p) => {

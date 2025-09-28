@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 
+import { getLogger } from '../logging/context';
+
 export interface DictionaryPort {
   isValid(word: string): boolean;
   getRandomFragment(minWordsPerPrompt: number): string;
@@ -49,6 +51,7 @@ export async function loadDictionary(): Promise<void> {
   const localPath = path.resolve(__dirname, './words.txt');
   const prodPath = '/tmp/words.txt';
   const filePath = isProd ? prodPath : localPath;
+  const log = getLogger();
 
   // Fast path for tests: avoid reading the huge words.txt to keep CI quick and deterministic.
   // Set DICTIONARY_TEST_MODE=full to force reading the local file during tests when desired.
@@ -56,8 +59,13 @@ export async function loadDictionary(): Promise<void> {
     dictionary = new Set(DEFAULT_WORDS);
     buildFragmentIndex(DEFAULT_WORDS);
     usingFallbackDictionary = true;
-    console.log(
-      `ℹ️ Using built-in fallback dictionary with ${dictionary.size.toString()} words (test fast path)`,
+    log.info(
+      {
+        event: 'dictionary_using_fallback',
+        reason: 'test_fast_path',
+        wordCount: dictionary.size,
+      },
+      `Using built-in fallback dictionary with ${dictionary.size.toString()} words (test fast path)`,
     );
     return;
   }
@@ -66,7 +74,15 @@ export async function loadDictionary(): Promise<void> {
     try {
       await downloadDictionaryFile(process.env.DICTIONARY_URL, prodPath);
     } catch (err) {
-      console.error('❌ Failed to download dictionary:', err);
+      log.error(
+        {
+          event: 'dictionary_download_failed',
+          err,
+          url: process.env.DICTIONARY_URL,
+          destination: prodPath,
+        },
+        'Failed to download dictionary',
+      );
       return;
     }
   }
@@ -79,26 +95,45 @@ export async function loadDictionary(): Promise<void> {
     words = words.filter((w) => w.length <= 30);
     const removed = before - words.length;
     if (removed > 0) {
-      console.log(
-        `⚠️  Filtered ${removed.toString()} over-length words (>30 chars)`,
+      log.warn(
+        {
+          event: 'dictionary_filtered_overlength',
+          removed,
+          maxLength: 30,
+        },
+        `Filtered ${removed.toString()} over-length words (>30 chars)`,
       );
     }
     dictionary = new Set(words);
     usingFallbackDictionary = false;
-    console.log(
-      `✅ Loaded ${dictionary.size.toString()} words (max length 30)`,
+    log.info(
+      {
+        event: 'dictionary_loaded_from_file',
+        wordCount: dictionary.size,
+        maxLength: 30,
+        source: filePath,
+      },
+      `Loaded ${dictionary.size.toString()} words (max length 30)`,
     );
 
     buildFragmentIndex(words);
   } catch (err) {
-    console.error(`❌ Failed to load dictionary from ${filePath}:`, err);
+    log.error(
+      { event: 'dictionary_load_failed', err, source: filePath },
+      `Failed to load dictionary from ${filePath}`,
+    );
     if (!isProd) {
       // Fallback to a tiny built-in dictionary for dev/test so CI remains deterministic.
       dictionary = new Set(DEFAULT_WORDS);
       buildFragmentIndex(DEFAULT_WORDS);
       usingFallbackDictionary = true;
-      console.log(
-        `ℹ️ Using built-in fallback dictionary with ${dictionary.size.toString()} words`,
+      log.info(
+        {
+          event: 'dictionary_using_fallback',
+          reason: 'load_failed',
+          wordCount: dictionary.size,
+        },
+        `Using built-in fallback dictionary with ${dictionary.size.toString()} words`,
       );
     }
   }
@@ -159,7 +194,15 @@ function buildFragmentIndex(
     }
   }
 
-  console.log(`✅ Indexed ${fragmentCounts.size.toString()} unique fragments`);
+  getLogger().info(
+    {
+      event: 'dictionary_indexed_fragments',
+      fragmentCount: fragmentCounts.size,
+      minLength,
+      maxLength,
+    },
+    `Indexed ${fragmentCounts.size.toString()} unique fragments`,
+  );
 }
 
 /**
@@ -190,8 +233,13 @@ export function getRandomFragment(minWordsPerPrompt: number): string {
     )[0]?.[0];
 
     if (fallback) {
-      console.warn(
-        `⚠️  No fragments meet minWordsPerPrompt=${minWordsPerPrompt.toString()}; using '${fallback}' instead`,
+      getLogger().warn(
+        {
+          event: 'dictionary_fragment_fallback',
+          minWordsPerPrompt,
+          fallback,
+        },
+        `No fragments meet minWordsPerPrompt=${minWordsPerPrompt.toString()}; using '${fallback}' instead`,
       );
       return fallback;
     }

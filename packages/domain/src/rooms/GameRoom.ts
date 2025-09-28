@@ -209,15 +209,10 @@ export class GameRoom {
    * @param duration Time in milliseconds before starting the game
    */
   startGameStartTimer(callback: () => void, duration: number): void {
-    if (!this.startGameTimerHandle) {
-      this.startGameTimerHandle = setTimeout(() => {
-        this.startGameTimerHandle = undefined;
-        callback();
-      }, duration);
-      console.log(
-        `[START GAME TIMER] Timer started for room ${this.code} for ${duration.toString()} ms`,
-      );
-    }
+    this.startGameTimerHandle ??= setTimeout(() => {
+      this.startGameTimerHandle = undefined;
+      callback();
+    }, duration);
   }
 
   /**
@@ -227,7 +222,6 @@ export class GameRoom {
     if (this.startGameTimerHandle) {
       clearTimeout(this.startGameTimerHandle);
       this.startGameTimerHandle = undefined;
-      console.log(`[CANCEL GAME TIMER] Timer canceled for room ${this.code}`);
     }
   }
 

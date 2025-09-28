@@ -13,6 +13,9 @@ import { GameRoom, GameRoomRules } from '@game/domain';
 import { GameEngine } from '../src/game/GameEngine';
 import { createNewGame } from '../src/game/orchestration/createNewGame';
 import { waitForDiff, waitForPlayersCount } from './testUtils';
+import { createLogger } from '../src/logging';
+
+const testLogger = createLogger({ service: 'backend-tests' });
 
 async function canStartServer(): Promise<boolean> {
   try {
@@ -20,7 +23,10 @@ async function canStartServer(): Promise<boolean> {
     await ctx.close();
     return true;
   } catch (error) {
-    console.warn('Skipping coverage extras socket tests:', error);
+    testLogger.warn(
+      { event: 'test_server_unavailable', err: error },
+      'Skipping coverage extras socket tests',
+    );
     return false;
   }
 }

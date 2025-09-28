@@ -20,21 +20,7 @@ export function useGameRoom(roomCode: string) {
     // other hooks (invoked earlier in the render) are active before the
     // server immediately responds with gameStarted/turnStarted snapshots.
     const joinTimer = setTimeout(() => {
-      socket.emit('joinRoom', { roomCode, playerId, name }, (res: unknown) => {
-        if (
-          res &&
-          typeof res === 'object' &&
-          'success' in res &&
-          (res as { success?: unknown }).success === false
-        ) {
-          const err =
-            'error' in res &&
-            typeof (res as { error?: unknown }).error === 'string'
-              ? (res as { error: string }).error
-              : 'Unknown error';
-          console.log('joinRoom error:', err);
-        }
-      });
+      socket.emit('joinRoom', { roomCode, playerId, name });
     }, 0);
 
     return () => {

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setupTestServer, withServer } from './helpers';
 import { roomManager } from '../src/room/roomManagerSingleton';
 import { getGameEngine } from '../src/game/engineRegistry';
+import { createLogger } from '../src/logging';
 import type { TestContext } from './helpers';
 
 import type {
@@ -12,13 +13,18 @@ import type {
   BasicResponse,
 } from '@word-bomb/types';
 
+const testLogger = createLogger({ service: 'backend-tests' });
+
 async function canStartServer(): Promise<boolean> {
   try {
     const ctx = await setupTestServer();
     await ctx.close();
     return true;
   } catch (error) {
-    console.warn('Skipping roomHandlers integration tests:', error);
+    testLogger.warn(
+      { event: 'test_server_unavailable', err: error },
+      'Skipping roomHandlers integration tests',
+    );
     return false;
   }
 }

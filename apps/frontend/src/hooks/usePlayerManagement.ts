@@ -4,6 +4,7 @@ import { socket } from '../socket';
 import type {
   PlayersUpdatedPayload,
   PlayersDiffPayload,
+  BasicResponse,
 } from '@word-bomb/types';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
 
@@ -69,17 +70,20 @@ export function usePlayerManagement(roomCode: string) {
     };
   }, []);
 
+  const handleAck = (res?: BasicResponse) => {
+    if (!res || res.success) {
+      return;
+    }
+    // Keeping acks wired for future surfaced errors.
+  };
+
   const toggleSeated = () => {
     const seated = !(me?.isSeated ?? false);
-    socket.emit('setPlayerSeated', { roomCode, playerId, seated }, (res) => {
-      if (res && !res.success) console.log('setPlayerSeated error:', res.error);
-    });
+    socket.emit('setPlayerSeated', { roomCode, playerId, seated }, handleAck);
   };
 
   const startGame = () => {
-    socket.emit('startGame', { roomCode }, (res) => {
-      if (!res.success) console.log(res.error);
-    });
+    socket.emit('startGame', { roomCode }, handleAck);
   };
 
   return {
