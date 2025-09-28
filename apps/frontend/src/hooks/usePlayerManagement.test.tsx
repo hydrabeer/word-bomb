@@ -68,7 +68,7 @@ describe('usePlayerManagement', () => {
         removed: ['a'],
         added: [{ id: 'b', name: 'Bob', isSeated: false }],
         updated: [{ id: 'me', changes: { isSeated: true } }],
-        leaderIdChanged: '',
+        leaderIdChanged: null,
       });
     });
     expect(result.current.players.map((p) => p.id)).toEqual(['me', 'b']);

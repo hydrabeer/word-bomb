@@ -14,11 +14,13 @@ const rules: GameRoomRules = {
   minWordsPerPrompt: 1,
 };
 
-function createRoom(code: string) {
+function createRoomWithPlayers(
+  code: string,
+  players: { id: string; name: string }[],
+) {
   const mgr = new GameRoomManager();
   const room = mgr.create(code, rules);
-  room.addPlayer({ id: 'A', name: 'Alice' });
-  room.addPlayer({ id: 'B', name: 'Bob' });
+  players.forEach((player) => room.addPlayer(player));
   return room;
 }
 
@@ -28,7 +30,10 @@ describe('playersDiffCache', () => {
   });
 
   it('returns null when no changes between consecutive calls', () => {
-    const room = createRoom('DIFF');
+    const room = createRoomWithPlayers('DIFF', [
+      { id: 'A', name: 'Alice' },
+      { id: 'B', name: 'Bob' },
+    ]);
     // first diff should show added players
     const first = computePlayersDiff(room);
     expect(first).not.toBeNull();
@@ -38,7 +43,10 @@ describe('playersDiffCache', () => {
   });
 
   it('detects updates and removals', () => {
-    const room = createRoom('CHNG');
+    const room = createRoomWithPlayers('CHNG', [
+      { id: 'A', name: 'Alice' },
+      { id: 'B', name: 'Bob' },
+    ]);
     computePlayersDiff(room); // establish baseline
     // update
     const alice = room.getPlayer('A');
@@ -52,6 +60,33 @@ describe('playersDiffCache', () => {
         true,
       );
       expect(diff.removed).toContain('B');
+    }
+  });
+
+  it('reports leader transitions including removal', () => {
+    const room = createRoomWithPlayers('LEAD', [
+      { id: 'A', name: 'Alice' },
+      { id: 'B', name: 'Bob' },
+    ]);
+    computePlayersDiff(room); // establish initial snapshot
+    computePlayersDiff(room); // no-op diff to prime caches
+
+    room.removePlayer('A');
+    let diff = computePlayersDiff(room);
+    expect(diff).not.toBeNull();
+    if (diff) {
+      expect(diff.removed).toContain('A');
+      expect(diff.leaderIdChanged).toBe('B');
+    }
+
+    computePlayersDiff(room); // sync cache with new leader
+
+    room.removePlayer('B');
+    diff = computePlayersDiff(room);
+    expect(diff).not.toBeNull();
+    if (diff) {
+      expect(diff.removed).toContain('B');
+      expect(diff.leaderIdChanged).toBeNull();
     }
   });
 });
