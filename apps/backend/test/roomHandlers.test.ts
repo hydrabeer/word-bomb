@@ -58,6 +58,10 @@ vi.mock('../src/dictionary', async () => {
     ...actual,
     isValidWord: () => true,
     getRandomFragment: () => 'aa',
+    createDictionaryPort: () => ({
+      isValid: () => true,
+      getRandomFragment: () => 'aa',
+    }),
   };
 });
 

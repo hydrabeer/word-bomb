@@ -1,7 +1,10 @@
 import { Game, GameRoom } from '@game/domain';
-import { getRandomFragment } from '../../dictionary';
+import type { DictionaryPort } from '../../dictionary';
 
-export function createNewGame(room: GameRoom): Game | null {
+export function createNewGame(
+  room: GameRoom,
+  dictionary: Pick<DictionaryPort, 'getRandomFragment'>,
+): Game | null {
   const seatedPlayers = room.getAllPlayers().filter((p) => p.isSeated);
 
   if (seatedPlayers.length < 2) {
@@ -21,7 +24,7 @@ export function createNewGame(room: GameRoom): Game | null {
     );
   });
 
-  const fragment = getRandomFragment(room.rules.minWordsPerPrompt);
+  const fragment = dictionary.getRandomFragment(room.rules.minWordsPerPrompt);
 
   return new Game({
     roomCode: room.code,

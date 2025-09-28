@@ -11,6 +11,8 @@ import type {
 import { GameRoomRules } from '@game/domain';
 import { getGameEngine } from '../src/game/engineRegistry';
 import * as createGameEngineModule from '../src/game/orchestration/createGameEngine';
+import * as dictionaryModule from '../src/dictionary';
+import type { DictionaryPort } from '../src/dictionary';
 
 // Minimal fake IO capturing emissions
 function makeIO(): {
@@ -47,15 +49,25 @@ function createSeatedRoom(code: string, seatedCount: number) {
 describe('startGameForRoom', () => {
   let io: TypedServer;
   let httpServer: ReturnType<typeof createServer>;
+  let createDictionaryPortSpy: ReturnType<typeof vi.spyOn>;
+  let dictionary: DictionaryPort;
 
   beforeEach(() => {
     roomManager.clear();
     ({ io, httpServer } = makeIO());
+    dictionary = {
+      isValid: vi.fn(() => true),
+      getRandomFragment: vi.fn(() => 'aa'),
+    };
+    createDictionaryPortSpy = vi
+      .spyOn(dictionaryModule, 'createDictionaryPort')
+      .mockReturnValue(dictionary);
   });
 
   afterEach(() => {
     void io.close();
     httpServer.close();
+    createDictionaryPortSpy.mockRestore();
   });
 
   it('returns early if game already exists', () => {
@@ -87,6 +99,35 @@ describe('startGameForRoom', () => {
     expect(engine).toBeTruthy();
     // engine.beginGame() indirectly emits turnStarted; ensure fragment present
     expect(room.game?.fragment).toBeTruthy();
+    expect(createDictionaryPortSpy).toHaveBeenCalledTimes(1);
+    expect(beginSpy).toHaveBeenCalledWith(
+      io,
+      room,
+      expect.anything(),
+      dictionary,
+    );
+    beginSpy.mockRestore();
+  });
+
+  it('uses provided dictionary when supplied via options', () => {
+    const room = createSeatedRoom('INJD', 2);
+    const customDictionary: DictionaryPort = {
+      isValid: vi.fn(() => true),
+      getRandomFragment: vi.fn(() => 'zz'),
+    };
+    const beginSpy = vi.spyOn(createGameEngineModule, 'createGameEngine');
+    createDictionaryPortSpy.mockClear();
+
+    startGameForRoom(io, room, { dictionary: customDictionary });
+
+    expect(createDictionaryPortSpy).not.toHaveBeenCalled();
+    expect(room.game?.fragment).toBe('zz');
+    expect(beginSpy).toHaveBeenCalledWith(
+      io,
+      room,
+      expect.anything(),
+      customDictionary,
+    );
     beginSpy.mockRestore();
   });
 });
