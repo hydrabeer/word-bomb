@@ -9,7 +9,7 @@
   ],
   "tasks": {
     "build": {
-      "outputs": ["dist/**"],
+      "outputs": ["dist/**", "tsconfig*.tsbuildinfo"],
       "dependsOn": ["^build"]
     },
     "clean": { "cache": false },
@@ -18,15 +18,14 @@
       "cache": false
     },
     "lint": { "outputs": [], "dependsOn": ["^lint"] },
+
+    "test": { "dependsOn": ["^test"], "inputs": ["vitest.config.*"] },
+    "test:watch": { "cache": false, "persistent": true },
+    "test:coverage": { "dependsOn": ["^build"], "outputs": ["coverage/**"] },
+
     "typecheck": {
       "dependsOn": ["^typecheck"],
-      "inputs": ["**/*.{ts,tsx}"]
-    },
-    "test": { "dependsOn": ["transit"] },
-    "transit": {
-      "dependsOn": ["^transit"]
-    },
-    "test:watch": { "cache": false, "persistent": true },
-    "test:coverage": { "dependsOn": ["^build"], "outputs": ["coverage/**"] }
+      "inputs": ["**/*.{ts,tsx}", "tsconfig.json", "tsconfig.*.json"]
+    }
   }
 }
