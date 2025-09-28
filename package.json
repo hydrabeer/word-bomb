@@ -59,6 +59,7 @@
   "pnpm": {
     "overrides": {
       "brace-expansion@1": "1.1.12",
+      "brace-expansion@2": "2.0.2",
       "@typescript-eslint/eslint-plugin": "8.38.0",
       "@typescript-eslint/parser": "8.38.0",
       "@typescript-eslint/utils": "8.38.0",
