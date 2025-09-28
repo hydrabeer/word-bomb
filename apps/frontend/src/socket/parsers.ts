@@ -14,6 +14,66 @@ const pickStringOrNull = (
   return null;
 };
 
+const DEFAULT_PLAYER = {
+  id: 'unknown',
+  name: 'Unknown',
+  isEliminated: false,
+  lives: 0,
+} as const;
+
+export interface PlayerEntryParsed {
+  id: string;
+  name: string;
+  isEliminated: boolean;
+  lives: number;
+  bonusProgress?: { remaining: number[]; total: number[] };
+}
+
+const createDefaultPlayerEntry = (): PlayerEntryParsed => ({
+  id: DEFAULT_PLAYER.id,
+  name: DEFAULT_PLAYER.name,
+  isEliminated: DEFAULT_PLAYER.isEliminated,
+  lives: DEFAULT_PLAYER.lives,
+});
+
+const parseBonusProgress = (
+  value: unknown,
+): { remaining: number[]; total: number[] } | undefined => {
+  if (!isObj(value)) return undefined;
+  const { remaining, total } = value as {
+    remaining?: unknown;
+    total?: unknown;
+  };
+  if (!Array.isArray(remaining) || !Array.isArray(total)) return undefined;
+
+  const remainingNums = remaining.filter(
+    (n): n is number => typeof n === 'number',
+  );
+  const totalNums = total.filter((n): n is number => typeof n === 'number');
+
+  return { remaining: remainingNums, total: totalNums };
+};
+
+const parsePlayerEntries = (players: unknown[]): PlayerEntryParsed[] =>
+  players.map((entry) => {
+    if (!isObj(entry)) {
+      return createDefaultPlayerEntry();
+    }
+
+    const obj = entry;
+    const parsed: PlayerEntryParsed = {
+      id: typeof obj.id === 'string' ? obj.id : DEFAULT_PLAYER.id,
+      name: typeof obj.name === 'string' ? obj.name : DEFAULT_PLAYER.name,
+      isEliminated: !!obj.isEliminated,
+      lives: typeof obj.lives === 'number' ? obj.lives : DEFAULT_PLAYER.lives,
+    };
+
+    const bonus = parseBonusProgress(obj.bonusProgress);
+    if (bonus) parsed.bonusProgress = bonus;
+
+    return parsed;
+  });
+
 export interface CountdownStartedParsed {
   deadline: number;
 }
@@ -25,13 +85,6 @@ export function parseCountdownStarted(
     : null;
 }
 
-export interface PlayerEntryParsed {
-  id: string;
-  name: string;
-  isEliminated: boolean;
-  lives: number;
-  bonusProgress?: { remaining: number[]; total: number[] };
-}
 export interface GameStartedParsed {
   fragment: string;
   bombDuration: number;
@@ -47,32 +100,7 @@ export function parseGameStarted(v: unknown): GameStartedParsed | null {
   )
     return null;
   const cp = pickStringOrNull(v, 'currentPlayer');
-  const players: PlayerEntryParsed[] = (v.players as unknown[]).map((p) => {
-    if (p && typeof p === 'object') {
-      const o = p as Record<string, unknown>;
-      const id = typeof o.id === 'string' ? o.id : 'unknown';
-      const name = typeof o.name === 'string' ? o.name : 'Unknown';
-      const isEliminated = !!o.isEliminated;
-      const lives = typeof o.lives === 'number' ? o.lives : 0;
-      let bp: { remaining: number[]; total: number[] } | undefined;
-      const rawBp: unknown = o.bonusProgress;
-      if (isObj(rawBp)) {
-        const rem = (rawBp as { remaining?: unknown }).remaining;
-        const tot = (rawBp as { total?: unknown }).total;
-        if (Array.isArray(rem) && Array.isArray(tot)) {
-          const remainingNums: number[] = rem.filter(
-            (n): n is number => typeof n === 'number',
-          );
-          const totalNums: number[] = tot.filter(
-            (n): n is number => typeof n === 'number',
-          );
-          bp = { remaining: remainingNums, total: totalNums };
-        }
-      }
-      return { id, name, isEliminated, lives, bonusProgress: bp };
-    }
-    return { id: 'unknown', name: 'Unknown', isEliminated: false, lives: 0 };
-  });
+  const players = parsePlayerEntries(v.players as unknown[]);
   return {
     fragment: v.fragment,
     bombDuration: v.bombDuration,
@@ -96,32 +124,7 @@ export function parseTurnStarted(v: unknown): TurnStartedParsed | null {
   )
     return null;
   const playerId = pickStringOrNull(v, 'playerId');
-  const players: PlayerEntryParsed[] = (v.players as unknown[]).map((p) => {
-    if (p && typeof p === 'object') {
-      const o = p as Record<string, unknown>;
-      const id = typeof o.id === 'string' ? o.id : 'unknown';
-      const name = typeof o.name === 'string' ? o.name : 'Unknown';
-      const isEliminated = !!o.isEliminated;
-      const lives = typeof o.lives === 'number' ? o.lives : 0;
-      let bp: { remaining: number[]; total: number[] } | undefined;
-      const rawBp: unknown = o.bonusProgress;
-      if (isObj(rawBp)) {
-        const rem = (rawBp as { remaining?: unknown }).remaining;
-        const tot = (rawBp as { total?: unknown }).total;
-        if (Array.isArray(rem) && Array.isArray(tot)) {
-          const remainingNums: number[] = rem.filter(
-            (n): n is number => typeof n === 'number',
-          );
-          const totalNums: number[] = tot.filter(
-            (n): n is number => typeof n === 'number',
-          );
-          bp = { remaining: remainingNums, total: totalNums };
-        }
-      }
-      return { id, name, isEliminated, lives, bonusProgress: bp };
-    }
-    return { id: 'unknown', name: 'Unknown', isEliminated: false, lives: 0 };
-  });
+  const players = parsePlayerEntries(v.players as unknown[]);
   return {
     fragment: v.fragment,
     bombDuration: v.bombDuration,
