@@ -151,6 +151,7 @@ export interface ServerToClientEvents {
 }
 export interface SocketData {
   currentRoomCode?: string;
+  currentPlayerId?: string;
 }
 
 // --- Bonus Alphabet in-game player view extensions ---

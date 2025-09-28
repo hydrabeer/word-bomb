@@ -22,6 +22,7 @@ import { deleteGameEngine } from '../game/engineRegistry';
 import { removePlayersDiffCacheForRoom } from '../game/orchestration/playersDiffCache';
 
 import type { TypedServer, TypedSocket } from './typedSocket';
+import { createSocketDataAccessor } from './socketDataAccessor';
 
 // Configurable grace period (ms) before removing a disconnected player.
 // Tests may adjust via setDisconnectGrace().
@@ -142,38 +143,30 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     broadcaster.systemMessage(roomCode, message);
   }
 
-  const getCurrentRoomCode = (): string | undefined => {
-    const data: unknown = socket.data;
-    if (data && typeof data === 'object' && 'currentRoomCode' in data) {
-      const val = (data as { currentRoomCode?: unknown }).currentRoomCode;
-      return typeof val === 'string' ? val : undefined;
-    }
-    return undefined;
-  };
+  const createStringAccessor = (key: string) =>
+    createSocketDataAccessor(
+      socket,
+      key,
+      (value): value is string => typeof value === 'string',
+    );
 
+  const roomCodeAccessor = createStringAccessor('currentRoomCode');
+  const playerIdAccessor = createStringAccessor('currentPlayerId');
+
+  const getCurrentRoomCode = (): string | undefined => roomCodeAccessor.get();
   const setCurrentRoomCode = (code: string): void => {
-    // socket.data is typed structurally, guard anyway
-    (socket.data as { currentRoomCode?: string }).currentRoomCode = code;
+    roomCodeAccessor.set(code);
   };
-
-  const getCurrentPlayerId = (): string | undefined => {
-    const data: unknown = socket.data;
-    if (data && typeof data === 'object' && 'currentPlayerId' in data) {
-      const val = (data as { currentPlayerId?: unknown }).currentPlayerId;
-      return typeof val === 'string' ? val : undefined;
-    }
-    return undefined;
-  };
-  const setCurrentPlayerId = (playerId: string): void => {
-    (socket.data as { currentPlayerId?: string }).currentPlayerId = playerId;
-  };
-
   const clearCurrentRoomCode = (): void => {
-    delete (socket.data as { currentRoomCode?: string }).currentRoomCode;
+    roomCodeAccessor.clear();
   };
 
+  const getCurrentPlayerId = (): string | undefined => playerIdAccessor.get();
+  const setCurrentPlayerId = (playerId: string): void => {
+    playerIdAccessor.set(playerId);
+  };
   const clearCurrentPlayerId = (): void => {
-    delete (socket.data as { currentPlayerId?: string }).currentPlayerId;
+    playerIdAccessor.clear();
   };
 
   const disposeRoom = (code: string, roomInstance: GameRoom): void => {
