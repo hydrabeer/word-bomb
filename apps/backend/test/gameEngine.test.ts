@@ -164,4 +164,43 @@ describe('GameEngine extra coverage', () => {
     vi.advanceTimersByTime(1100);
     expect(onGameEnded).toHaveBeenCalled();
   });
+
+  it('invokes onTurnTimeout callback when provided', () => {
+    const game = makeGame();
+    game.__setBombDurationForTest(1);
+    const onTurnTimeout = vi.fn();
+    const engine = new GameEngine({
+      game,
+      emit: function emit() {
+        /* noop */
+      },
+      scheduler: {
+        schedule: (delayMs, cb) => setTimeout(cb, delayMs),
+        cancel: (token) => {
+          clearTimeout(token as any);
+        },
+      },
+      eventsPort: {
+        turnStarted: () => {
+          /* noop */
+        },
+        playerUpdated: () => {
+          /* noop */
+        },
+        wordAccepted: () => {
+          /* noop */
+        },
+        gameEnded: () => {
+          /* noop */
+        },
+      },
+      onTurnTimeout,
+    });
+
+    engine.beginGame();
+    vi.advanceTimersByTime(1100);
+
+    expect(onTurnTimeout).toHaveBeenCalledTimes(1);
+    expect(onTurnTimeout.mock.calls[0][0].id).toBe('A');
+  });
 });
