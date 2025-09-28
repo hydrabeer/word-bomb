@@ -2,6 +2,7 @@
   "name": "backend",
   "version": "0.0.0",
   "private": true,
+  "type": "commonjs",
   "main": "src/index.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -29,6 +30,9 @@
     "@types/node": "^22.14.0",
     "socket.io-client": "^4.8.1",
     "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0"
+    "tsconfig-paths": "^4.2.0",
+    "vitest": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4"
   }
 }

@@ -1,9 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { Game, GameRoomRules, createPlayer } from '@game/domain';
+import { Game } from '@game/domain/game/Game';
+import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { createPlayer } from '@game/domain/players/createPlayer';
 import { GameEngine } from '../src/game/GameEngine';
 import type { TurnScheduler, GameEventsPort } from '../src/game/GameEngine';
 import type { DictionaryPort } from '../src/dictionary';
-import type { ServerToClientEvents } from '@word-bomb/types';
+import type { ServerToClientEvents } from '@word-bomb/types/socket';
 
 const rules: GameRoomRules = {
   maxLives: 3,

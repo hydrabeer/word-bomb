@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createRoomCodeGenerator } from '../src/routes/roomCodeGenerator';
+import { createRoomCodeGenerator } from './roomCodeGenerator';
 
 describe('createRoomCodeGenerator', () => {
   it('throws when alphabet is empty', () => {

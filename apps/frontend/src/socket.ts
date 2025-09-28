@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
-} from '@word-bomb/types';
+} from '@word-bomb/types/socket';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 

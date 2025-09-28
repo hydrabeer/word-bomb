@@ -1,12 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { Game, GameRoom, GameRoomRules, createPlayer } from '@game/domain';
+import { Game } from '@game/domain/game/Game';
+import { GameRoom } from '@game/domain/rooms/GameRoom';
+import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { createPlayer } from '@game/domain/players/createPlayer';
+
 import {
   toRoomPlayerView,
   toGamePlayerView,
   buildPlayersUpdatedPayload,
   buildTurnStartedPayload,
   buildGameStartedPayload,
-} from '../src/core/serialization';
+} from './serialization';
 
 const rules: GameRoomRules = {
   maxLives: 3,

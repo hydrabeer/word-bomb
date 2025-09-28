@@ -9,7 +9,7 @@ import type {
   GameEndedPayload,
   WordAcceptedPayload,
   GameCountdownStartedPayload,
-} from '@word-bomb/types';
+} from '@word-bomb/types/socket';
 
 export type Result<T> = { ok: true; data: T } | { ok: false };
 

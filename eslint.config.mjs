@@ -19,6 +19,9 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: true,
+        // Allow files not included in tsconfig (e.g., test files) to use a
+        // default project for type-aware linting, avoiding parser errors.
+        allowDefaultProject: true,
         tsconfigRootDir: import.meta.dirname,
         project: [
           './tsconfig.base.json',
@@ -50,7 +53,22 @@ export default tseslint.config(
       globals: vitest.environments.env.globals,
       parserOptions: {
         projectService: true,
+        // Let ESLint use a default project for test files that are intentionally
+        // excluded from tsconfig build (e.g., **/*.test.ts). This avoids
+        // "not found by the project service" parser errors while keeping
+        // type-aware linting where possible.
+        allowDefaultProject: true,
       },
+    },
+  },
+
+  // Backend tests live under src but are excluded from tsconfig includes.
+  // Turn off the project service for them to avoid parser errors while still
+  // getting core ESLint + Vitest rules.
+  {
+    files: ['apps/backend/src/**/*.{test,spec}.ts'],
+    languageOptions: {
+      parserOptions: { projectService: false },
     },
   },
 
@@ -62,6 +80,19 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
+
+  // Loosen strict rules for backend tests that live under src as well
+  {
+    files: ['apps/backend/src/**/*.{test,spec}.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-confusing-void-expression': 'off',
     },
   },
 

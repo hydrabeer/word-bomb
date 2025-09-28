@@ -1,10 +1,12 @@
-import { Game, GameRoom, Player } from '@game/domain';
+import type { Game } from '@game/domain/game/Game';
+import type { GameRoom } from '@game/domain/rooms/GameRoom';
+import type { Player } from '@game/domain/players/Player';
 import type {
   GameStartedPayload,
   TurnStartedPayload,
   PlayersUpdatedPayload,
   GamePlayerView,
-} from '@word-bomb/types';
+} from '@word-bomb/types/socket';
 
 // Player view helpers (room vs in-game)
 export function toRoomPlayerView(p: Player) {

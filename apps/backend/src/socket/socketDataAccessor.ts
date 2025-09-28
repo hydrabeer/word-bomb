@@ -1,4 +1,4 @@
-import type { SocketData } from '@word-bomb/types';
+import type { SocketData } from '@word-bomb/types/socket';
 import type { TypedSocket } from './typedSocket';
 
 export interface SocketDataAccessor<T> {

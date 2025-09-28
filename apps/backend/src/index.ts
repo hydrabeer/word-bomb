@@ -16,7 +16,7 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
   SocketData,
-} from '@word-bomb/types';
+} from '@word-bomb/types/socket';
 import { createLogger } from './logging';
 import {
   getLogContext,

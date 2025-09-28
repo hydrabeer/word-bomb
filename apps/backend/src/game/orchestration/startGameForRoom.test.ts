@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { roomManager } from '../src/room/roomManagerSingleton';
-import { startGameForRoom } from '../src/game/orchestration/startGameForRoom';
+import { roomManager } from '../../room/roomManagerSingleton';
+import { startGameForRoom } from './startGameForRoom';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import type { TypedServer } from '../src/socket/typedSocket';
+import type { TypedServer } from '../../socket/typedSocket';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
-} from '@word-bomb/types';
-import { GameRoomRules } from '@game/domain';
-import { getGameEngine } from '../src/game/engineRegistry';
-import * as createGameEngineModule from '../src/game/orchestration/createGameEngine';
-import * as dictionaryModule from '../src/dictionary';
-import type { DictionaryPort } from '../src/dictionary';
+} from '@word-bomb/types/socket';
+import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { getGameEngine } from '../engineRegistry';
+import * as createGameEngineModule from './createGameEngine';
+import * as dictionaryModule from '../../dictionary';
+import type { DictionaryPort } from '../../dictionary';
 
 // Minimal fake IO capturing emissions
 function makeIO(): {

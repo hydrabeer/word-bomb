@@ -1,8 +1,9 @@
 import { GameRoomManager } from '../src/room/GameRoomManager';
-import { Game, GameRoomRules } from '@game/domain';
+import { Game } from '@game/domain/game/Game';
+import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
 import { GameEngine } from '../src/game/GameEngine';
-import type { ServerToClientEvents } from '@word-bomb/types';
-import type { Player } from '@game/domain';
+import type { ServerToClientEvents } from '@word-bomb/types/socket';
+import type { Player } from '@game/domain/players/Player';
 
 export const defaultRules: GameRoomRules = {
   maxLives: 3,

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { gameEngines } from '../src/game/engineRegistry';
-import type { GameEngine } from '../src/game/GameEngine';
+import { gameEngines } from './engineRegistry';
+import type { GameEngine } from './GameEngine';
 
 describe('engineRegistry coverage', () => {
   it('set/get/delete/clear work as expected', () => {

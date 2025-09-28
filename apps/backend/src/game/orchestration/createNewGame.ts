@@ -1,4 +1,5 @@
-import { Game, GameRoom } from '@game/domain';
+import { Game } from '@game/domain/game/Game';
+import { GameRoom } from '@game/domain/rooms/GameRoom';
 import type { DictionaryPort } from '../../dictionary';
 import { getLogger } from '../../logging/context';
 

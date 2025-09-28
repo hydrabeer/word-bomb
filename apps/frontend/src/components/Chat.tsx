@@ -10,8 +10,8 @@ import { socket } from '../socket';
 import { useAutoScroll } from '../hooks/useAutoScroll';
 import { ChatMessageItem, ChatMessage } from './ChatMessageItem';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
-import { ChatMessageSchema } from '@game/domain';
-import { ChatMessagePayload } from '@word-bomb/types';
+import { ChatMessageSchema } from '@game/domain/chat/ChatMessage';
+import { ChatMessagePayload } from '@word-bomb/types/socket';
 import { FaPaperPlane } from 'react-icons/fa';
 
 interface ChatProps {

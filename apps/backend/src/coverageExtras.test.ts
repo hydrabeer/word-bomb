@@ -1,19 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setupTestServer, withServer } from './helpers';
-import { roomManager } from '../src/room/roomManagerSingleton';
-import type { TestContext } from './helpers';
+import { setupTestServer, withServer } from '../test/helpers';
+import { roomManager } from './room/roomManagerSingleton';
+import type { TestContext } from '../test/helpers';
 import {
   loadDictionary,
   isValidWord,
   getRandomFragment,
   createDictionaryPort,
-} from '../src/dictionary';
-import { setDisconnectGrace } from '../src/socket/roomHandlers';
-import { GameRoom, GameRoomRules } from '@game/domain';
-import { GameEngine } from '../src/game/GameEngine';
-import { createNewGame } from '../src/game/orchestration/createNewGame';
-import { waitForDiff, waitForPlayersCount } from './testUtils';
-import { createLogger } from '../src/logging';
+} from './dictionary';
+import { setDisconnectGrace } from './socket/roomHandlers';
+import { GameRoom } from '@game/domain/rooms/GameRoom';
+import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { GameEngine } from './game/GameEngine';
+import { createNewGame } from './game/orchestration/createNewGame';
+import { waitForDiff, waitForPlayersCount } from '../test/testUtils';
+import { createLogger } from './logging';
 
 const testLogger = createLogger({ service: 'backend-tests' });
 

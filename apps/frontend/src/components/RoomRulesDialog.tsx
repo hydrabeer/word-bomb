@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { LobbyRules } from '../hooks/useRoomRules';
-import type { BasicResponse } from '@word-bomb/types';
+import type { BasicResponse } from '@word-bomb/types/socket';
 
 interface RoomRulesDialogProps {
   open: boolean;

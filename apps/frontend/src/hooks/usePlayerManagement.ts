@@ -5,7 +5,7 @@ import type {
   PlayersUpdatedPayload,
   PlayersDiffPayload,
   BasicResponse,
-} from '@word-bomb/types';
+} from '@word-bomb/types/socket';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
 
 export function usePlayerManagement(roomCode: string) {

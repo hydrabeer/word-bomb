@@ -1,4 +1,4 @@
-import type { GameRoom } from '@game/domain';
+import type { GameRoom } from '@game/domain/rooms/GameRoom';
 import type { TypedServer } from '../../socket/typedSocket';
 import { setGameEngine } from '../engineRegistry';
 import { createNewGame } from './createNewGame';

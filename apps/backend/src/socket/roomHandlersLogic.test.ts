@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
-import type { TypedServer, TypedSocket } from '../src/socket/typedSocket';
-import type { BasicResponse } from '@word-bomb/types';
-import type { GameRoomRules } from '@game/domain';
-import { registerRoomHandlers } from '../src/socket/roomHandlers';
-import { socketRoomId } from '../src/utils/socketRoomId';
+import type { TypedServer, TypedSocket } from './typedSocket';
+import type { BasicResponse } from '@word-bomb/types/socket';
+import type { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { registerRoomHandlers } from './roomHandlers';
+import { socketRoomId } from '../utils/socketRoomId';
 
-vi.mock('../src/room/roomManagerSingleton', () => ({
+vi.mock('../room/roomManagerSingleton', () => ({
   roomManager: {
     get: vi.fn(),
     has: vi.fn(),
@@ -16,15 +16,15 @@ vi.mock('../src/room/roomManagerSingleton', () => ({
   },
 }));
 
-vi.mock('../src/game/orchestration/emitPlayers', () => ({
+vi.mock('../game/orchestration/emitPlayers', () => ({
   emitPlayers: vi.fn(),
 }));
 
-vi.mock('../src/game/orchestration/startGameForRoom', () => ({
+vi.mock('../game/orchestration/startGameForRoom', () => ({
   startGameForRoom: vi.fn(),
 }));
 
-vi.mock('../src/game/engineRegistry', () => ({
+vi.mock('../game/engineRegistry', () => ({
   getGameEngine: vi.fn(),
   deleteGameEngine: vi.fn(),
 }));
@@ -32,16 +32,16 @@ vi.mock('../src/game/engineRegistry', () => ({
 const systemMessageMock = vi.fn();
 const broadcastRulesMock = vi.fn();
 
-vi.mock('../src/core/RoomBroadcaster', () => ({
+vi.mock('../core/RoomBroadcaster', () => ({
   RoomBroadcaster: vi.fn().mockImplementation(() => ({
     systemMessage: systemMessageMock,
     rules: broadcastRulesMock,
   })),
 }));
 
-const { roomManager } = await import('../src/room/roomManagerSingleton');
-const { emitPlayers } = await import('../src/game/orchestration/emitPlayers');
-const { getGameEngine } = await import('../src/game/engineRegistry');
+const { roomManager } = await import('../room/roomManagerSingleton');
+const { emitPlayers } = await import('../game/orchestration/emitPlayers');
+const { getGameEngine } = await import('../game/engineRegistry');
 
 type Fn<A extends unknown[] = unknown[], R = unknown> = (...args: A) => R;
 type MockFn<A extends unknown[] = unknown[], R = unknown> = Mock<Fn<A, R>>;

@@ -2,7 +2,7 @@
 import { Request, Response, Router } from 'express';
 import { roomManager } from '../room/roomManagerSingleton';
 import { getDictionaryStats, isUsingFallbackDictionary } from '../dictionary';
-import type { GameRoomRules } from '@game/domain';
+import type { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
 import {
   createRoomCodeGenerator,
   type RoomCodeGenerator,

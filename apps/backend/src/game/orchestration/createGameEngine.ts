@@ -1,7 +1,8 @@
 import { GameEngine } from '../GameEngine';
-import type { Game, GameRoom } from '@game/domain';
+import type { Game } from '@game/domain/game/Game';
+import type { GameRoom } from '@game/domain/rooms/GameRoom';
 import type { TypedServer } from '../../socket/typedSocket';
-import type { ServerToClientEvents } from '@word-bomb/types';
+import type { ServerToClientEvents } from '@word-bomb/types/socket';
 import type { DictionaryPort } from '../../dictionary';
 import { emitPlayers } from './emitPlayers';
 import { RoomBroadcaster } from '../../core/RoomBroadcaster';

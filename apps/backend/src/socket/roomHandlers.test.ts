@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { setupTestServer, withServer } from './helpers';
-import { roomManager } from '../src/room/roomManagerSingleton';
-import { getGameEngine } from '../src/game/engineRegistry';
-import { createLogger } from '../src/logging';
-import type { TestContext } from './helpers';
+import { setupTestServer, withServer } from '../../test/helpers';
+import { roomManager } from '../room/roomManagerSingleton';
+import { getGameEngine } from '../game/engineRegistry';
+import { createLogger } from '../logging';
+import type { TestContext } from '../../test/helpers';
 
 import type {
   PlayersUpdatedPayload,
@@ -11,7 +11,7 @@ import type {
   ActionAckPayload,
   RoomRulesPayload,
   BasicResponse,
-} from '@word-bomb/types';
+} from '@word-bomb/types/socket';
 
 const testLogger = createLogger({ service: 'backend-tests' });
 
@@ -49,17 +49,15 @@ import {
   waitForPlayersCount,
   waitForDiff,
   waitForActionAck,
-} from './testUtils';
+} from '../../test/testUtils';
 
 // Removed duplicate function definitions and unused types
 
 // NOTE: We mock the dictionary BEFORE any game/engine modules are imported via server helpers
 // so that GameEngine validation will always accept words and fragment is deterministic.
-vi.mock('../src/dictionary', async () => {
+vi.mock('../dictionary', async () => {
   const actual =
-    await vi.importActual<typeof import('../src/dictionary')>(
-      '../src/dictionary',
-    );
+    await vi.importActual<typeof import('../dictionary')>('../dictionary');
   return {
     ...actual,
     isValidWord: () => true,

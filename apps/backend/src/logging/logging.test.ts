@@ -1,6 +1,6 @@
 import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
-import { createLogger } from '../src/logging';
+import { createLogger } from '.';
 
 describe('structured logger', () => {
   it('writes JSON lines with required fields', async () => {

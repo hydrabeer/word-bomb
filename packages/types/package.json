@@ -3,8 +3,12 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "exports": {
+    "./socket": {
+      "types": "./src/socket.ts",
+      "default": "./dist/socket.js"
+    }
+  },
   "files": [
     "dist"
   ],
@@ -16,6 +20,8 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4"
   }
 }

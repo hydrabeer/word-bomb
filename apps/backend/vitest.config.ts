@@ -5,12 +5,16 @@ import path from 'node:path';
 export default defineConfig({
   root: __dirname, // ⬅️ important in a monorepo
   resolve: {
-    alias: {
-      '@game/domain': path.resolve(
-        __dirname,
-        '../../packages/domain/src/index.ts',
-      ),
-    },
+    alias: [
+      {
+        find: /^@game\/domain\/(.*)$/,
+        replacement: path.resolve(__dirname, '../../packages/domain/src/$1'),
+      },
+      {
+        find: /^@word-bomb\/types\/(.*)$/,
+        replacement: path.resolve(__dirname, '../../packages/types/src/$1'),
+      },
+    ],
   },
   test: {
     environment: 'node',
@@ -33,6 +37,7 @@ export default defineConfig({
         '**/*.d.ts',
         'vitest.config.*',
         'test/**',
+        '**/*.test.ts',
         'src/**/__tests__/**',
         'src/**/testutils/**',
         // your existing one

@@ -10,7 +10,7 @@ function setEnv(env: NodeJS.ProcessEnv) {
 
 // Utility to dynamically import a FRESH copy of the dictionary module after resetting modules.
 async function freshDictionary() {
-  const mod = await import('../src/dictionary');
+  const mod = await import('.');
   return mod;
 }
 

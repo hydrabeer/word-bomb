@@ -6,7 +6,7 @@ import type {
   PlayersUpdatedPayload,
   PlayersDiffPayload,
   ActionAckPayload,
-} from '@word-bomb/types';
+} from '@word-bomb/types/socket';
 import { roomManager } from '../src/room/roomManagerSingleton';
 
 export type TestSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -187,7 +187,7 @@ export async function disconnectAndReconnect(
 }
 
 // Extra small helpers to reduce arbitrary sleeps in tests
-import type { RoomRulesPayload } from '@word-bomb/types';
+import type { RoomRulesPayload } from '@word-bomb/types/socket';
 
 export async function waitForRoomRulesUpdated(
   socket: TestSocket,

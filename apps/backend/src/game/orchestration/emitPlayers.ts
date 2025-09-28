@@ -1,4 +1,4 @@
-import { GameRoom } from '@game/domain';
+import { GameRoom } from '@game/domain/rooms/GameRoom';
 import { computePlayersDiff } from './playersDiffCache';
 import { RoomBroadcaster } from '../../core/RoomBroadcaster';
 import type { TypedServer } from '../../socket/typedSocket';

@@ -1,6 +1,8 @@
-import { Game, GameRulesService, Player } from '@game/domain';
 import type { DictionaryPort } from '../dictionary';
-import type { ServerToClientEvents } from '@word-bomb/types';
+import { Game } from '@game/domain/game/Game';
+import { GameRulesService } from '@game/domain/game/services/GameRulesService';
+import { Player } from '@game/domain/players/Player';
+import type { ServerToClientEvents } from '@word-bomb/types/socket';
 import { buildTurnStartedPayload } from '../core/serialization';
 
 // Abstractions extracted for clean architecture

@@ -1,4 +1,5 @@
-import { GameRoom, GameRoomRules } from '@game/domain';
+import { GameRoom } from '@game/domain/rooms/GameRoom';
+import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
 import { getLogger } from '../logging/context';
 
 export class GameRoomManager {

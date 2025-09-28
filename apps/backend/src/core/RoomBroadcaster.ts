@@ -1,11 +1,12 @@
 import { Buffer } from 'node:buffer';
 import { socketRoomId } from '../utils/socketRoomId';
 import type { TypedServer } from '../socket/typedSocket';
-import type { Game, GameRoom } from '@game/domain';
+import type { Game } from '@game/domain/game/Game';
+import type { GameRoom } from '@game/domain/rooms/GameRoom';
 import type {
   ServerToClientEvents,
   PlayersDiffPayload,
-} from '@word-bomb/types';
+} from '@word-bomb/types/socket';
 import {
   buildPlayersUpdatedPayload,
   buildGameStartedPayload,

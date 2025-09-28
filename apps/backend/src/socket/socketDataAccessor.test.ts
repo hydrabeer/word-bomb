@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createSocketDataAccessor } from '../src/socket/socketDataAccessor';
-import type { TypedSocket } from '../src/socket/typedSocket';
+import { createSocketDataAccessor } from './socketDataAccessor';
+import type { TypedSocket } from './typedSocket';
 
 const isString = (value: unknown): value is string => typeof value === 'string';
 

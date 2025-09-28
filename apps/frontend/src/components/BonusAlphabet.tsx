@@ -1,4 +1,4 @@
-import type { BonusProgressView } from '@word-bomb/types';
+import type { BonusProgressView } from '@word-bomb/types/socket';
 
 export interface BonusAlphabetSettings {
   size?: 'sm' | 'md';

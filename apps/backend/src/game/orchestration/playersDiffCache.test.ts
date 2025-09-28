@@ -1,10 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { GameRoomManager } from '../src/room/GameRoomManager';
-import { GameRoomRules } from '@game/domain';
-import {
-  computePlayersDiff,
-  resetPlayersDiffCache,
-} from '../src/game/orchestration/playersDiffCache';
+import { GameRoomManager } from '../../room/GameRoomManager';
+import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { computePlayersDiff, resetPlayersDiffCache } from './playersDiffCache';
 
 const rules: GameRoomRules = {
   maxLives: 3,

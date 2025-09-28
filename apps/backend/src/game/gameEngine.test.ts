@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Game, GameRoomRules, createPlayer } from '@game/domain';
-import { GameEngine } from '../src/game/GameEngine';
-import type { DictionaryPort } from '../src/dictionary';
-import { buildTurnStartedPayload } from '../src/core/serialization';
+import { Game } from '@game/domain/game/Game';
+import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { createPlayer } from '@game/domain/players/createPlayer';
+import { GameEngine } from './GameEngine';
+import type { DictionaryPort } from '../dictionary';
+import { buildTurnStartedPayload } from '../core/serialization';
 
 const rules: GameRoomRules = {
   maxLives: 3,
@@ -66,9 +68,13 @@ describe('GameEngine extra coverage', () => {
     const emitted: Emitted[] = [];
     const engine = new GameEngine({
       game,
-      emit: <K extends keyof import('@word-bomb/types').ServerToClientEvents>(
+      emit: <
+        K extends keyof import('@word-bomb/types/socket').ServerToClientEvents,
+      >(
         event: K,
-        ...args: Parameters<import('@word-bomb/types').ServerToClientEvents[K]>
+        ...args: Parameters<
+          import('@word-bomb/types/socket').ServerToClientEvents[K]
+        >
       ) => {
         emitted.push({ e: String(event), payload: args[0] });
       },
