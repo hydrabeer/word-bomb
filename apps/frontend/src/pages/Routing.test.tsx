@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import NotFoundPage from './NotFoundPage';
 import RoomRoute from './RoomRoute';
+import * as DocumentTitleHook from '../hooks/useDocumentTitle';
 
 // Mock heavy hooks inside RoomPage to keep tests light
 vi.mock('../hooks/useGameRoom', () => ({ useGameRoom: () => undefined }));
@@ -56,6 +57,7 @@ describe('Routing / room code handling', () => {
 
   beforeEach(() => {
     global.fetch = vi.fn();
+    document.title = 'Initial Title';
   });
 
   afterEach(() => {
@@ -66,6 +68,49 @@ describe('Routing / room code handling', () => {
   it('shows 404 page for invalid room code format', () => {
     renderRoute('/foobar'); // not 4 uppercase letters
     expect(screen.getByText(/404/i)).toBeTruthy();
+  });
+
+  it('sets title while loading and updates when room resolves', async () => {
+    const deferred: {
+      promise: Promise<{
+        ok: boolean;
+        json: () => Promise<{ exists: boolean; name?: string }>;
+      }>;
+      resolve: (value: {
+        ok: boolean;
+        json: () => Promise<{ exists: boolean; name?: string }>;
+      }) => void;
+    } = (() => {
+      let resolve!: (value: {
+        ok: boolean;
+        json: () => Promise<{ exists: boolean; name?: string }>;
+      }) => void;
+      const promise = new Promise<{
+        ok: boolean;
+        json: () => Promise<{ exists: boolean; name?: string }>;
+      }>((res) => {
+        resolve = res;
+      });
+      return { promise, resolve };
+    })();
+
+    (global.fetch as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+      deferred.promise,
+    );
+
+    renderRoute('/ABCD');
+
+    await waitFor(() =>
+      expect(document.title).toBe('Loading Room ABCD — Word Bomb'),
+    );
+
+    deferred.resolve({
+      ok: true,
+      json: () =>
+        Promise.resolve({ exists: true, name: '  Champions Lounge  ' }),
+    });
+
+    await waitFor(() => expect(document.title).toBe('[ABCD] Champions Lounge'));
   });
 
   it('shows room missing page for valid-looking but nonexistent room', async () => {
@@ -86,5 +131,21 @@ describe('Routing / room code handling', () => {
     await waitFor(() => screen.getByText(/Waiting for players/i));
     // Multiple UI elements include the room label; ensure at least one matches
     expect(screen.getAllByText(/Room WXYZ/i).length).toBeGreaterThan(0);
+  });
+
+  it('uses generic loading title when room code missing', () => {
+    const spy = vi.spyOn(DocumentTitleHook, 'useDocumentTitle');
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<RoomRoute />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(spy).toHaveBeenCalledWith('Loading Room — Word Bomb');
+    spy.mockRestore();
   });
 });

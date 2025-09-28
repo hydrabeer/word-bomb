@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import HomePage from './HomePage';
@@ -16,12 +16,21 @@ vi.mock('../hooks/useRoomActions', () => ({
 }));
 
 describe('HomePage', () => {
+  beforeEach(() => {
+    document.title = 'Initial Title';
+  });
+
   const setup = () =>
     render(
       <MemoryRouter>
         <HomePage />
       </MemoryRouter>,
     );
+
+  it('sets the base document title on mount', async () => {
+    setup();
+    await waitFor(() => expect(document.title).toBe('Word Bomb'));
+  });
 
   it('edits and saves name', () => {
     setup();

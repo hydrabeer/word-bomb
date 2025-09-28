@@ -4,6 +4,7 @@ import {
   getOrCreatePlayerProfile,
   updatePlayerName,
 } from '../utils/playerProfile';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useRoomActions } from '../hooks/useRoomActions';
 
 export default function HomePage() {
@@ -13,6 +14,8 @@ export default function HomePage() {
   const [editing, setEditing] = useState(false);
   const [roomName, setRoomName] = useState(`${initialName}'s room`);
   const [joinCode, setJoinCode] = useState('');
+
+  useDocumentTitle('Word Bomb');
 
   const { createNewRoom, validateRoom } = useRoomActions();
 

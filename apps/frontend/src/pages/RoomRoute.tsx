@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import RoomPage from './RoomPage';
 import RoomNotFoundPage from './RoomNotFoundPage';
 import NotFoundPage from './NotFoundPage';
 import { checkRoomExists } from '../api/rooms';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 // Status lifecycle:
 //  - invalidFormat: URL segment is not a 4 uppercase letter code -> show 404 page
@@ -25,6 +26,7 @@ export default function RoomRoute() {
       return;
     }
     setStatus('loading');
+    setRoomName('');
     checkRoomExists(roomCode)
       .then((res) => {
         if (cancelled) return;
@@ -44,6 +46,22 @@ export default function RoomRoute() {
     };
   }, [roomCode]);
 
+  const title = useMemo(() => {
+    if (status === 'loading') {
+      return roomCode
+        ? `Loading Room ${roomCode} — Word Bomb`
+        : 'Loading Room — Word Bomb';
+    }
+    if (status === 'ready') {
+      const trimmed = roomName.trim();
+      const label = trimmed.length > 0 ? trimmed : `${roomName}`;
+      return `[${roomCode}] ${label}`;
+    }
+    return undefined;
+  }, [roomCode, roomName, status]);
+
+  useDocumentTitle(title);
+
   if (status === 'invalidFormat') {
     return <NotFoundPage />;
   }
@@ -60,11 +78,6 @@ export default function RoomRoute() {
 
   if (status === 'notfound') {
     return <RoomNotFoundPage roomCode={roomCode} />;
-  }
-
-  // Set tab title as soon as we know the room name
-  if (roomName) {
-    document.title = `[${roomCode}] ${roomName}`;
   }
 
   return <RoomPage roomName={roomName} />;

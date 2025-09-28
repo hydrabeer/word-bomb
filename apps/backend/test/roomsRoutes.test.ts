@@ -6,6 +6,7 @@ vi.mock('../src/room/roomManagerSingleton', () => ({
   roomManager: {
     create: vi.fn(),
     has: vi.fn(),
+    get: vi.fn(),
   },
 }));
 
@@ -79,6 +80,7 @@ describe('rooms router handlers', () => {
     vi.clearAllMocks();
     (roomManager.create as ReturnType<typeof vi.fn>).mockReset();
     (roomManager.has as ReturnType<typeof vi.fn>).mockReset();
+    (roomManager.get as ReturnType<typeof vi.fn>).mockReset();
     roomCodeGeneratorMock.mockReset();
     roomCodeGeneratorMock.mockReturnValue('AAAA');
     createRoomCodeGeneratorMock.mockReset();
@@ -195,22 +197,28 @@ describe('rooms router handlers', () => {
   });
 
   it('getRoomHandler returns 200 when room exists', () => {
-    (roomManager.has as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    (roomManager.get as ReturnType<typeof vi.fn>).mockReturnValue({
+      name: '  Trivia night  ',
+    });
     const { response, statusMock, jsonMock } = createMockResponse<{
       exists: boolean;
+      name: string;
     }>();
     const request = { params: { code: 'ABCD' } } as unknown as Request;
 
     getRoomHandler(request, response as unknown as Response);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(roomManager.has).toHaveBeenCalledWith('ABCD');
+    expect(roomManager.get).toHaveBeenCalledWith('ABCD');
     expect(statusMock).toHaveBeenCalledWith(200);
-    expect(jsonMock).toHaveBeenCalledWith({ exists: true });
+    expect(jsonMock).toHaveBeenCalledWith({
+      exists: true,
+      name: 'Trivia night',
+    });
   });
 
   it('getRoomHandler returns 404 when room is missing', () => {
-    (roomManager.has as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    (roomManager.get as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
     const { response, statusMock, jsonMock } = createMockResponse<{
       error: string;
     }>();
@@ -219,7 +227,7 @@ describe('rooms router handlers', () => {
     getRoomHandler(request, response as unknown as Response);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(roomManager.has).toHaveBeenCalledWith('WXYZ');
+    expect(roomManager.get).toHaveBeenCalledWith('WXYZ');
     expect(statusMock).toHaveBeenCalledWith(404);
     expect(jsonMock).toHaveBeenCalledWith({ error: 'Room not found' });
   });

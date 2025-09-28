@@ -54,14 +54,16 @@ export function createRoomHandler(req: Request, res: Response): void {
 export function getRoomHandler(req: Request, res: Response): void {
   const { code } = req.params;
 
-  if (!roomManager.has(code)) {
+  const room = roomManager.get(code);
+
+  if (!room) {
     res.status(404).json({ error: 'Room not found' });
     return;
   }
-  // We only need to confirm the room exists for this endpoint.
-  // Avoid calling roomManager.get() here to keep the contract minimal
-  // and to align with tests that expect only `{ exists: true }`.
-  res.status(200).json({ exists: true });
+
+  const name = typeof room.name === 'string' ? room.name.trim() : '';
+
+  res.status(200).json({ exists: true, name });
 }
 
 router.post('/', createRoomHandler);
