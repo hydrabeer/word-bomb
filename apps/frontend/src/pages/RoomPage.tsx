@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   FaChevronRight,
@@ -23,10 +23,12 @@ import { RoomRulesDialog } from '../components/RoomRulesDialog';
 export default function RoomPage({ roomName }: { roomName?: string }) {
   const navigate = useNavigate();
   const { roomCode = '' } = useParams<{ roomCode: string }>();
-  const [isChatOpen, setIsChatOpen] = useState(true);
   const isMobile = useIsMobile();
+  const [isChatOpen, setIsChatOpen] = useState(() => !isMobile);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const mobileChatSheetRef = useRef<HTMLDivElement | null>(null);
+  const mobileChatToggleRef = useRef<HTMLButtonElement | null>(null);
 
   // Custom hooks (order matters!): we must attach all socket listeners BEFORE
   // emitting joinRoom, otherwise on a page reload while a game is active the
@@ -76,6 +78,10 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
 
   const winner = players.find((p) => p.id === winnerId);
 
+  useEffect(() => {
+    setIsChatOpen(!isMobile);
+  }, [isMobile]);
+
   // Handle navigation if no room code
   useEffect(() => {
     if (!roomCode) {
@@ -103,7 +109,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
 
   const formattedElapsed = formatDurationSeconds(elapsedGameTime);
 
-  function JoinGameButtons() {
+  function JoinGameButtons({ className = '' }: { className?: string } = {}) {
     return (
       <button
         onClick={toggleSeated}
@@ -114,11 +120,341 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
             : 'border border-emerald-400/20 text-black' +
               ' bg-emerald-500 shadow-emerald-500/20 backdrop-blur-sm' +
               ' shadow-lg hover:bg-emerald-400 active:bg-emerald-600'
-        }`}
+        } ${className}`}
         aria-label={me?.isSeated ? 'Leave game' : 'Join game'}
       >
         {me?.isSeated ? 'Leave Game' : 'Join Game'}
       </button>
+    );
+  }
+
+  const closeMobileChat = useCallback(() => {
+    setIsChatOpen(false);
+    requestAnimationFrame(() => {
+      if (mobileChatToggleRef.current) {
+        mobileChatToggleRef.current.focus();
+        return;
+      }
+      const activeElement = document.activeElement;
+      if (
+        activeElement instanceof HTMLElement &&
+        mobileChatSheetRef.current?.contains(activeElement)
+      ) {
+        activeElement.blur();
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isChatOpen || !isMobile) {
+      return;
+    }
+    const activeElement = document.activeElement;
+    if (
+      activeElement instanceof HTMLElement &&
+      mobileChatSheetRef.current?.contains(activeElement)
+    ) {
+      if (mobileChatToggleRef.current) {
+        mobileChatToggleRef.current.focus();
+      } else {
+        activeElement.blur();
+      }
+    }
+  }, [isChatOpen, isMobile]);
+
+  if (isMobile) {
+    return (
+      <div className="relative flex min-h-[100svh] flex-col bg-gradient-to-br from-indigo-950 via-purple-900 to-purple-900 text-white">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-black"
+        >
+          Skip to main content
+        </a>
+
+        <header className="px-5 pb-6 pt-6">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(window.location.href)
+                  .then(() => {
+                    setInviteCopied(true);
+                    setTimeout(() => setInviteCopied(false), 2000);
+                  });
+              }}
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              title="Copy room invite link"
+              aria-label={
+                roomName
+                  ? `Copy room invite link for ${roomName}`
+                  : `Copy room invite link for Room ${roomCode}`
+              }
+            >
+              <FaLink className="h-4 w-4 text-white/80" />
+              <span>{inviteCopied ? 'Link copied!' : `Share ${roomCode}`}</span>
+            </button>
+
+            <button
+              onClick={() => setIsChatOpen((prev) => !prev)}
+              ref={mobileChatToggleRef}
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              aria-controls="mobile-chat-sheet"
+              aria-expanded={isChatOpen}
+              aria-label={isChatOpen ? 'Hide chat panel' : 'Show chat panel'}
+            >
+              <span>Chat</span>
+              {isChatOpen ? (
+                <FaChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <FaChevronUp className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
+
+          <div className="mt-6 space-y-2">
+            <h1
+              id="page-title"
+              className="text-3xl font-semibold leading-tight text-white"
+            >
+              {roomName ?? `Room ${roomCode}`}
+            </h1>
+            {hasServerRules && roomRules && (
+              <p className="text-sm text-white/70">
+                Lives {roomRules.startingLives}/{roomRules.maxLives} • WPP ≥{' '}
+                {roomRules.minWordsPerPrompt} • Min turn{' '}
+                {roomRules.minTurnDuration}s
+              </p>
+            )}
+          </div>
+
+          {visualState === 'playing' && (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-1.5 font-mono text-xs uppercase tracking-wide text-indigo-100">
+              Elapsed {formattedElapsed}
+            </div>
+          )}
+
+          <div className="mt-6 flex flex-col gap-3">
+            <JoinGameButtons className="w-full text-center" />
+            <button
+              type="button"
+              onClick={() => setIsRulesOpen(true)}
+              className="inline-flex items-center justify-center rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            >
+              {isLeader ? 'Edit room rules' : 'View room rules'}
+            </button>
+          </div>
+        </header>
+
+        <main
+          id="main-content"
+          className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-28 pt-2"
+          aria-live="polite"
+        >
+          {visualState === 'playing' && gameState ? (
+            <div className="space-y-4">
+              <div className="min-h-[60vh] rounded-3xl border border-white/10 bg-white/5 p-3 shadow-xl backdrop-blur-sm">
+                <GameBoard
+                  gameState={gameState}
+                  inputWord={inputWord}
+                  setInputWord={handleInputChange}
+                  handleSubmitWord={handleSubmitWord}
+                  bombCountdown={bombCountdown}
+                  rejected={rejected}
+                  liveInputs={liveInputs}
+                  lastWordAcceptedBy={lastWordAcceptedBy}
+                  lastSubmittedWords={lastSubmittedWords}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6 pb-4">
+              {winner && (
+                <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-pink-600/30 via-purple-700/30 to-indigo-900/30 p-6 text-center shadow-xl backdrop-blur-sm">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-pink-600 text-2xl font-bold text-white">
+                    {winner.name.charAt(0).toUpperCase()}
+                  </div>
+                  <p className="mt-4 text-xl font-semibold text-white">
+                    {winner.name} 🥇
+                  </p>
+                  <p className="mt-2 text-sm text-indigo-100">
+                    won the last round!
+                  </p>
+                  <div role="status" aria-live="polite" className="sr-only">
+                    {winner.name} won the last round
+                  </div>
+                </section>
+              )}
+
+              <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <h2 className="text-lg font-semibold text-white">
+                    Lobby status
+                  </h2>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-wide text-white/70">
+                    {seatedCount}/{players.length} ready
+                  </span>
+                </div>
+                {timeLeftSec > 0 ? (
+                  <div className="mt-4 flex flex-col gap-3 text-left text-sm text-indigo-100">
+                    <p>
+                      Game starts in{' '}
+                      <span className="font-semibold text-white">
+                        {timeLeftSec}s
+                      </span>
+                    </p>
+                    {leaderId && playerId === leaderId && (
+                      <button
+                        onClick={startGame}
+                        className="inline-flex w-full items-center justify-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900"
+                        aria-label="Start game now"
+                      >
+                        Start now
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-indigo-100">
+                    Waiting for players to join the game
+                  </p>
+                )}
+              </section>
+
+              <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <h2 className="text-lg font-semibold text-white">Players</h2>
+                  <span className="text-xs font-medium uppercase tracking-wide text-white/60">
+                    {players.length} in room
+                  </span>
+                </div>
+                <div
+                  className="mt-4 space-y-3"
+                  role="list"
+                  aria-label="Players in room"
+                >
+                  {players.map((p) => (
+                    <div
+                      key={p.id}
+                      role="listitem"
+                      className={`flex items-center justify-between rounded-2xl border border-white/10 px-4 py-3 shadow-sm backdrop-blur-sm ${
+                        p.isSeated
+                          ? 'border-emerald-400/30 bg-emerald-500/10'
+                          : 'bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-700 text-sm font-semibold text-white">
+                          {p.name.charAt(0).toUpperCase()}
+                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-base font-medium text-white">
+                            {p.name}
+                          </span>
+                          <span className="text-xs uppercase tracking-wide text-white/50">
+                            {p.isSeated ? 'Ready to play' : 'Spectating'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-lg">
+                        {p.id === leaderId && (
+                          <span
+                            className="leading-none"
+                            aria-label="Game leader"
+                          >
+                            👑
+                          </span>
+                        )}
+                        {p.isSeated && (
+                          <span className="text-emerald-300" aria-label="Ready">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {!winner && (
+                <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
+                  <h2 className="text-lg font-semibold text-white">
+                    How to play
+                  </h2>
+                  <ul className="mt-4 space-y-2 text-left text-sm text-indigo-100">
+                    <li>
+                      Take turns creating words containing the given pattern
+                    </li>
+                    <li>Think fast! The bomb timer gets shorter each round</li>
+                    <li>Words must be valid and not used previously</li>
+                    <li>Last player standing wins the game</li>
+                  </ul>
+                </section>
+              )}
+            </div>
+          )}
+        </main>
+
+        <div
+          id="mobile-chat-sheet"
+          ref={mobileChatSheetRef}
+          className={`fixed inset-0 z-40 transition-opacity duration-300 ${
+            isChatOpen
+              ? 'pointer-events-auto opacity-100'
+              : 'pointer-events-none opacity-0'
+          }`}
+          aria-hidden={!isChatOpen}
+        >
+          <div
+            className={`absolute inset-0 bg-black/60 transition-opacity duration-300 ${
+              isChatOpen ? 'opacity-100' : 'opacity-0'
+            }`}
+            aria-hidden="true"
+            onClick={closeMobileChat}
+          />
+          <div
+            className={`absolute bottom-0 left-0 right-0 transform transition-transform duration-300 ${
+              isChatOpen ? 'translate-y-0' : 'translate-y-full'
+            }`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-chat-heading"
+          >
+            <div className="flex max-h-[80vh] flex-col rounded-t-3xl border-t border-white/10 bg-white/10 backdrop-blur-xl">
+              <div className="flex items-center justify-between px-4 pb-3 pt-4">
+                <span className="text-sm font-semibold text-white/80">
+                  Room chat
+                </span>
+                <button
+                  onClick={closeMobileChat}
+                  className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  aria-label="Close chat"
+                >
+                  <FaChevronDown className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <Chat
+                  roomCode={roomCode}
+                  roomName={roomName}
+                  headingId="mobile-chat-heading"
+                  autoFocus={isChatOpen}
+                  regionRole="region"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <RoomRulesDialog
+          open={isRulesOpen}
+          onClose={() => setIsRulesOpen(false)}
+          rules={roomRules}
+          isLeader={Boolean(isLeader)}
+          isUpdating={isRulesUpdating}
+          serverError={roomRulesError}
+          onSave={handleSaveRules}
+        />
+      </div>
     );
   }
 
@@ -128,7 +464,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
     // instead of being overlapped by the fixed chat panel.
     <div
       className={`flex h-[100svh] w-screen flex-col bg-gradient-to-br from-indigo-950 to-purple-900 text-white transition-all duration-300 ease-in-out ${
-        !isMobile ? (isChatOpen ? 'md:pr-96' : 'md:pr-0') : ''
+        isChatOpen ? 'md:pr-96' : 'md:pr-0'
       }`}
     >
       {/* Skip link for keyboard users */}
@@ -176,28 +512,15 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
             onClick={() => setIsChatOpen(!isChatOpen)}
             className="grid h-9 w-9 place-items-center rounded-md border border-white/10 bg-white/10 text-white shadow-sm transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
             aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
-            aria-controls={
-              // Associate with the visible panel by breakpoint
-              !isMobile ? 'desktop-chat-panel' : 'mobile-chat-panel'
-            }
+            aria-controls="desktop-chat-panel"
             aria-expanded={isChatOpen}
             data-testid="chat-toggle-top"
           >
-            {/* Desktop: left/right arrow. Mobile: up/down arrow. Direction represents the action to be performed. */}
-            <span className="hidden md:block">
-              {isChatOpen ? (
-                <FaChevronRight className="h-4 w-4" />
-              ) : (
-                <FaChevronLeft className="h-4 w-4" />
-              )}
-            </span>
-            <span className="md:hidden">
-              {isChatOpen ? (
-                <FaChevronDown className="h-4 w-4" />
-              ) : (
-                <FaChevronUp className="h-4 w-4" />
-              )}
-            </span>
+            {isChatOpen ? (
+              <FaChevronRight className="h-4 w-4" />
+            ) : (
+              <FaChevronLeft className="h-4 w-4" />
+            )}
           </button>
         </div>
 
@@ -213,19 +536,8 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
       {/* Main Area */}
       <main
         id="main-content"
-        className={`relative flex-1 transition-all duration-300 ${
-          // Desktop: always hide scroll; Mobile: allow scroll only during game
-          isMobile
-            ? visualState !== 'playing'
-              ? 'overflow-hidden'
-              : 'overflow-y-auto'
-            : 'overflow-hidden'
-        } ${
-          // Extra bottom padding only needed on mobile when chat open
-          isChatOpen && isMobile ? 'pb-[33vh] md:pb-0' : 'pb-safe'
-        } ${
-          // When playing on desktop, center contents
-          !isMobile && visualState === 'playing' ? 'flex' : ''
+        className={`pb-safe relative flex-1 overflow-hidden transition-all duration-300 ${
+          visualState === 'playing' ? 'flex' : ''
         }`}
         role="main"
         aria-live="polite"
@@ -251,12 +563,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
 
         {/* Lobby with Optional Winner */}
         {visualState !== 'playing' && (
-          <div
-            className={`flex min-h-[100svh] flex-col items-center justify-center px-4 text-center ${
-              // Move panel slightly up on mobile for better visual centering with bottom bar
-              isMobile ? '-mt-8 pb-20' : ''
-            }`}
-          >
+          <div className="flex min-h-[100svh] flex-col items-center justify-center px-4 text-center">
             {winner && (
               <div className="animate-winner-fade-in mb-10 flex flex-col items-center">
                 <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-white/5 p-8 shadow-xl backdrop-blur-sm transition-all">
@@ -397,51 +704,6 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
           </div>
         )}
       </main>
-
-      {/* Bottom Join + Chat container (mobile only) */}
-      {visualState !== 'playing' && (
-        <div
-          className={`fixed bottom-0 left-0 z-40 w-full transform transition-transform duration-300 ease-in-out md:hidden ${
-            isChatOpen ? 'translate-y-0' : 'translate-y-[calc(33vh-0.25rem)]'
-          }`}
-        >
-          {/* 🔘 Join Game Bar – mobile */}
-          <div className="relative flex w-full justify-center gap-4 border-t border-white/10 bg-white/5 py-4 shadow-inner backdrop-blur-sm">
-            <JoinGameButtons />
-
-            {/* Chat Toggle Button – mobile (restored) */}
-            <button
-              onClick={() => setIsChatOpen(!isChatOpen)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 transition-colors hover:bg-white/20 focus:ring-2 focus:ring-emerald-400"
-              aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
-              aria-controls="mobile-chat-panel"
-              aria-expanded={isChatOpen}
-            >
-              {isChatOpen ? (
-                <FaChevronDown className="h-4 w-4" />
-              ) : (
-                <FaChevronUp className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-
-          {/* 💬 Chat Panel – mobile */}
-          <div
-            id="mobile-chat-panel"
-            className="h-[33vh] border-t border-white/10 bg-white/5 shadow-lg backdrop-blur-sm"
-            aria-hidden={!isChatOpen}
-          >
-            <Chat
-              roomCode={roomCode}
-              roomName={roomName}
-              headingId="mobile-chat-heading"
-              autoFocus={isChatOpen}
-              regionRole="region"
-            />
-          </div>
-        </div>
-      )}
-
       {/* Join Game Bar – desktop only */}
       {visualState !== 'playing' && (
         <div className="z-10 hidden w-full justify-center gap-4 border-t border-white/10 bg-white/5 py-4 shadow-inner backdrop-blur-sm md:flex">
