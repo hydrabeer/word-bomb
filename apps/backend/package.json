@@ -11,20 +11,21 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage"
   },
   "dependencies": {
+    "@game/domain": "workspace:*",
+    "@word-bomb/types": "workspace:*",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
+    "pino": "^9.11.0",
     "socket.io": "^4.8.1",
-    "zod": "^3.24.2",
-    "@game/domain": "workspace:*",
-    "@word-bomb/types": "workspace:*"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/node": "^22.14.0",
+    "socket.io-client": "^4.8.1",
     "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
-    "socket.io-client": "^4.8.1"
+    "tsconfig-paths": "^4.2.0"
   }
 }
