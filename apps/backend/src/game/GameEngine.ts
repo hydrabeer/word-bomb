@@ -60,22 +60,7 @@ export class GameEngine {
     this.clearTimeout();
 
     this.timeoutToken = this.scheduler.schedule(duration * 1000, () => {
-      const currentPlayer = this.rules.getCurrentPlayer();
-
-      currentPlayer.loseLife();
-      this.emit('playerUpdated', {
-        playerId: currentPlayer.id,
-        lives: currentPlayer.lives,
-      });
-      this.eventsPort.playerUpdated(currentPlayer.id, currentPlayer.lives);
-
-      if (this.onTurnTimeout) {
-        this.onTurnTimeout(currentPlayer);
-      }
-
-      if (this.handleGameOverIfAny()) return;
-
-      this.advanceTurn();
+      this.handleTurnTimeout();
     });
 
     this.eventsPort.turnStarted(this.game);
@@ -87,25 +72,47 @@ export class GameEngine {
     this.startTurn();
   }
 
-  private validateSubmission(playerId: string, word: string): string | null {
-    return this.rules.validateSubmission(playerId, word);
-  }
-
   public submitWord(
     playerId: string,
     word: string,
   ): { success: boolean; error?: string } {
-    const error = this.validateSubmission(playerId, word);
+    const error = this.rules.validateSubmission(playerId, word);
     if (error) return { success: false, error };
     const player = this.rules.getCurrentPlayer();
     this.rules.applyAcceptedWord(player, word);
-    this.emit('wordAccepted', { playerId, word });
-    this.eventsPort.wordAccepted(playerId, word);
+    this.notifyWordAccepted(playerId, word);
     if (this.handleGameOverIfAny()) return { success: true };
 
     this.advanceTurn();
 
     return { success: true };
+  }
+
+  private handleTurnTimeout(): void {
+    const currentPlayer = this.rules.getCurrentPlayer();
+    currentPlayer.loseLife();
+    this.notifyPlayerUpdated(currentPlayer);
+
+    if (this.onTurnTimeout) {
+      this.onTurnTimeout(currentPlayer);
+    }
+
+    if (this.handleGameOverIfAny()) return;
+
+    this.advanceTurn();
+  }
+
+  private notifyPlayerUpdated(player: Player): void {
+    this.emit('playerUpdated', {
+      playerId: player.id,
+      lives: player.lives,
+    });
+    this.eventsPort.playerUpdated(player.id, player.lives);
+  }
+
+  private notifyWordAccepted(playerId: string, word: string): void {
+    this.emit('wordAccepted', { playerId, word });
+    this.eventsPort.wordAccepted(playerId, word);
   }
 
   private handleGameOverIfAny(): boolean {
