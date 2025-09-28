@@ -41,7 +41,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: true,
-        project: ['./tsconfig.app.json'],
+        project: ['./tsconfig.json'],
         tsconfigRootDir: __dirname,
       },
     },

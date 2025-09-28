@@ -5,7 +5,7 @@
   "type": "commonjs",
   "main": "src/index.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -b",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "ts-node -r tsconfig-paths/register src/index.ts",
     "lint": "eslint \"src/**/*.ts\"",
@@ -25,6 +25,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@word-bomb/typescript-config": "workspace:*",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/node": "^22.14.0",

@@ -3,8 +3,9 @@
   "globalDependencies": [
     ".env",
     ".env.*",
-    "tsconfig.base.json",
-    "tsconfig.all.json"
+    "packages/typescript-config/*.json",
+    "eslint.config.mjs",
+    "pnpm-workspace.yaml"
   ],
   "tasks": {
     "build": {
@@ -21,7 +22,10 @@
       "dependsOn": ["^typecheck"],
       "inputs": ["**/*.{ts,tsx}"]
     },
-    "test": { "dependsOn": ["^build"] },
+    "test": { "dependsOn": ["transit"] },
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
     "test:watch": { "cache": false, "persistent": true },
     "test:coverage": { "dependsOn": ["^build"], "outputs": ["coverage/**"] }
   }

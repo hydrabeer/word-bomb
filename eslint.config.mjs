@@ -13,9 +13,27 @@ export default tseslint.config(
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
 
+  // Turn off all type-aware rules for test files; we'll lint them without type info
+  {
+    files: [
+      '**/*.{test,spec}.ts',
+      '**/*.{test,spec}.tsx',
+      'apps/backend/test/**/*.ts',
+    ],
+    rules: {
+      ...tseslint.configs.disableTypeChecked.rules,
+    },
+  },
+
   // Global TS settings for your monorepo
   {
     files: ['**/*.ts', '**/*.tsx'],
+    ignores: [
+      '**/*.{test,spec}.ts',
+      '**/*.{test,spec}.tsx',
+      'apps/backend/test/**/*.ts',
+      'apps/backend/src/**/*.{test,spec}.ts',
+    ],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -24,7 +42,6 @@ export default tseslint.config(
         allowDefaultProject: true,
         tsconfigRootDir: import.meta.dirname,
         project: [
-          './tsconfig.base.json',
           './apps/backend/tsconfig.json',
           './apps/frontend/tsconfig.json',
           './packages/domain/tsconfig.json',
@@ -51,14 +68,8 @@ export default tseslint.config(
     languageOptions: {
       // give describe/it/expect globals
       globals: vitest.environments.env.globals,
-      parserOptions: {
-        projectService: true,
-        // Let ESLint use a default project for test files that are intentionally
-        // excluded from tsconfig build (e.g., **/*.test.ts). This avoids
-        // "not found by the project service" parser errors while keeping
-        // type-aware linting where possible.
-        allowDefaultProject: true,
-      },
+      // Do not use the project service for tests; avoids tsconfig include issues
+      parserOptions: { projectService: false },
     },
   },
 
@@ -66,7 +77,11 @@ export default tseslint.config(
   // Turn off the project service for them to avoid parser errors while still
   // getting core ESLint + Vitest rules.
   {
-    files: ['apps/backend/src/**/*.{test,spec}.ts'],
+    files: [
+      'apps/backend/src/**/*.{test,spec}.ts',
+      // Also match when running ESLint from within apps/backend CWD
+      'src/**/*.{test,spec}.ts',
+    ],
     languageOptions: {
       parserOptions: { projectService: false },
     },

@@ -1,22 +1,19 @@
-// /apps/backend/tsconfig.json
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "@word-bomb/typescript-config/node-app.json",
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "nodenext",
-    "composite": true,
-    "rootDir": "src", // narrow to source only
+    "types": ["vitest/globals"],
+    "rootDir": "src",
     "outDir": "dist",
-    "types": ["vitest/globals"]
+    "noEmit": true
   },
-  "include": ["src"], // ✅ only source gets built
+  "include": ["src"],
   "exclude": [
-    "test", // ✅ don’t compile tests
+    "test",
     "**/*.test.*",
-    "vitest.config.ts" // avoid emitting the config
-  ],
-  "references": [
-    { "path": "../../packages/domain" },
-    { "path": "../../packages/types" }
+    "vitest.config.ts",
+    "tsup.config.ts",
+    "vite.config.ts"
   ]
 }

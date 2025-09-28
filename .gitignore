@@ -35,7 +35,7 @@ Thumbs.db
 **/coverage
 
 # TypeScript build info files
-tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # Don't commit dictionary
 apps/backend/src/dictionary/*.txt

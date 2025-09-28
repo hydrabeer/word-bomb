@@ -1,0 +1,15 @@
+{
+  "name": "@word-bomb/typescript-config",
+  "private": true,
+  "version": "1.0.0",
+  "files": [
+    "*.json"
+  ],
+  "type": "module",
+  "exports": {
+    "./base.json": "./base.json",
+    "./node-lib.json": "./node-lib.json",
+    "./node-app.json": "./node-app.json",
+    "./react-app.json": "./react-app.json"
+  }
+}

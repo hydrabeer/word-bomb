@@ -1,14 +1,8 @@
-// /packages/domain/tsconfig.json
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "@word-bomb/typescript-config/node-lib.json",
   "compilerOptions": {
-    "composite": true,
     "lib": ["ES2022", "DOM"],
-    "outDir": "dist",
-    "rootDir": "src",
     "types": ["vitest/globals"]
   },
-  // Note: Removed "vitest.config.ts" from includes; keeping only source files under rootDir.
-  "include": ["src"],
-  "references": [{ "path": "../types" }]
+  "include": ["src"]
 }

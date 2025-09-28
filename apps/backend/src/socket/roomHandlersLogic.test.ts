@@ -269,7 +269,6 @@ describe('registerRoomHandlers', () => {
       success: false,
       error: 'Invalid payload',
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const roomGetMock = roomManager.get as unknown as ReturnType<typeof vi.fn>;
     expect(roomGetMock).not.toHaveBeenCalled();
   });
@@ -285,7 +284,6 @@ describe('registerRoomHandlers', () => {
       success: false,
       error: 'Invalid player name',
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const roomGetMock2 = roomManager.get as unknown as ReturnType<typeof vi.fn>;
     expect(roomGetMock2).not.toHaveBeenCalled();
   });

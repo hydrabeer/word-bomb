@@ -1,5 +1,10 @@
 {
   "extends": "@word-bomb/typescript-config/node-lib.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false
+  },
   "include": ["src"],
   "exclude": ["**/*.test.ts"]
 }

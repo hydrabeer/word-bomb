@@ -1,13 +1,9 @@
 // /apps/frontend/tsconfig.json
 {
-  "extends": "../../tsconfig.base.json",
-  "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.app.json"
-    },
-    {
-      "path": "./tsconfig.node.json"
-    }
-  ]
+  "extends": "@word-bomb/typescript-config/react-app.json",
+  "compilerOptions": {
+    "types": ["vitest/globals"],
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src", "vite-env.d.ts", "vite.config.ts", "types"]
 }
