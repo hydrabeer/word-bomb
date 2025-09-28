@@ -1,9 +1,0 @@
-{
-  "files": [],
-  "references": [
-    { "path": "packages/types" },
-    { "path": "packages/domain" },
-    { "path": "apps/backend" },
-    { "path": "apps/frontend/tsconfig.app.json" }
-  ]
-}
