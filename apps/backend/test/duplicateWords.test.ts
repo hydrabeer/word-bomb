@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { Game, GameRoomRules, createPlayer } from '@game/domain';
 import { GameEngine } from '../src/game/GameEngine';
 import type { TurnScheduler, GameEventsPort } from '../src/game/GameEngine';
+import type { DictionaryPort } from '../src/dictionary';
 import type { ServerToClientEvents } from '@word-bomb/types';
 
 const rules: GameRoomRules = {
@@ -40,16 +41,12 @@ function makeGame(fragment = 'aa') {
 }
 
 describe('duplicate words are rejected within a game', () => {
-  it('rejects a word that has already been used and resets next game', () => {
-    // Ensure dictionary validity always passes for simplicity
-    vi.mock('../src/dictionary', async () => {
-      const mod =
-        await vi.importActual<typeof import('../src/dictionary')>(
-          '../src/dictionary',
-        );
-      return { ...mod, isValidWord: () => true };
-    });
+  const dictionary: DictionaryPort = {
+    isValid: () => true,
+    getRandomFragment: () => 'aa',
+  };
 
+  it('rejects a word that has already been used and resets next game', () => {
     type EmitFn = <K extends keyof ServerToClientEvents>(
       event: K,
       ...args: Parameters<ServerToClientEvents[K]>
@@ -82,6 +79,7 @@ describe('duplicate words are rejected within a game', () => {
       emit,
       scheduler,
       eventsPort,
+      dictionary,
     });
 
     const pA = game.getCurrentPlayer();
@@ -105,6 +103,7 @@ describe('duplicate words are rejected within a game', () => {
       emit,
       scheduler,
       eventsPort,
+      dictionary,
     });
     const pAnew = game2.getCurrentPlayer();
     const ok = engine2.submitWord(pAnew.id, 'aab');

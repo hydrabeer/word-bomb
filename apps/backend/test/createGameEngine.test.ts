@@ -5,6 +5,7 @@ import { Game, GameRoom, GameRoomRules } from '@game/domain';
 import { RoomBroadcaster } from '../src/core/RoomBroadcaster';
 import * as emitPlayersModule from '../src/game/orchestration/emitPlayers';
 import { socketRoomId } from '../src/utils/socketRoomId';
+import type { DictionaryPort } from '../src/dictionary';
 
 const rules: GameRoomRules = {
   maxLives: 3,
@@ -33,6 +34,13 @@ function makeGameForRoom(room: GameRoom) {
     state: 'active',
     rules,
   });
+}
+
+function stubDictionary(): DictionaryPort {
+  return {
+    isValid: () => true,
+    getRandomFragment: () => 'aa',
+  };
 }
 
 describe('createGameEngine wiring', () => {
@@ -65,7 +73,7 @@ describe('createGameEngine wiring', () => {
     const emitPlayersSpy = vi.spyOn(emitPlayersModule, 'emitPlayers');
     const endGameSpy = vi.spyOn(room, 'endGame');
 
-    const engine = createGameEngine(io, room, game);
+    const engine = createGameEngine(io, room, game, stubDictionary());
     engine.beginGame();
 
     // turnStarted should broadcast and emit to socket room
@@ -99,7 +107,7 @@ describe('createGameEngine wiring', () => {
     const toSpy = vi.fn(() => ({ emit: vi.fn() }));
     const io = { to: toSpy } as unknown as TypedServer;
 
-    const engine = createGameEngine(io, room, game);
+    const engine = createGameEngine(io, room, game, stubDictionary());
     engine.beginGame();
     engine.clearTimeout();
 

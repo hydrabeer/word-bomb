@@ -2,6 +2,7 @@ import { GameEngine } from '../GameEngine';
 import type { Game, GameRoom } from '@game/domain';
 import type { TypedServer } from '../../socket/typedSocket';
 import type { ServerToClientEvents } from '@word-bomb/types';
+import type { DictionaryPort } from '../../dictionary';
 import { emitPlayers } from './emitPlayers';
 import { RoomBroadcaster } from '../../core/RoomBroadcaster';
 import { socketRoomId } from '../../utils/socketRoomId';
@@ -11,6 +12,7 @@ export function createGameEngine(
   io: TypedServer,
   room: GameRoom,
   game: Game,
+  dictionary: DictionaryPort,
 ): GameEngine {
   const broadcaster = new RoomBroadcaster(io);
 
@@ -46,5 +48,6 @@ export function createGameEngine(
         deleteGameEngine(room.code);
       },
     },
+    dictionary,
   });
 }

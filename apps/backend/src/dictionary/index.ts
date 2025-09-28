@@ -2,6 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 
+export interface DictionaryPort {
+  isValid(word: string): boolean;
+  getRandomFragment(minWordsPerPrompt: number): string;
+}
+
 let dictionary = new Set<string>();
 let fragmentCounts = new Map<string, number>();
 let usingFallbackDictionary = false;
@@ -97,6 +102,14 @@ export async function loadDictionary(): Promise<void> {
       );
     }
   }
+}
+
+export function createDictionaryPort(): DictionaryPort {
+  return {
+    isValid: (word: string) => isValidWord(word),
+    getRandomFragment: (minWordsPerPrompt: number) =>
+      getRandomFragment(minWordsPerPrompt),
+  };
 }
 
 /**

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Game, GameRoomRules, createPlayer } from '@game/domain';
 import { GameEngine } from '../src/game/GameEngine';
+import type { DictionaryPort } from '../src/dictionary';
 import { buildTurnStartedPayload } from '../src/core/serialization';
 
 const rules: GameRoomRules = {
@@ -10,6 +11,13 @@ const rules: GameRoomRules = {
   minTurnDuration: 5,
   minWordsPerPrompt: 2,
 };
+
+function stubDictionary(): DictionaryPort {
+  return {
+    isValid: () => true,
+    getRandomFragment: () => 'aa',
+  };
+}
 
 function makePlayers() {
   return [
@@ -84,6 +92,7 @@ describe('GameEngine extra coverage', () => {
           /* noop */
         },
       },
+      dictionary: stubDictionary(),
     });
     engine.beginGame();
     expect(emitted.find((ev) => ev.e === 'turnStarted')?.payload).toEqual(
@@ -121,6 +130,7 @@ describe('GameEngine extra coverage', () => {
           /* noop */
         },
       },
+      dictionary: stubDictionary(),
     });
     expect(engine.submitWord('B', 'word').success).toBe(false); // not your turn
     expect(engine.submitWord('A', 'a').success).toBe(false); // too short
@@ -159,6 +169,7 @@ describe('GameEngine extra coverage', () => {
         },
         gameEnded: onGameEnded,
       },
+      dictionary: stubDictionary(),
     });
     engine.beginGame();
     vi.advanceTimersByTime(1100);
@@ -195,6 +206,7 @@ describe('GameEngine extra coverage', () => {
         },
       },
       onTurnTimeout,
+      dictionary: stubDictionary(),
     });
 
     engine.beginGame();

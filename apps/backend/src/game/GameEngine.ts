@@ -1,5 +1,5 @@
 import { Game, GameRulesService, Player } from '@game/domain';
-import { isValidWord, getRandomFragment } from '../dictionary';
+import type { DictionaryPort } from '../dictionary';
 import type { ServerToClientEvents } from '@word-bomb/types';
 import { buildTurnStartedPayload } from '../core/serialization';
 
@@ -26,6 +26,7 @@ interface GameEngineOptions {
   emit: EmitFn; // temporary direct emitter for legacy events
   scheduler: TurnScheduler;
   eventsPort: GameEventsPort;
+  dictionary: DictionaryPort;
   onTurnTimeout?: (player: Player) => void;
 }
 
@@ -37,13 +38,12 @@ export class GameEngine {
   private readonly onTurnTimeout: ((player: Player) => void) | undefined;
   private readonly scheduler: TurnScheduler;
   private readonly eventsPort: GameEventsPort;
-
   constructor(opts: GameEngineOptions) {
     this.game = opts.game;
     this.rules = new GameRulesService(
       this.game,
-      { isValid: (w: string) => isValidWord(w) },
-      { nextFragment: (min: number) => getRandomFragment(min) },
+      { isValid: (w: string) => opts.dictionary.isValid(w) },
+      { nextFragment: (min: number) => opts.dictionary.getRandomFragment(min) },
     );
     this.emit = opts.emit;
     this.onTurnTimeout = opts.onTurnTimeout;

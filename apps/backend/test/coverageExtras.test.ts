@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestServer, withServer } from './helpers';
 import { roomManager } from '../src/room/roomManagerSingleton';
 import type { TestContext } from './helpers';
@@ -6,6 +6,7 @@ import {
   loadDictionary,
   isValidWord,
   getRandomFragment,
+  createDictionaryPort,
 } from '../src/dictionary';
 import { setDisconnectGrace } from '../src/socket/roomHandlers';
 import { GameRoom, GameRoomRules } from '@game/domain';
@@ -65,21 +66,21 @@ describeCoverage('coverage extras', () => {
       minWordsPerPrompt: 1,
     };
 
-    function makeRoomWithGame() {
+    function makeRoomWithGame(dictionary = createDictionaryPort()) {
       const room = new GameRoom({ code: 'TEST' }, rules);
       // Add players (room.addPlayer sets leader then second)
       room.addPlayer({ id: 'P1', name: 'Alice' });
       room.addPlayer({ id: 'P2', name: 'Bob' });
       room.setPlayerSeated('P1', true);
       room.setPlayerSeated('P2', true);
-      const game = createNewGame(room);
+      const game = createNewGame(room, dictionary);
       if (!game) throw new Error('Game not created');
-      return { room, game };
+      return { room, game, dictionary };
     }
 
     it('handles submitWord failure paths', () => {
       const emits: { event: string; payload: unknown }[] = [];
-      const { game } = makeRoomWithGame();
+      const { game, dictionary } = makeRoomWithGame();
       type EmitTest = (event: string, payload?: unknown) => void;
       const engine = new GameEngine({
         game,
@@ -111,6 +112,7 @@ describeCoverage('coverage extras', () => {
             /* noop */
           },
         },
+        dictionary,
       });
       const current = game.getCurrentPlayer();
       const notTurn = game.players[1];
@@ -129,21 +131,12 @@ describeCoverage('coverage extras', () => {
     });
 
     it('advances turn and emits acceptance on valid word (mock validity)', () => {
-      // Mock isValidWord to always true
-      vi.mock('../src/dictionary', async () => {
-        const mod =
-          await vi.importActual<typeof import('../src/dictionary')>(
-            '../src/dictionary',
-          );
-        return {
-          ...mod,
-          isValidWord: () => true,
-          getRandomFragment: () => 'aa',
-        };
-      });
-      // Re-import engine after mock (local file referencing above path) - but engine already imported.
       const emits: string[] = [];
-      const { game } = makeRoomWithGame();
+      const dictionary = {
+        isValid: () => true,
+        getRandomFragment: () => 'aa',
+      };
+      const { game } = makeRoomWithGame(dictionary);
       type EmitTest = (event: string, payload?: unknown) => void;
       const engine = new GameEngine({
         game,
@@ -175,6 +168,7 @@ describeCoverage('coverage extras', () => {
             /* noop */
           },
         },
+        dictionary,
       });
       const current = game.getCurrentPlayer();
       const res = engine.submitWord(current.id, 'aab');
