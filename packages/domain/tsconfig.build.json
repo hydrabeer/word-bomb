@@ -5,8 +5,8 @@
     "outDir": "dist",
     "noEmit": false,
     "lib": ["ES2022", "DOM"],
-    "module": "NodeNext",
-    "moduleResolution": "nodenext"
+    "module": "CommonJS",
+    "moduleResolution": "Node"
   },
   "include": ["src"],
   "exclude": ["**/*.test.ts", "**/*.spec.ts", "test", "node_modules", "dist"]
