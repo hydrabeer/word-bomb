@@ -56,7 +56,11 @@ export interface PlayersDiffPayload {
     changes: Partial<{ name: string; isSeated: boolean; isConnected: boolean }>;
   }[];
   removed: string[];
-  leaderIdChanged?: string;
+  /**
+   * When present, indicates that the room leader changed. `null` signals that
+   * the room no longer has a leader.
+   */
+  leaderIdChanged?: string | null;
 }
 export interface PlayerUpdatedPayload {
   playerId: string;

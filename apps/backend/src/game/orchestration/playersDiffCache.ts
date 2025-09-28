@@ -55,15 +55,10 @@ export function computePlayersDiff(room: GameRoom): PlayersDiffPayload | null {
     if (!currMap.has(p.id)) removed.push(p.id);
   }
 
-  const leaderIdChanged = (() => {
-    const last = lastLeaderIds.get(room.code) ?? null;
-    const curr = room.getLeaderId();
-    if (last !== curr) {
-      lastLeaderIds.set(room.code, curr);
-      return curr ?? '';
-    }
-    return undefined;
-  })();
+  const previousLeaderId = lastLeaderIds.get(room.code) ?? null;
+  const currentLeaderId = room.getLeaderId();
+  const leaderIdChanged =
+    previousLeaderId !== currentLeaderId ? currentLeaderId : undefined;
 
   if (
     !added.length &&
@@ -76,8 +71,7 @@ export function computePlayersDiff(room: GameRoom): PlayersDiffPayload | null {
 
   // persist snapshot
   lastSnapshots.set(room.code, current);
-  if (!lastLeaderIds.has(room.code))
-    lastLeaderIds.set(room.code, room.getLeaderId());
+  lastLeaderIds.set(room.code, currentLeaderId);
 
   return { added, updated, removed, leaderIdChanged };
 }

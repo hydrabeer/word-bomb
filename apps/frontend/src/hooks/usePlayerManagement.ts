@@ -57,7 +57,7 @@ export function usePlayerManagement(roomCode: string) {
         return next;
       });
       if (diff.leaderIdChanged !== undefined) {
-        setLeaderId(diff.leaderIdChanged === '' ? null : diff.leaderIdChanged);
+        setLeaderId(diff.leaderIdChanged);
       }
     }
 
