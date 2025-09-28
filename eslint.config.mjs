@@ -33,6 +33,7 @@ export default tseslint.config(
       '**/*.{test,spec}.tsx',
       'apps/backend/test/**/*.ts',
       'apps/backend/src/**/*.{test,spec}.ts',
+      '**/vitest.config.ts',
     ],
     languageOptions: {
       parserOptions: {
