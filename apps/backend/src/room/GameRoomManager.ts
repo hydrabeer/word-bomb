@@ -1,4 +1,5 @@
 import { GameRoom, GameRoomRules } from '@game/domain';
+import { getLogger } from '../logging/context';
 
 export class GameRoomManager {
   private readonly rooms = new Map<string, GameRoom>();
@@ -12,7 +13,14 @@ export class GameRoomManager {
   }
 
   delete(code: string): boolean {
-    return this.rooms.delete(code);
+    const deleted = this.rooms.delete(code);
+    if (deleted) {
+      getLogger().info(
+        { event: 'room_deleted', gameId: code },
+        'Game room deleted',
+      );
+    }
+    return deleted;
   }
 
   create(code: string, rules: GameRoomRules, name?: string): GameRoom {
@@ -25,6 +33,10 @@ export class GameRoomManager {
       room.name = name;
     }
     this.rooms.set(code, room);
+    getLogger().info(
+      { event: 'game_created', gameId: code },
+      'Game room created',
+    );
     return room;
   }
 
@@ -38,6 +50,13 @@ export class GameRoomManager {
    * Removes all rooms. Intended for test isolation only.
    */
   clear(): void {
+    const count = this.rooms.size;
     this.rooms.clear();
+    if (count > 0) {
+      getLogger().debug(
+        { event: 'rooms_cleared', count },
+        'Cleared game rooms',
+      );
+    }
   }
 }

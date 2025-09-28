@@ -8,6 +8,32 @@ vi.mock('../src/dictionary', () => ({ loadDictionary: loadDictionaryMock }));
 const adapterOn = vi.fn();
 const connectionHandler = vi.fn();
 
+const infoSpy = vi.fn();
+const loggerMock = {
+  info: infoSpy,
+  error: vi.fn(),
+  warn: vi.fn(),
+  debug: vi.fn(),
+  child: vi.fn(function child() {
+    return loggerMock;
+  }),
+};
+
+vi.mock('../src/logging', () => ({
+  createLogger: vi.fn(() => loggerMock),
+}));
+
+vi.mock('../src/logging/context', () => {
+  return {
+    initializeLoggerContext: vi.fn(),
+    getLogger: vi.fn(() => loggerMock),
+    getLogContext: vi.fn(() => ({ logger: loggerMock })),
+    withLogContext: vi.fn((_, cb: () => unknown) => cb()),
+    runWithContext: vi.fn((_, cb: () => unknown) => cb()),
+    childLogger: vi.fn(() => loggerMock),
+  };
+});
+
 vi.mock('socket.io', () => ({
   Server: class {
     adapter = { on: adapterOn };
@@ -35,11 +61,7 @@ vi.mock('http', () => ({
 
 describe('index bootstrap', () => {
   it('loads dictionary, starts server, registers adapter events', async () => {
-    const logSpy = vi
-      .spyOn(console, 'log')
-      .mockImplementation(function logNoop() {
-        /* intentionally muted in test */
-      });
+    infoSpy.mockClear();
     await import('../src/index');
     await Promise.resolve();
     expect(loadDictionaryMock).toHaveBeenCalledTimes(1);
@@ -55,10 +77,7 @@ describe('index bootstrap', () => {
       ]),
     );
     expect(
-      logSpy.mock.calls.some((c) =>
-        String(c[0]).includes('Server running on port'),
-      ),
+      infoSpy.mock.calls.some(([payload]) => payload?.event === 'server_ready'),
     ).toBe(true);
-    logSpy.mockRestore();
   });
 });

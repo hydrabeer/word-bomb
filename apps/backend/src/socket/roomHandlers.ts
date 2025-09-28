@@ -23,6 +23,12 @@ import { removePlayersDiffCacheForRoom } from '../game/orchestration/playersDiff
 
 import type { TypedServer, TypedSocket } from './typedSocket';
 import { createSocketDataAccessor } from './socketDataAccessor';
+import {
+  childLogger,
+  getLogContext,
+  getLogger,
+  runWithContext,
+} from '../logging/context';
 
 // Configurable grace period (ms) before removing a disconnected player.
 // Tests may adjust via setDisconnectGrace().
@@ -32,6 +38,15 @@ export function setDisconnectGrace(ms: number) {
 }
 
 export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
+  const connectionContext = getLogContext();
+  const withContext =
+    <Args extends unknown[]>(handler: (...args: Args) => void) =>
+    (...args: Args) => {
+      runWithContext(connectionContext, () => {
+        handler(...args);
+      });
+    };
+
   // Simple runtime validators to avoid unsafe member access complaints.
   // Generic helpers / parsers (avoid any).
   const isObject = (v: unknown): v is Record<string, unknown> =>
@@ -173,12 +188,19 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     try {
       roomInstance.cancelGameStartTimer();
     } catch (err) {
-      console.warn(`[ROOM CLEANUP] Failed to cancel timer for ${code}`, err);
+      const log = getLogger();
+      log.warn(
+        { event: 'room_cleanup_failed', gameId: code, err },
+        'Failed to cancel game start timer',
+      );
     }
     deleteGameEngine(code);
     removePlayersDiffCacheForRoom(code);
     roomManager.delete(code);
-    console.log(`[ROOM CLEANUP] Disposed room ${code}`);
+    getLogger().info(
+      { event: 'room_disposed', gameId: code },
+      'Disposed empty room',
+    );
   };
 
   const cleanupRoomIfEmpty = (code: string): void => {
@@ -196,19 +218,47 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
     const { roomCode, playerId, name } = parsed;
+    let log = getLogger();
+    log.debug(
+      {
+        event: 'message_in',
+        type: 'joinRoom',
+        gameId: roomCode,
+        playerId,
+        socketId: socket.id,
+      },
+      'joinRoom received',
+    );
     if (!name || name.length > 20) {
-      console.log(
-        `[JOIN ROOM] Invalid name for playerId=${playerId}, name='${name}'`,
+      log.warn(
+        {
+          event: 'invalid_player_name',
+          playerId,
+          attemptedNameLength: name.length,
+          socketId: socket.id,
+        },
+        'Player name rejected',
       );
       callback({ success: false, error: 'Invalid player name' });
       return;
     }
     const room = roomManager.get(roomCode);
     if (!room) {
-      console.log(`[JOIN ROOM] Room not found: ${roomCode}`);
+      log.warn(
+        {
+          event: 'room_not_found',
+          type: 'joinRoom',
+          gameId: roomCode,
+          playerId,
+          socketId: socket.id,
+        },
+        'Join room failed: room not found',
+      );
       callback({ success: false, error: 'Room not found' });
       return;
     }
+    childLogger({ gameId: roomCode, playerId });
+    log = getLogger();
     try {
       const existing = getCurrentRoomCode();
       if (existing !== roomCode) {
@@ -224,19 +274,44 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
           }
           // If player wasn't in prevRoom, suppress any leave announcement.
           void socket.leave(socketRoomId(prevRoom));
-          console.log(`[JOIN ROOM] Socket ${socket.id} left room:${prevRoom}`);
+          log.info(
+            {
+              event: 'player_switched_room',
+              fromGameId: prevRoom,
+              gameId: roomCode,
+              playerId,
+              socketId: socket.id,
+            },
+            'Player moved to new room',
+          );
         }
         setCurrentRoomCode(roomCode);
         void socket.join(socketRoomId(roomCode));
-        console.log(`[JOIN ROOM] Socket ${socket.id} joined room:${roomCode}`);
+        log.info(
+          {
+            event: 'player_room_joined',
+            gameId: roomCode,
+            playerId,
+            socketId: socket.id,
+          },
+          'Socket joined room',
+        );
       }
       if (!room.hasPlayer(playerId)) {
         room.addPlayer({ id: playerId, name });
         system(roomCode, `${name} joined the room.`);
         emitPlayers(io, room);
+        log.info(
+          { event: 'player_joined', gameId: roomCode, playerId },
+          'Player added to room roster',
+        );
       } else {
         room.setPlayerConnected(playerId, true);
         emitPlayers(io, room);
+        log.info(
+          { event: 'player_reconnected', gameId: roomCode, playerId },
+          'Player reconnected to room',
+        );
       }
       setCurrentPlayerId(playerId);
 
@@ -253,9 +328,14 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
           socket.emit('gameStarted', buildGameStartedPayload(room, game));
           socket.emit('turnStarted', buildTurnStartedPayload(game));
         } catch (e) {
-          console.warn(
-            '[JOIN ROOM] Failed to emit existing game state to late joiner:',
-            e,
+          log.warn(
+            {
+              event: 'existing_game_emit_failed',
+              gameId: roomCode,
+              playerId,
+              err: e,
+            },
+            'Failed to emit existing game state to late joiner',
           );
         }
       }
@@ -271,26 +351,59 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
 
       callback({ success: true });
     } catch (err) {
-      console.error('[JOIN ROOM] Error:', err);
+      log.error(
+        { event: 'join_room_error', gameId: roomCode, playerId, err },
+        'joinRoom handler error',
+      );
       callback({ success: false, error: (err as Error).message });
     }
   }
-  socket.on('joinRoom', handleJoinRoom);
+  socket.on('joinRoom', withContext(handleJoinRoom));
 
   // leaveRoom event
   function handleLeaveRoom(raw: unknown) {
     const parsed = parseLeaveRoom(raw);
     if (!parsed) return;
     const { roomCode, playerId } = parsed;
-    console.log(
-      `[LEAVE ROOM] socketId=${socket.id}, playerId=${playerId}, roomCode=${roomCode}`,
+    let log = getLogger();
+    log.debug(
+      {
+        event: 'message_in',
+        type: 'leaveRoom',
+        gameId: roomCode,
+        playerId,
+        socketId: socket.id,
+      },
+      'leaveRoom received',
     );
+    childLogger({ gameId: roomCode, playerId });
+    log = getLogger();
     const room = roomManager.get(roomCode);
-    if (!room) return;
+    if (!room) {
+      log.warn(
+        {
+          event: 'room_not_found',
+          type: 'leaveRoom',
+          gameId: roomCode,
+          playerId,
+          socketId: socket.id,
+        },
+        'Leave room ignored: room missing',
+      );
+      return;
+    }
     // Only announce/act if this player is actually in the room.
     const player = room.getPlayer(playerId);
     if (!player) {
-      // Ignore stray leave events (e.g., race conditions from route changes).
+      log.debug(
+        {
+          event: 'player_not_in_room',
+          gameId: roomCode,
+          playerId,
+          socketId: socket.id,
+        },
+        'Leave ignored: player not found in room',
+      );
       return;
     }
     const playerName = player.name;
@@ -299,6 +412,10 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     void socket.leave(socketRoomId(roomCode));
     emitPlayers(io, room);
     system(roomCode, `${playerName} left the room.`);
+    log.info(
+      { event: 'player_left', gameId: roomCode, playerId },
+      'Player left room',
+    );
 
     if (getCurrentPlayerId() === playerId) {
       clearCurrentPlayerId();
@@ -309,25 +426,38 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
 
     cleanupRoomIfEmpty(roomCode);
   }
-  socket.on('leaveRoom', handleLeaveRoom);
+  socket.on('leaveRoom', withContext(handleLeaveRoom));
 
   // chatMessage event
-  socket.on('chatMessage', (raw: unknown) => {
-    if (!isObject(raw)) return;
-    const rec: Record<string, unknown> = isObject(raw) ? raw : {};
-    const candidate = {
-      ...rec,
-      timestamp: Date.now(),
-      type: typeof rec.type === 'string' ? rec.type : 'user',
-    };
-    const result = ChatMessageSchema.safeParse(candidate);
-    if (!result.success) {
-      console.warn('[CHAT] Invalid message:', result.error);
-      return;
-    }
-    const chatMessage = result.data;
-    io.to(socketRoomId(chatMessage.roomCode)).emit('chatMessage', chatMessage);
-  });
+  socket.on(
+    'chatMessage',
+    withContext((raw: unknown) => {
+      if (!isObject(raw)) return;
+      const rec: Record<string, unknown> = isObject(raw) ? raw : {};
+      const candidate = {
+        ...rec,
+        timestamp: Date.now(),
+        type: typeof rec.type === 'string' ? rec.type : 'user',
+      };
+      const result = ChatMessageSchema.safeParse(candidate);
+      if (!result.success) {
+        getLogger().warn(
+          {
+            event: 'invalid_chat_message',
+            err: result.error,
+            socketId: socket.id,
+          },
+          'Rejected chat message',
+        );
+        return;
+      }
+      const chatMessage = result.data;
+      io.to(socketRoomId(chatMessage.roomCode)).emit(
+        'chatMessage',
+        chatMessage,
+      );
+    }),
+  );
 
   // setPlayerSeated event
   function handleSetPlayerSeated(
@@ -341,9 +471,31 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
     const { roomCode, playerId, seated } = parsed;
+    let log = getLogger();
+    log.debug(
+      {
+        event: 'message_in',
+        type: 'setPlayerSeated',
+        gameId: roomCode,
+        playerId,
+        socketId: socket.id,
+        seated,
+      },
+      'setPlayerSeated received',
+    );
+    childLogger({ gameId: roomCode, playerId });
+    log = getLogger();
     const room = roomManager.get(roomCode);
     if (!room) {
-      console.log('[SET SEATED] Room not found:', roomCode);
+      log.warn(
+        {
+          event: 'room_not_found',
+          type: 'setPlayerSeated',
+          gameId: roomCode,
+          playerId,
+        },
+        'setPlayerSeated failed: room not found',
+      );
       callback({ success: false, error: 'Room not found' });
       return;
     }
@@ -361,7 +513,10 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
           try {
             startGameForRoom(io, room);
           } catch (err) {
-            console.error('[AUTO START] Error starting game:', err);
+            log.error(
+              { event: 'auto_start_error', gameId: roomCode, err },
+              'Auto start failed',
+            );
           }
         }, timeLeft);
         io.to(socketRoomId(roomCode)).emit('gameCountdownStarted', {
@@ -376,9 +531,18 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       }
     }
     emitPlayers(io, room);
+    log.info(
+      {
+        event: 'player_seated_changed',
+        gameId: roomCode,
+        playerId,
+        seated,
+      },
+      'Updated player seating',
+    );
     callback({ success: true });
   }
-  socket.on('setPlayerSeated', handleSetPlayerSeated);
+  socket.on('setPlayerSeated', withContext(handleSetPlayerSeated));
 
   // startGame event
   function handleStartGame(raw: unknown, cb?: (res: BasicResponse) => void) {
@@ -389,10 +553,28 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
     const { roomCode } = parsed;
-    console.log(`[GAME START] Attempting to start game in room ${roomCode}`);
+    let log = getLogger();
+    log.debug(
+      {
+        event: 'message_in',
+        type: 'startGame',
+        gameId: roomCode,
+        socketId: socket.id,
+      },
+      'startGame received',
+    );
+    childLogger({ gameId: roomCode });
+    log = getLogger();
     const room = roomManager.get(roomCode);
     if (!room) {
-      console.log(`[START GAME] Room not found: ${roomCode}`);
+      log.warn(
+        {
+          event: 'room_not_found',
+          type: 'startGame',
+          gameId: roomCode,
+        },
+        'startGame failed: room not found',
+      );
       callback({ success: false, error: 'Room not found' });
       return;
     }
@@ -401,8 +583,13 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
         .getAllPlayers()
         .filter((p: Player) => p.isSeated);
       if (seatedPlayers.length < 2) {
-        console.log(
-          '[START GAME] Need at least 2 seated players to start the game.',
+        log.info(
+          {
+            event: 'start_game_rejected',
+            gameId: roomCode,
+            seatedPlayers: seatedPlayers.length,
+          },
+          'startGame rejected: insufficient seated players',
         );
         callback({
           success: false,
@@ -412,13 +599,24 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       }
       room.cancelGameStartTimer();
       startGameForRoom(io, room);
+      log.info(
+        {
+          event: 'game_started',
+          gameId: roomCode,
+          players: seatedPlayers.length,
+        },
+        'Game start triggered by client',
+      );
       callback({ success: true });
     } catch (err) {
-      console.error('[START GAME] Error:', err);
+      log.error(
+        { event: 'start_game_error', gameId: roomCode, err },
+        'startGame handler error',
+      );
       callback({ success: false, error: (err as Error).message });
     }
   }
-  socket.on('startGame', handleStartGame);
+  socket.on('startGame', withContext(handleStartGame));
 
   function handlePlayerTyping(raw: unknown) {
     const parsed = parsePlayerTyping(raw);
@@ -437,7 +635,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       input,
     });
   }
-  socket.on('playerTyping', handlePlayerTyping);
+  socket.on('playerTyping', withContext(handlePlayerTyping));
 
   // submitWord event
   function handleSubmitWord(raw: unknown, cb?: (res: BasicResponse) => void) {
@@ -448,9 +646,32 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
     const { roomCode, playerId, word, clientActionId } = parsed;
+    let log = getLogger();
+    log.debug(
+      {
+        event: 'message_in',
+        type: 'submitWord',
+        gameId: roomCode,
+        playerId,
+        socketId: socket.id,
+        clientActionId,
+      },
+      'submitWord received',
+    );
+    childLogger({ gameId: roomCode, playerId });
+    log = getLogger();
     const room = roomManager.get(roomCode);
     if (!room) {
       callback({ success: false, error: 'Room not found' });
+      log.warn(
+        {
+          event: 'room_not_found',
+          type: 'submitWord',
+          gameId: roomCode,
+          playerId,
+        },
+        'submitWord failed: room not found',
+      );
       if (clientActionId) {
         socket.emit('actionAck', {
           clientActionId,
@@ -475,7 +696,10 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
 
     const engine = getGameEngine(roomCode);
     if (!engine) {
-      console.warn(`[SUBMIT] No engine for room ${roomCode}`);
+      log.warn(
+        { event: 'engine_not_found', gameId: roomCode },
+        'submitWord failed: engine missing',
+      );
       callback({ success: false, error: 'Game engine not running.' });
       if (clientActionId) {
         socket.emit('actionAck', {
@@ -488,6 +712,16 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     }
     const result = engine.submitWord(playerId, word);
     callback(result);
+    log.info(
+      {
+        event: 'word_submitted',
+        gameId: roomCode,
+        playerId,
+        word,
+        success: result.success,
+      },
+      'Word submitted',
+    );
     if (clientActionId) {
       socket.emit('actionAck', {
         clientActionId,
@@ -496,7 +730,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       });
     }
   }
-  socket.on('submitWord', handleSubmitWord);
+  socket.on('submitWord', withContext(handleSubmitWord));
 
   function handleUpdateRoomRules(
     raw: unknown,
@@ -509,8 +743,26 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
     const { roomCode, rules } = parsed;
+    let log = getLogger();
+    log.debug(
+      {
+        event: 'message_in',
+        type: 'updateRoomRules',
+        gameId: roomCode,
+        socketId: socket.id,
+      },
+      'updateRoomRules received',
+    );
     const room = roomManager.get(roomCode);
     if (!room) {
+      log.warn(
+        {
+          event: 'room_not_found',
+          type: 'updateRoomRules',
+          gameId: roomCode,
+        },
+        'updateRoomRules failed: room not found',
+      );
       callback({ success: false, error: 'Room not found' });
       return;
     }
@@ -519,7 +771,13 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       callback({ success: false, error: 'Player not recognized' });
       return;
     }
+    childLogger({ gameId: roomCode, playerId });
+    log = getLogger();
     if (room.getLeaderId() !== playerId) {
+      log.warn(
+        { event: 'rules_update_rejected', gameId: roomCode, playerId },
+        'Non-leader attempted to update rules',
+      );
       callback({ success: false, error: 'Only the leader can change rules.' });
       return;
     }
@@ -532,6 +790,10 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
         success: false,
         error: errorMessage,
       });
+      log.warn(
+        { event: 'rules_update_invalid', gameId: roomCode, playerId },
+        'updateRoomRules validation failed',
+      );
       return;
     }
     try {
@@ -539,55 +801,73 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       broadcaster.rules(room);
       const leaderName = room.getPlayer(playerId)?.name ?? 'Leader';
       system(roomCode, `${leaderName} updated the room rules.`);
+      log.info(
+        { event: 'rules_updated', gameId: roomCode, playerId },
+        'Room rules updated',
+      );
       callback({ success: true });
     } catch (error) {
+      log.error(
+        { event: 'rules_update_error', gameId: roomCode, playerId, err: error },
+        'updateRoomRules handler error',
+      );
       callback({ success: false, error: (error as Error).message });
     }
   }
-  socket.on('updateRoomRules', handleUpdateRoomRules);
+  socket.on('updateRoomRules', withContext(handleUpdateRoomRules));
 
   // disconnect event
-  socket.on('disconnect', () => {
-    const roomCode = getCurrentRoomCode();
-    if (!roomCode) return;
-    const room = roomManager.get(roomCode);
-    if (!room) return;
-    const playerId = getCurrentPlayerId();
-    if (!playerId) return; // player never completed join
-    // Instead of removing immediately, mark disconnected to allow reconnection window
-    if (room.hasPlayer(playerId)) {
-      room.setPlayerConnected(playerId, false);
-      emitPlayers(io, room);
-      const playerName = room.getPlayer(playerId)?.name ?? 'A player';
-      system(
-        roomCode,
-        `${playerName} disconnected (will be removed if not back soon).`,
-      );
-      console.log(
-        `❌ [DISCONNECT] player ${playerId} marked disconnected in room ${roomCode}`,
-      );
-      // schedule removal if not reconnected after timeout
-      setTimeout(() => {
-        const stillRoom = roomManager.get(roomCode);
-        if (!stillRoom) return;
-        const p = stillRoom.getPlayer(playerId);
-        if (p && !p.isConnected) {
-          const name = p.name;
-          stillRoom.removePlayer(playerId);
-          emitPlayers(io, stillRoom);
-          system(roomCode, `${name} removed due to inactivity.`);
-          cleanupRoomIfEmpty(roomCode);
-        }
-      }, DISCONNECT_GRACE_MS); // grace period
-    }
+  socket.on(
+    'disconnect',
+    withContext(() => {
+      const roomCode = getCurrentRoomCode();
+      if (!roomCode) return;
+      const room = roomManager.get(roomCode);
+      if (!room) return;
+      const playerId = getCurrentPlayerId();
+      if (!playerId) return; // player never completed join
+      // Instead of removing immediately, mark disconnected to allow reconnection window
+      if (room.hasPlayer(playerId)) {
+        room.setPlayerConnected(playerId, false);
+        emitPlayers(io, room);
+        const playerName = room.getPlayer(playerId)?.name ?? 'A player';
+        system(
+          roomCode,
+          `${playerName} disconnected (will be removed if not back soon).`,
+        );
+        const log = getLogger();
+        log.info(
+          {
+            event: 'player_disconnected',
+            gameId: roomCode,
+            playerId,
+            socketId: socket.id,
+          },
+          'Player marked disconnected',
+        );
+        // schedule removal if not reconnected after timeout
+        setTimeout(() => {
+          const stillRoom = roomManager.get(roomCode);
+          if (!stillRoom) return;
+          const p = stillRoom.getPlayer(playerId);
+          if (p && !p.isConnected) {
+            const name = p.name;
+            stillRoom.removePlayer(playerId);
+            emitPlayers(io, stillRoom);
+            system(roomCode, `${name} removed due to inactivity.`);
+            cleanupRoomIfEmpty(roomCode);
+          }
+        }, DISCONNECT_GRACE_MS); // grace period
+      }
 
-    if (getCurrentPlayerId() === playerId) {
-      clearCurrentPlayerId();
-    }
-    if (getCurrentRoomCode() === roomCode) {
-      clearCurrentRoomCode();
-    }
-  });
+      if (getCurrentPlayerId() === playerId) {
+        clearCurrentPlayerId();
+      }
+      if (getCurrentRoomCode() === roomCode) {
+        clearCurrentRoomCode();
+      }
+    }),
+  );
 
   // Enhance joinRoom to treat existing disconnected player as reconnect
   // (Patch inserted near top of handler inside existing joinRoom listener)

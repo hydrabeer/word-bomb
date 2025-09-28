@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { socketRoomId } from '../utils/socketRoomId';
 import type { TypedServer } from '../socket/typedSocket';
 import type { Game, GameRoom } from '@game/domain';
@@ -10,6 +11,7 @@ import {
   buildGameStartedPayload,
   buildTurnStartedPayload,
 } from './serialization';
+import { getLogger } from '../logging/context';
 
 export class RoomBroadcaster {
   constructor(private io: TypedServer) {}
@@ -19,6 +21,33 @@ export class RoomBroadcaster {
     event: K,
     ...args: Parameters<ServerToClientEvents[K]>
   ) {
+    const log = getLogger();
+    let payloadSize: number | undefined;
+    if (args.length > 0) {
+      try {
+        const payload = args.length === 1 ? args[0] : args;
+        payloadSize = Buffer.byteLength(JSON.stringify(payload));
+      } catch (error) {
+        log.warn(
+          {
+            event: 'message_out_serialize_failed',
+            gameId: roomCode,
+            type: event,
+            err: error,
+          },
+          'Failed to measure payload size',
+        );
+      }
+    }
+    log.debug(
+      {
+        event: 'message_out',
+        gameId: roomCode,
+        type: event,
+        payloadSize,
+      },
+      'Emitting socket message',
+    );
     this.io.to(socketRoomId(roomCode)).emit(event, ...args);
   }
 
@@ -40,18 +69,59 @@ export class RoomBroadcaster {
   }
 
   gameStarted(room: GameRoom, game: Game): void {
+    const log = getLogger();
+    log.info(
+      {
+        event: 'game_started',
+        gameId: room.code,
+        players: game.players.length,
+      },
+      'Game started',
+    );
     this.emit(room.code, 'gameStarted', buildGameStartedPayload(room, game));
   }
 
   turnStarted(game: Game): void {
+    const log = getLogger();
+    try {
+      const currentPlayer = game.getCurrentPlayer();
+      log.info(
+        {
+          event: 'round_started',
+          gameId: game.roomCode,
+          playerId: currentPlayer.id,
+          turnIndex: game.currentTurnIndex,
+        },
+        'Round started',
+      );
+    } catch (error) {
+      log.warn(
+        {
+          event: 'round_start_context_missing',
+          gameId: game.roomCode,
+          err: error,
+        },
+        'Unable to determine current player for round start',
+      );
+    }
     this.emit(game.roomCode, 'turnStarted', buildTurnStartedPayload(game));
   }
 
   gameEnded(roomCode: string, winnerId: string | null): void {
+    getLogger().info(
+      { event: 'round_ended', gameId: roomCode, winnerId },
+      'Game ended',
+    );
     this.emit(roomCode, 'gameEnded', { winnerId });
   }
 
   playerUpdated(roomCode: string, playerId: string, lives: number): void {
+    if (lives <= 0) {
+      getLogger().info(
+        { event: 'player_eliminated', gameId: roomCode, playerId },
+        'Player eliminated',
+      );
+    }
     this.emit(roomCode, 'playerUpdated', { playerId, lives });
   }
 

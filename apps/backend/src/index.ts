@@ -5,6 +5,7 @@ import {
   type ServerResponse,
   type RequestListener,
 } from 'http';
+import { randomUUID } from 'node:crypto';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -16,6 +17,17 @@ import type {
   ServerToClientEvents,
   SocketData,
 } from '@word-bomb/types';
+import { createLogger } from './logging';
+import {
+  getLogContext,
+  getLogger,
+  initializeLoggerContext,
+  runWithContext,
+  withLogContext,
+} from './logging/context';
+
+const rootLogger = createLogger('backend');
+initializeLoggerContext(rootLogger);
 
 const app = express();
 // Use helmet to set security headers
@@ -98,80 +110,207 @@ const io = new Server<
  * listen on the given port.
  */
 async function start(port: string | number) {
+  const log = getLogger();
   await loadDictionary();
+  let dictionaryStats: ReturnType<typeof getDictionaryStats> | null = null;
+  try {
+    dictionaryStats = getDictionaryStats();
+  } catch (error) {
+    log.debug(
+      { event: 'dictionary_stats_unavailable', err: error },
+      'Dictionary statistics unavailable',
+    );
+  }
+  log.info(
+    {
+      event: 'dictionary_loaded',
+      wordCount: dictionaryStats?.wordCount,
+      fragmentCount: dictionaryStats?.fragmentCount,
+    },
+    'Dictionary loaded',
+  );
 
-  server.listen(port, () => {
-    console.log(`🚀 Server running on port ${port.toString()}`);
+  await new Promise<void>((resolve, reject) => {
+    const numericPort = typeof port === 'string' ? Number(port) : port;
+
+    const onError = (error: Error) => {
+      log.error(
+        { event: 'server_listen_error', err: error, port: numericPort },
+        'Failed to bind HTTP server',
+      );
+      reject(error);
+    };
+
+    const potentialOnce = (
+      server as unknown as {
+        once?: (event: string, handler: (error: Error) => void) => void;
+      }
+    ).once;
+    if (typeof potentialOnce === 'function') {
+      potentialOnce.call(server, 'error', onError);
+    }
+    server.listen(port, () => {
+      log.info(
+        { event: 'server_ready', port: numericPort, transport: 'http' },
+        'Server ready',
+      );
+      const potentialOff = (
+        server as unknown as {
+          off?: (event: string, handler: (error: Error) => void) => void;
+        }
+      ).off;
+      if (typeof potentialOff === 'function') {
+        potentialOff.call(server, 'error', onError);
+      } else {
+        const removeListener = (
+          server as unknown as {
+            removeListener?: (
+              event: string,
+              handler: (error: Error) => void,
+            ) => void;
+          }
+        ).removeListener;
+        if (typeof removeListener === 'function') {
+          removeListener.call(server, 'error', onError);
+        }
+      }
+      resolve();
+    });
   });
 }
 
 // Production: use environment variable; Dev: use 3001
 const PORT = process.env.PORT ?? 3001;
+const portNumber = typeof PORT === 'string' ? Number(PORT) : PORT;
+
+getLogger().info(
+  { event: 'server_start', port: portNumber },
+  'Starting Word Bomb backend',
+);
+
 start(PORT).catch((err: unknown) => {
-  console.error('❌ Failed to start app:', err);
+  getLogger().error(
+    { event: 'server_start_failed', err, port: portNumber },
+    'Failed to start app',
+  );
   process.exit(1);
 });
 
 // When a client connects
 io.on('connection', (socket) => {
-  console.log(`🔌 Socket connected: ${socket.id}`);
+  const connId = randomUUID();
+  withLogContext({ connId }, () => {
+    const connectionContext = getLogContext();
+    const connectionLogger = getLogger();
+    connectionLogger.info(
+      {
+        event: 'socket_connected',
+        socketId: socket.id,
+        namespace: socket.nsp.name,
+        transport: socket.conn.transport.name,
+        address: socket.handshake.address,
+      },
+      'Socket connected',
+    );
 
-  // Set up the functions that handle socket events
-  registerRoomHandlers(io, socket);
+    registerRoomHandlers(io, socket);
+
+    socket.once('disconnect', (reason) => {
+      runWithContext(connectionContext, () => {
+        const log = getLogger();
+        log.info(
+          { event: 'socket_disconnected', socketId: socket.id, reason },
+          'Socket disconnected',
+        );
+      });
+    });
+  });
 });
 
 // Log basic socket events in the main namespace
-io.of('/').adapter.on('create-room', (room: string) => {
-  if (room.startsWith('room:')) {
-    console.log(`📦 [Adapter] created socket.io room: ${room}`);
-  }
+const defaultNamespaceAdapter = io.of('/').adapter;
+
+defaultNamespaceAdapter.on('create-room', (room: string) => {
+  if (!room.startsWith('room:')) return;
+  getLogger().debug(
+    { event: 'adapter_room_created', room, namespace: '/' },
+    'Socket.IO room created',
+  );
 });
 
-io.of('/').adapter.on('delete-room', (room: string) => {
-  if (room.startsWith('room:')) {
-    console.log(`🗑️ [Adapter] deleted socket.io room: ${room}`);
-  }
+defaultNamespaceAdapter.on('delete-room', (room: string) => {
+  if (!room.startsWith('room:')) return;
+  getLogger().debug(
+    { event: 'adapter_room_deleted', room, namespace: '/' },
+    'Socket.IO room deleted',
+  );
 });
 
-io.of('/').adapter.on('join-room', (room: string, id: string) => {
-  if (room.startsWith('room:')) {
-    console.log(`👤 [Adapter] socket ${id} joined ${room}`);
-  }
+defaultNamespaceAdapter.on('join-room', (room: string, id: string) => {
+  if (!room.startsWith('room:')) return;
+  getLogger().debug(
+    { event: 'adapter_room_joined', room, socketId: id, namespace: '/' },
+    'Socket joined room',
+  );
 });
 
-io.of('/').adapter.on('leave-room', (room: string, id: string) => {
-  if (room.startsWith('room:')) {
-    console.log(`👋 [Adapter] socket ${id} left ${room}`);
-  }
+defaultNamespaceAdapter.on('leave-room', (room: string, id: string) => {
+  if (!room.startsWith('room:')) return;
+  getLogger().debug(
+    { event: 'adapter_room_left', room, socketId: id, namespace: '/' },
+    'Socket left room',
+  );
 });
 
 // Graceful shutdown: close server and clear game engine timers so process exits fast
 import { shutdownEngines } from './game/engineRegistry';
 
 function shutdown(signal: NodeJS.Signals) {
-  console.log(`\n🛑 Received ${signal}, shutting down...`);
+  const log = getLogger();
+  log.warn({ event: 'shutdown_signal', signal }, 'Received shutdown signal');
   try {
     shutdownEngines();
-  } catch (e) {
-    console.warn('⚠️ Error during engines shutdown:', e);
+    log.info({ event: 'engines_shutdown' }, 'Game engines shut down');
+  } catch (error) {
+    log.error(
+      { event: 'engines_shutdown_error', err: error },
+      'Error during engines shutdown',
+    );
   }
   const maybeClose = (
     server as unknown as { close?: (cb: (err?: Error) => void) => void }
   ).close;
   if (typeof maybeClose === 'function') {
     maybeClose((err?: Error) => {
+      const closeLog = getLogger();
       if (err) {
-        console.error('❌ Error closing HTTP server:', err);
+        closeLog.error(
+          { event: 'server_close_error', err },
+          'Error closing HTTP server',
+        );
         process.exitCode = 1;
+      } else {
+        closeLog.info({ event: 'server_closed' }, 'HTTP server closed');
       }
       process.exit();
     });
   } else {
     // In tests, server may be a simple mock without close()
+    log.debug(
+      { event: 'server_close_skipped' },
+      'Server close skipped (no close method)',
+    );
     process.exit();
   }
   // Safety timeout
-  setTimeout(() => process.exit(0), 5000).unref();
+  setTimeout(() => {
+    const timeoutLog = getLogger();
+    timeoutLog.warn(
+      { event: 'shutdown_forced_exit' },
+      'Forced exit after shutdown timeout',
+    );
+    process.exit(0);
+  }, 5000).unref();
 }
 
 process.on('SIGTERM', shutdown);
