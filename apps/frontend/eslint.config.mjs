@@ -71,6 +71,7 @@ export default tseslint.config(
       '**/*.css',
       'public/**',
       'vite.config.ts',
+      'vitest.config.ts',
     ],
   },
 
