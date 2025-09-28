@@ -23,12 +23,7 @@ import { removePlayersDiffCacheForRoom } from '../game/orchestration/playersDiff
 
 import type { TypedServer, TypedSocket } from './typedSocket';
 import { createSocketDataAccessor } from './socketDataAccessor';
-import {
-  childLogger,
-  getLogContext,
-  getLogger,
-  runWithContext,
-} from '../logging/context';
+import { getLogContext, getLogger, runWithContext } from '../logging/context';
 
 // Configurable grace period (ms) before removing a disconnected player.
 // Tests may adjust via setDisconnectGrace().
@@ -218,7 +213,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
     const { roomCode, playerId, name } = parsed;
-    let log = getLogger();
+    const log = getLogger();
     log.debug(
       {
         event: 'message_in',
@@ -257,8 +252,6 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       callback({ success: false, error: 'Room not found' });
       return;
     }
-    childLogger({ gameId: roomCode, playerId });
-    log = getLogger();
     try {
       const existing = getCurrentRoomCode();
       if (existing !== roomCode) {
@@ -365,7 +358,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     const parsed = parseLeaveRoom(raw);
     if (!parsed) return;
     const { roomCode, playerId } = parsed;
-    let log = getLogger();
+    const log = getLogger();
     log.debug(
       {
         event: 'message_in',
@@ -376,8 +369,6 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       },
       'leaveRoom received',
     );
-    childLogger({ gameId: roomCode, playerId });
-    log = getLogger();
     const room = roomManager.get(roomCode);
     if (!room) {
       log.warn(
@@ -471,7 +462,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
     const { roomCode, playerId, seated } = parsed;
-    let log = getLogger();
+    const log = getLogger();
     log.debug(
       {
         event: 'message_in',
@@ -483,8 +474,6 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       },
       'setPlayerSeated received',
     );
-    childLogger({ gameId: roomCode, playerId });
-    log = getLogger();
     const room = roomManager.get(roomCode);
     if (!room) {
       log.warn(
@@ -553,7 +542,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
     const { roomCode } = parsed;
-    let log = getLogger();
+    const log = getLogger();
     log.debug(
       {
         event: 'message_in',
@@ -563,8 +552,6 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       },
       'startGame received',
     );
-    childLogger({ gameId: roomCode });
-    log = getLogger();
     const room = roomManager.get(roomCode);
     if (!room) {
       log.warn(
@@ -646,7 +633,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
     const { roomCode, playerId, word, clientActionId } = parsed;
-    let log = getLogger();
+    const log = getLogger();
     log.debug(
       {
         event: 'message_in',
@@ -658,8 +645,6 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       },
       'submitWord received',
     );
-    childLogger({ gameId: roomCode, playerId });
-    log = getLogger();
     const room = roomManager.get(roomCode);
     if (!room) {
       callback({ success: false, error: 'Room not found' });
@@ -743,7 +728,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
     const { roomCode, rules } = parsed;
-    let log = getLogger();
+    const log = getLogger();
     log.debug(
       {
         event: 'message_in',
@@ -771,8 +756,6 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       callback({ success: false, error: 'Player not recognized' });
       return;
     }
-    childLogger({ gameId: roomCode, playerId });
-    log = getLogger();
     if (room.getLeaderId() !== playerId) {
       log.warn(
         { event: 'rules_update_rejected', gameId: roomCode, playerId },
