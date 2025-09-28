@@ -8,8 +8,10 @@
     "build": "vite build",
     "dev": "vite",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts --reporter=default",
+    "test:watch": "vitest --watch --config vitest.config.ts",
     "test:coverage": "vitest run --config vitest.config.ts --coverage"
   },
   "dependencies": {

@@ -4,10 +4,13 @@
   "private": true,
   "main": "src/index.ts",
   "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "ts-node -r tsconfig-paths/register src/index.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "start": "ts-node -r tsconfig-paths/register src/index.ts",
     "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --watch --config vitest.config.ts",
     "test:coverage": "vitest run --config vitest.config.ts --coverage"
   },
   "dependencies": {

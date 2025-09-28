@@ -41,3 +41,5 @@ tsconfig.tsbuildinfo
 apps/backend/src/dictionary/*.txt
 
 audit/
+
+.turbo

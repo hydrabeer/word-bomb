@@ -19,21 +19,17 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b tsconfig.all.json",
-    "build:watch": "tsc -b --watch tsconfig.all.json",
-    "dev": "concurrently -k -p name -n backend,frontend -c bgBlue.bold,bgMagenta.bold \"pnpm -w dev:backend\" \"pnpm -w dev:frontend\"",
+    "build": "turbo run build",
+    "clean": "turbo run clean",
+    "dev": "turbo run dev --parallel",
     "dev:backend": "pnpm --filter backend dev",
     "dev:frontend": "pnpm --filter frontend dev",
     "format": "prettier --write .",
-    "lint": "pnpm -r lint",
-    "test": "pnpm -r run test",
-    "test:coverage": "pnpm -r run test:coverage",
-    "test:generate": "node scripts/generate-test.js",
-    "test:watch": "vitest watch",
-    "dep:graph": "scripts/gen-dep-audit.zsh",
-    "dep:arch": "node scripts/arch-clean.mjs && node scripts/arch-intra.mjs",
-    "dep:rules": "dependency-cruiser -T err --config .dependency-cruiser.mjs --ts-config ./tsconfig.base.json tools/depcruise-entries.ts || dependency-cruiser -T err --config .dependency-cruiser.mjs --ts-config ./tsconfig.base.json apps/frontend/src/main.tsx apps/backend/src/index.ts packages/types/src/index.ts packages/domain/src/index.ts",
-    "dep:report": "node scripts/arch-report.mjs"
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch --parallel",
+    "test:coverage": "turbo run test:coverage"
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
@@ -51,6 +47,7 @@
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "ts-prune": "^0.10.3",
+    "turbo": "latest",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vitest": "^3.2.4"
