@@ -40,7 +40,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
   // listeners are registered, leaving us stuck in the lobby view. So we call
   // the state/listener hooks first, then join the room last.
   const {
-    gameState,
+    gameState: socketGameState,
     timeLeftSec,
     bombCountdown,
     elapsedGameTime,
@@ -53,6 +53,38 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
 
   const { players, leaderId, playerId, me, toggleSeated, startGame } =
     usePlayerManagement(roomCode);
+
+  const gameState = useMemo(() => {
+    if (!socketGameState) return socketGameState;
+    if (!players.length) return socketGameState;
+
+    const connectionOverrides = new Map<string, boolean>();
+    for (const lobbyPlayer of players) {
+      if (typeof lobbyPlayer.isConnected === 'boolean') {
+        connectionOverrides.set(lobbyPlayer.id, lobbyPlayer.isConnected);
+      }
+    }
+
+    if (connectionOverrides.size === 0) return socketGameState;
+
+    let changed = false;
+    const mergedPlayers = socketGameState.players.map((player) => {
+      if (!connectionOverrides.has(player.id)) return player;
+      const override = connectionOverrides.get(player.id);
+      if (override === undefined || player.isConnected === override) {
+        return player;
+      }
+      changed = true;
+      return { ...player, isConnected: override };
+    });
+
+    return changed
+      ? {
+          ...socketGameState,
+          players: mergedPlayers,
+        }
+      : socketGameState;
+  }, [socketGameState, players]);
 
   const {
     rules: roomRules,

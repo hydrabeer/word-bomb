@@ -297,8 +297,14 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
           'Player added to room roster',
         );
       } else {
+        const existingPlayer = room.getPlayer(playerId);
+        const reconnectName = existingPlayer ? existingPlayer.name : name;
+        const wasDisconnected = existingPlayer?.isConnected === false;
         room.setPlayerConnected(playerId, true);
         emitPlayers(io, room);
+        if (wasDisconnected) {
+          system(roomCode, `${reconnectName} reconnected.`);
+        }
         log.info(
           { event: 'player_reconnected', gameId: roomCode, playerId },
           'Player reconnected to room',
@@ -797,12 +803,16 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       if (!playerId) return; // player never completed join
       // Instead of removing immediately, mark disconnected to allow reconnection window
       if (room.hasPlayer(playerId)) {
+        const player = room.getPlayer(playerId);
+        const playerName = player?.name ?? 'A player';
+        const wasAlreadyEliminated = player?.isEliminated === true;
         room.setPlayerConnected(playerId, false);
         emitPlayers(io, room);
-        const playerName = room.getPlayer(playerId)?.name ?? 'A player';
         system(
           roomCode,
-          `${playerName} disconnected (will be removed if not back soon).`,
+          wasAlreadyEliminated
+            ? `${playerName} disconnected.`
+            : `${playerName} disconnected (will be removed if not back soon).`,
         );
         const log = getLogger();
         log.info(
@@ -822,12 +832,15 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
           if (p && !p.isConnected) {
             const name = p.name;
             const engine = getGameEngine(roomCode);
-            if (stillRoom.game && engine) {
+            const alreadyEliminated = p.isEliminated;
+            if (stillRoom.game && engine && !alreadyEliminated) {
               engine.forfeitPlayer(playerId);
             }
             stillRoom.removePlayer(playerId);
             emitPlayers(io, stillRoom);
-            system(roomCode, `${name} was eliminated after disconnecting.`);
+            if (!alreadyEliminated) {
+              system(roomCode, `${name} was eliminated after disconnecting.`);
+            }
             cleanupRoomIfEmpty(roomCode);
           }
         }, DISCONNECT_GRACE_MS); // grace period

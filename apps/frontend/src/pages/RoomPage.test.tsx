@@ -6,7 +6,12 @@ import RoomPage from './RoomPage';
 // --- Mocks ---
 vi.mock('../hooks/useGameRoom', () => ({ useGameRoom: () => undefined }));
 
-let mockPlayers: { id: string; name: string; isSeated: boolean }[] = [];
+let mockPlayers: {
+  id: string;
+  name: string;
+  isSeated: boolean;
+  isConnected?: boolean;
+}[] = [];
 let mockLeaderId: string | null = null;
 let mockPlayerId = 'p1';
 const mockMe = { id: 'p1', name: 'Alice', isSeated: false };
@@ -49,10 +54,16 @@ vi.mock('../components/Chat', () => ({
     </div>
   ),
 }));
+let lastGameBoardProps: {
+  gameState?: { fragment?: string; players?: unknown[] } | null;
+} | null = null;
 vi.mock('../components/GameBoard', () => ({
-  GameBoard: (props: { gameState?: { fragment?: string } | null }) => (
-    <div data-testid="GameBoard">{props.gameState?.fragment ?? ''}</div>
-  ),
+  GameBoard: (props: {
+    gameState?: { fragment?: string; players?: unknown[] } | null;
+  }) => {
+    lastGameBoardProps = props;
+    return <div data-testid="GameBoard">{props.gameState?.fragment ?? ''}</div>;
+  },
 }));
 vi.mock('react-icons/fa', () => ({
   FaChevronRight: () => null,
@@ -66,6 +77,9 @@ vi.mock('react-icons/fa', () => ({
 interface PlayerLite {
   id: string;
   name?: string;
+  isEliminated?: boolean;
+  lives?: number;
+  isConnected?: boolean;
 }
 interface GameStateHookReturn {
   gameState: {
@@ -112,6 +126,7 @@ describe('RoomPage (fast)', () => {
     mockLeaderId = null;
     mockPlayerId = 'p1';
     mockUseGameStateReturn = baseState;
+    lastGameBoardProps = null;
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -146,6 +161,38 @@ describe('RoomPage (fast)', () => {
     rerender(element);
     // Fragment shows at least once
     expect(screen.getByTestId('GameBoard')).toHaveTextContent('ab');
+  });
+
+  it('syncs connection status from lobby players into game board state', () => {
+    mockPlayers = [
+      { id: 'p1', name: 'Alice', isSeated: true, isConnected: false },
+    ];
+    mockUseGameStateReturn = {
+      ...baseState,
+      gameState: {
+        fragment: 'ab',
+        bombDuration: 5,
+        currentPlayerId: 'p1',
+        players: [
+          {
+            id: 'p1',
+            name: 'Alice',
+            isEliminated: false,
+            lives: 3,
+            isConnected: true,
+          },
+        ],
+      },
+    };
+
+    render(element);
+
+    const syncedPlayers =
+      (lastGameBoardProps?.gameState?.players as
+        | { isConnected?: boolean }[]
+        | undefined) ?? [];
+
+    expect(syncedPlayers[0]?.isConnected).toBe(false);
   });
 
   it('toggles chat via top-right button', () => {

@@ -13,6 +13,7 @@ import type {
   PlayerUpdatedPayload,
   GameEndedPayload,
   BasicResponse,
+  ChatMessagePayload,
 } from '@word-bomb/types/socket';
 import { setDisconnectGrace } from './roomHandlers';
 
@@ -275,8 +276,26 @@ describeRoomHandlers('roomHandlers integration', () => {
       );
       return ok;
     });
+    const reconnectSystemMessage = new Promise<ChatMessagePayload>(
+      (resolve, reject) => {
+        const timeout = setTimeout(() => {
+          observer.off('chatMessage', handler);
+          reject(new Error('Timed out waiting for reconnect system message'));
+        }, 700);
+        function handler(msg: ChatMessagePayload) {
+          if (msg.type === 'system' && /reconnected/i.test(msg.message)) {
+            clearTimeout(timeout);
+            observer.off('chatMessage', handler);
+            resolve(msg);
+          }
+        }
+        observer.on('chatMessage', handler);
+      },
+    );
     await joinRoom(s1b, { roomCode: code, playerId: p1, name: 'Alpha' });
     await reconnectDiff;
+    const reconnectMessage = await reconnectSystemMessage;
+    expect(reconnectMessage.message).toBe('Alpha reconnected.');
     const flattenedUpdates = diffEvents.flatMap((e: PlayersDiffPayload) => {
       const arr: { id: string; changes: { isConnected?: boolean } }[] =
         e.updated;
@@ -290,6 +309,86 @@ describeRoomHandlers('roomHandlers integration', () => {
     );
     expect(hasDisconnect || hasReconnect).toBe(true); // at least one connectivity change observed
     expect(hasReconnect).toBe(true);
+  });
+
+  it('announces only disconnect for already eliminated players', async () => {
+    const ctx = useServer();
+    const code = createRoomCode();
+    ensureRoom(code);
+    const observer = ctx.createClient();
+    const s1 = ctx.createClient();
+    await Promise.all([waitForConnect(observer), waitForConnect(s1)]);
+    const observerId = requireId(observer.id);
+    const p1 = requireId(s1.id);
+
+    const chatHistory: ChatMessagePayload[] = [];
+    const historyHandler = (msg: ChatMessagePayload) => {
+      chatHistory.push(msg);
+    };
+    observer.on('chatMessage', historyHandler);
+
+    const addObserver = waitForPlayersCount(observer, 1);
+    await joinRoom(observer, {
+      roomCode: code,
+      playerId: observerId,
+      name: 'Spectator',
+    });
+    await addObserver;
+    await joinRoom(s1, { roomCode: code, playerId: p1, name: 'Alpha' });
+
+    const room = roomManager.get(code);
+    expect(room).toBeDefined();
+    const player = room?.getPlayer(p1);
+    expect(player).toBeDefined();
+    if (!player) throw new Error('player not found');
+    player.isEliminated = true;
+    player.lives = 0;
+
+    setDisconnectGrace(50);
+
+    const waitForDisconnectMessage = new Promise<void>((resolve, reject) => {
+      const onceHandler = (msg: ChatMessagePayload) => {
+        if (
+          msg.roomCode === code &&
+          msg.type === 'system' &&
+          msg.message === 'Alpha disconnected.'
+        ) {
+          clearTimeout(timeout);
+          observer.off('chatMessage', onceHandler);
+          resolve();
+        }
+      };
+      const timeout = setTimeout(() => {
+        observer.off('chatMessage', onceHandler);
+        reject(new Error('Timed out waiting for disconnect message'));
+      }, 700);
+      observer.on('chatMessage', onceHandler);
+    });
+
+    try {
+      s1.disconnect();
+
+      await waitForDisconnectMessage;
+      await new Promise((resolve) => {
+        setTimeout(resolve, 200);
+      });
+
+      const alphaMessages = chatHistory.filter(
+        (msg) => msg.type === 'system' && msg.message.includes('Alpha'),
+      );
+      expect(
+        alphaMessages.some((msg) => msg.message === 'Alpha disconnected.'),
+      ).toBe(true);
+      expect(
+        alphaMessages.some((msg) => msg.message.includes('will be removed')),
+      ).toBe(false);
+      expect(
+        alphaMessages.some((msg) => msg.message.includes('was eliminated')),
+      ).toBe(false);
+    } finally {
+      setDisconnectGrace(10000);
+      observer.off('chatMessage', historyHandler);
+    }
   });
 
   it('eliminates disconnected player after grace while game is active', async () => {

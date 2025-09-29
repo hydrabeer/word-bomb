@@ -25,6 +25,10 @@ function PlayerBubbleComponent({
   shake: boolean; // triggers rejection shake animation
   rotation?: number;
 }) {
+  const isDisconnected = player.isConnected === false;
+  const showDisconnectedBadge = isDisconnected && !isEliminated;
+  const isDimmed = isDisconnected || isEliminated;
+
   return (
     <div
       className="absolute left-1/2 top-1/2 transition-transform duration-500 ease-in-out"
@@ -48,18 +52,16 @@ function PlayerBubbleComponent({
         />
       )}
       {/* Hearts + Name (independent fixed stack) */}
-      {player.isConnected === false && !isEliminated && (
+      {showDisconnectedBadge && (
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[86px]">
           <span className="rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-100/80 shadow-lg">
-            Reconnecting…
+            Disconnected
           </span>
         </div>
       )}
       <div
         className={`absolute flex flex-col items-center ${
-          player.isConnected === false && !isEliminated
-            ? 'opacity-50 saturate-0'
-            : ''
+          isDimmed ? 'opacity-50 saturate-0' : ''
         }`}
         style={{
           left: '50%',
@@ -69,7 +71,7 @@ function PlayerBubbleComponent({
       >
         <div
           className={`mb-1 flex h-6 w-max items-center justify-center gap-1 sm:h-7 ${
-            player.isConnected === false && !isEliminated ? 'grayscale' : ''
+            isDimmed ? 'grayscale' : ''
           }`}
         >
           {isEliminated ? (
@@ -120,7 +122,7 @@ function PlayerBubbleComponent({
           className={`whitespace-nowrap text-lg font-bold uppercase tracking-wide text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] sm:text-xl md:text-2xl ${
             isActive && highlighted ? 'animate-typing' : ''
           } ${isEliminated ? 'opacity-30' : ''} ${
-            player.isConnected === false && !isEliminated ? 'opacity-50' : ''
+            isDimmed ? 'opacity-50' : ''
           } ${shake ? 'animate-shake text-red-300' : ''}`}
           style={{ visibility: highlighted ? 'visible' : 'hidden' }}
         >

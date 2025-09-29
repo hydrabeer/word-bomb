@@ -44,10 +44,11 @@ describe('PlayerBubble', () => {
       />,
     );
     expect(container.textContent).toContain('💀');
+    expect(container.querySelector('[class*="saturate-0"]')).not.toBeNull();
   });
 
-  it('shows reconnecting banner when player is disconnected', () => {
-    const { getByText } = render(
+  it('labels player as disconnected when connection is lost', () => {
+    const { getByText, container } = render(
       <PlayerBubble
         player={{ ...basePlayer, isConnected: false }}
         isActive={false}
@@ -60,6 +61,7 @@ describe('PlayerBubble', () => {
         shake={false}
       />,
     );
-    expect(getByText('Reconnecting…')).toBeInTheDocument();
+    expect(getByText('Disconnected')).toBeInTheDocument();
+    expect(container.querySelector('[class*="saturate-0"]')).not.toBeNull();
   });
 });
