@@ -18,4 +18,5 @@
 - Fix errors rather than suppressing them.
 
 ## Acceptance criteria
+
 - Always run `pnpm format`, `pnpm lint`, and `pnpm test` before committing.
