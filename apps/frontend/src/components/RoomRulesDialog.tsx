@@ -215,6 +215,7 @@ export function RoomRulesDialog({
                   type="number"
                   min={1}
                   max={1000}
+                  step={25}
                   value={draft.minWordsPerPrompt}
                   onChange={(e) => {
                     setDraft((prev) => ({

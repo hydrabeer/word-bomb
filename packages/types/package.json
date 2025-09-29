@@ -9,10 +9,9 @@
   ],
   "exports": {
     "./socket": {
-      "types": "./dist/socket.d.ts"
+      "types": "./src/socket.ts"
     }
   },
-  "types": "./dist/socket.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
