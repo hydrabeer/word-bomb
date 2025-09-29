@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config';
 import path from 'node:path';
 
 export default defineConfig({
+  cacheDir: '.vite',
   root: __dirname,
   resolve: {
     alias: [

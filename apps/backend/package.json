@@ -8,7 +8,7 @@
     "build": "tsc -b",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "ts-node -r tsconfig-paths/register src/index.ts",
-    "lint": "eslint \"src/**/*.ts\"",
+    "lint": "eslint --cache --cache-location .eslintcache \"src/**/*.ts\"",
     "start": "ts-node -r tsconfig-paths/register src/index.ts",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --watch --config vitest.config.ts",
@@ -34,6 +34,7 @@
     "tsconfig-paths": "^4.2.0",
     "vitest": "^3.2.4",
     "@vitest/coverage-v8": "^3.2.4",
-    "@vitest/ui": "^3.2.4"
+    "@vitest/ui": "^3.2.4",
+    "typescript": "^5.8.3"
   }
 }

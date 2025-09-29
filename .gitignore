@@ -43,3 +43,7 @@ apps/backend/src/dictionary/*.txt
 audit/
 
 .turbo
+
+.eslintcache
+
+.vite/
