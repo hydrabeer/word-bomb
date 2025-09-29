@@ -16,6 +16,7 @@ describe('useBonusAlphabetSettings', () => {
       size: 'md',
       position: 'top-right',
       showNumbers: true,
+      layout: 'stacked',
     });
   });
 
@@ -35,6 +36,7 @@ describe('useBonusAlphabetSettings', () => {
       position: 'bottom-left',
       opacity: 0.5,
       showNumbers: false,
+      layout: 'stacked',
     });
   });
 

@@ -5,10 +5,12 @@ import {
   type KeyboardEvent,
   type JSX,
   useMemo,
+  useState,
 } from 'react';
 import { PlayerBubble } from './PlayerBubble';
 import { BonusAlphabet } from './BonusAlphabet';
 import { useBonusAlphabetSettings } from '../hooks/useBonusAlphabetSettings';
+import type { BonusAlphabetSettings } from '../hooks/useBonusAlphabetSettings';
 
 export interface GameState {
   fragment: string;
@@ -88,7 +90,51 @@ export function GameBoard({
     }
   };
 
-  const isMobile = useMemo(() => window.innerWidth < 640, []); // Could be swapped to useIsMobile(640) if desired
+  const isMobile = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 640;
+  }, []); // Could be swapped to useIsMobile(640) if desired
+  const computedBonusAlphabetSettings = useMemo<BonusAlphabetSettings>(
+    () =>
+      isMobile
+        ? ({
+            ...bonusSettings,
+            size: 'sm',
+            position: 'bottom-left',
+            opacity: 0.9,
+            showNumbers: false,
+            layout: 'rows',
+          } as BonusAlphabetSettings)
+        : bonusSettings,
+    [bonusSettings, isMobile],
+  );
+  const arenaRef = useRef<HTMLDivElement>(null);
+  const [arenaSize, setArenaSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const node = arenaRef.current;
+    if (!node || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver((entries) => {
+      const [entry] = entries;
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      setArenaSize({ width, height });
+    });
+
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  const mobileRadius = useMemo(() => {
+    if (!isMobile) return 0;
+    const minDimension = Math.min(arenaSize.width, arenaSize.height);
+    if (!minDimension) return 150;
+    const padded = Math.max(minDimension - 64, 0);
+    return Math.min(Math.max(padded / 2, 150), 260);
+  }, [arenaSize.height, arenaSize.width, isMobile]);
   interface PlayerView {
     player: GameState['players'][number];
     isActive: boolean;
@@ -97,6 +143,16 @@ export function GameBoard({
     y: number;
     highlighted: JSX.Element | string | null;
   }
+  const radius = useMemo(
+    () => (isMobile ? mobileRadius || 150 : 340),
+    [isMobile, mobileRadius],
+  );
+
+  const bombScale = useMemo(() => {
+    if (!isMobile) return 1;
+    return Math.min(Math.max(radius / 160, 0.95), 1.3);
+  }, [isMobile, radius]);
+
   const { rotationOffset, playerViews } = useMemo<{
     rotationOffset: number;
     playerViews: PlayerView[];
@@ -124,7 +180,6 @@ export function GameBoard({
         </>
       );
     };
-    const radius = isMobile ? 140 : 340;
     const pv: PlayerView[] = gameState.players.map((player, index) => {
       const angleDeg =
         count <= 4 ? predefined[count][index] : (index / count) * 360;
@@ -154,7 +209,7 @@ export function GameBoard({
       };
     });
     return { rotationOffset, playerViews: pv };
-  }, [gameState, isMobile, liveInputs, lastSubmittedWords]);
+  }, [gameState, liveInputs, lastSubmittedWords, radius]);
 
   useEffect(() => {
     const input = inputRef.current;
@@ -201,9 +256,9 @@ export function GameBoard({
   const strokeDashoffset = progressElapsed * circumference;
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 shadow-lg">
+    <div className="flex w-full flex-1 flex-col overflow-hidden bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 sm:rounded-xl sm:border sm:border-white/10 sm:shadow-lg">
       {/* Game Stats Bar */}
-      <div className="grid grid-cols-3 items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2 text-center text-sm shadow-inner backdrop-blur-sm">
+      <div className="hidden grid-cols-3 items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2 text-center text-sm shadow-inner backdrop-blur-sm sm:grid">
         <div className="flex flex-col items-start text-left">
           <span className="text-xs uppercase tracking-wider text-indigo-300">
             Fragment
@@ -250,15 +305,20 @@ export function GameBoard({
       </div>
 
       {/* Bomb Area */}
-      <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+      <div
+        ref={arenaRef}
+        className="relative flex flex-1 items-center justify-center overflow-hidden"
+      >
         {/* floating bonus alphabet overlay for the local player (anchored to play area) */}
-        <BonusAlphabet
-          progress={
-            gameState.players.find((p) => p.id === localPlayerId)
-              ?.bonusProgress ?? null
-          }
-          settings={bonusSettings}
-        />
+        {!isMobile && (
+          <BonusAlphabet
+            progress={
+              gameState.players.find((p) => p.id === localPlayerId)
+                ?.bonusProgress ?? null
+            }
+            settings={computedBonusAlphabetSettings}
+          />
+        )}
         {/* Red Reactive Bomb Ring */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative flex items-center justify-center">
@@ -267,7 +327,7 @@ export function GameBoard({
               style={{
                 opacity: ringGlowOpacity,
                 // Breathing scale (slight) synced exactly with pulsePhase
-                transform: `scale(${String(1 + pulsePhase * 0.035)})`,
+                transform: `scale(${String(bombScale * (1 + pulsePhase * 0.035))})`,
                 transition: 'transform 0.15s linear, opacity 0.15s linear',
                 filter: `drop-shadow(0 0 ${String(8 + pulsePhase * 6)}px rgba(239,68,68,${String(0.45 + pulsePhase * 0.35)})) drop-shadow(0 0 ${String(18 + pulsePhase * 10)}px rgba(239,68,68,${String(0.25 + pulsePhase * 0.25)}))`,
               }}
@@ -317,6 +377,7 @@ export function GameBoard({
               ? 'bg-red-950/50 shadow-lg shadow-red-500/20'
               : 'bg-black/40'
           }`}
+          style={{ transform: `scale(${String(bombScale)})` }}
         >
           <span className="text-center text-2xl font-extrabold uppercase text-white drop-shadow-lg sm:text-3xl">
             {gameState.fragment}
@@ -355,61 +416,81 @@ export function GameBoard({
 
       {/* Bottom bar (fixed height for consistency across states) */}
       <div
-        className={`border-t border-white/10 bg-black/20 px-4 shadow-inner backdrop-blur-sm transition-all duration-300 ${
+        className={`border-t border-white/10 bg-black/30 shadow-inner backdrop-blur-sm transition-all duration-300 ${
           isMobile
-            ? 'sticky bottom-0 left-0 z-30 w-full py-3'
-            : 'flex h-20 items-center'
+            ? 'sticky bottom-0 left-0 z-30 w-full px-4 pb-4 pt-3'
+            : 'flex h-20 items-center px-4'
         }`}
+        style={
+          isMobile
+            ? { paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }
+            : undefined
+        }
       >
-        <div className="relative mx-auto flex h-14 w-full max-w-2xl items-center gap-4">
-          {isMyTurn ? (
-            <div
-              className={`flex h-full w-full items-center justify-center rounded-lg px-4 backdrop-blur-sm transition-colors ${
-                rejected
-                  ? 'animate-shake border border-red-500 bg-red-500/10'
-                  : inputWord
-                        .toLowerCase()
-                        .includes(gameState.fragment.toLowerCase())
-                    ? 'border border-emerald-500 bg-emerald-900/10'
-                    : 'border border-indigo-700/30 bg-indigo-900/50'
-              }`}
-            >
-              <label htmlFor="play-input" className="sr-only">
-                Enter a word
-              </label>
-              <input
-                id="play-input"
-                ref={inputRef}
-                type="text"
-                value={inputWord}
-                maxLength={30}
-                onChange={(e) => {
-                  const v = e.target.value.slice(0, 30);
-                  setInputWord(v);
-                }}
-                onKeyDown={onKeyDownHandler}
-                placeholder={`Type a word containing "${gameState.fragment}"...`}
-                inputMode="text"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="none"
-                enterKeyHint="done"
-                className="h-full w-full bg-transparent text-center text-base text-white placeholder:text-indigo-300 focus:outline-none"
-                style={{ fontSize: '16px' }}
-              />
-            </div>
-          ) : (
-            <div className="flex h-full w-full items-center justify-center rounded-lg border border-indigo-700/30 bg-indigo-900/50 px-4 text-center text-base font-medium text-indigo-200 backdrop-blur-sm">
-              <span className="mr-2 text-indigo-300">Waiting for:</span>
-              <span className="font-semibold text-emerald-400">
-                {
-                  gameState.players.find(
-                    (p) => p.id === gameState.currentPlayerId,
-                  )?.name
-                }
-              </span>
-            </div>
+        <div
+          className={`mx-auto w-full max-w-2xl ${
+            isMobile ? 'flex flex-col gap-3' : 'flex h-14 items-center gap-4'
+          }`}
+        >
+          {isMobile && (
+            <BonusAlphabet
+              progress={
+                gameState.players.find((p) => p.id === localPlayerId)
+                  ?.bonusProgress ?? null
+              }
+              settings={computedBonusAlphabetSettings}
+            />
           )}
+          <div className="relative flex h-14 w-full items-center gap-4">
+            {isMyTurn ? (
+              <div
+                className={`flex h-full w-full items-center justify-center rounded-lg px-4 backdrop-blur-sm transition-colors ${
+                  rejected
+                    ? 'animate-shake border border-red-500 bg-red-500/10'
+                    : inputWord
+                          .toLowerCase()
+                          .includes(gameState.fragment.toLowerCase())
+                      ? 'border border-emerald-500 bg-emerald-900/10'
+                      : 'border border-indigo-700/30 bg-indigo-900/50'
+                }`}
+              >
+                <label htmlFor="play-input" className="sr-only">
+                  Enter a word
+                </label>
+                <input
+                  id="play-input"
+                  ref={inputRef}
+                  type="text"
+                  value={inputWord}
+                  maxLength={30}
+                  onChange={(e) => {
+                    const v = e.target.value.slice(0, 30);
+                    setInputWord(v);
+                  }}
+                  onKeyDown={onKeyDownHandler}
+                  placeholder={`Type a word containing "${gameState.fragment}"...`}
+                  inputMode="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  enterKeyHint="done"
+                  className="h-full w-full bg-transparent text-center text-base text-white placeholder:text-indigo-300 focus:outline-none"
+                  style={{ fontSize: '16px' }}
+                />
+              </div>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-lg border border-indigo-700/30 bg-indigo-900/50 px-4 text-center text-base font-medium text-indigo-200 backdrop-blur-sm">
+                <span className="mr-2 text-indigo-300">Waiting for:</span>
+                <span className="font-semibold text-emerald-400">
+                  {
+                    gameState.players.find(
+                      (p) => p.id === gameState.currentPlayerId,
+                    )?.name
+                  }
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
