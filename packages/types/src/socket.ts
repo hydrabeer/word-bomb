@@ -182,6 +182,7 @@ export interface GamePlayerView {
   name: string;
   isEliminated: boolean;
   lives: number;
+  isConnected?: boolean;
   // Optional to allow older servers/clients; present during active game payloads
   bonusProgress?: BonusProgressView;
 }

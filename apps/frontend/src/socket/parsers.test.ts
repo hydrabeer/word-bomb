@@ -53,6 +53,7 @@ describe('socket parsers', () => {
       name: 'Alice',
       isEliminated: true,
       lives: 3,
+      isConnected: true,
       bonusProgress: { remaining: [1, 2], total: [5, 6] },
     });
     expect(res!.players[1]).toEqual({
@@ -60,6 +61,7 @@ describe('socket parsers', () => {
       name: 'Unknown',
       isEliminated: false,
       lives: 0,
+      isConnected: true,
     });
   });
   it('parseGameStarted with bonusProgress shape invalid -> omitted', () => {
@@ -81,6 +83,7 @@ describe('socket parsers', () => {
       name: 'Bob',
       isEliminated: false,
       lives: 1,
+      isConnected: true,
       // bonusProgress intentionally omitted
     });
   });
@@ -103,6 +106,7 @@ describe('socket parsers', () => {
       name: 'Unknown',
       isEliminated: false,
       lives: 0,
+      isConnected: true,
     });
   });
   it('parseGameStarted invalid variants', () => {
@@ -176,6 +180,7 @@ describe('socket parsers', () => {
       name: 'Unknown',
       isEliminated: false,
       lives: 0,
+      isConnected: true,
     });
   });
   it('parseTurnStarted invalid variants', () => {
@@ -210,6 +215,7 @@ describe('socket parsers', () => {
       name: 'Unknown',
       isEliminated: false,
       lives: 0,
+      isConnected: true,
     });
   });
   it('parsePlayerTypingUpdate valid', () => {

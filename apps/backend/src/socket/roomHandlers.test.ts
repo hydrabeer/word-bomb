@@ -10,8 +10,11 @@ import type {
   PlayersDiffPayload,
   ActionAckPayload,
   RoomRulesPayload,
+  PlayerUpdatedPayload,
+  GameEndedPayload,
   BasicResponse,
 } from '@word-bomb/types/socket';
+import { setDisconnectGrace } from './roomHandlers';
 
 const testLogger = createLogger({ service: 'backend-tests' });
 
@@ -287,6 +290,76 @@ describeRoomHandlers('roomHandlers integration', () => {
     );
     expect(hasDisconnect || hasReconnect).toBe(true); // at least one connectivity change observed
     expect(hasReconnect).toBe(true);
+  });
+
+  it('eliminates disconnected player after grace while game is active', async () => {
+    const ctx = useServer();
+    const code = createRoomCode();
+    ensureRoom(code);
+    const s1 = ctx.createClient();
+    const s2 = ctx.createClient();
+    await Promise.all([waitForConnect(s1), waitForConnect(s2)]);
+    const p1 = requireId(s1.id);
+    const p2 = requireId(s2.id);
+    await joinRoom(s1, { roomCode: code, playerId: p1, name: 'Alpha' });
+    await joinRoom(s2, { roomCode: code, playerId: p2, name: 'Bravo' });
+    await setSeated(s1, { roomCode: code, playerId: p1, seated: true });
+    await setSeated(s2, { roomCode: code, playerId: p2, seated: true });
+
+    const gameStarted = new Promise<void>((resolve) => {
+      s2.once('gameStarted', () => resolve());
+    });
+    const turnStarted = new Promise<void>((resolve) => {
+      s2.once('turnStarted', () => resolve());
+    });
+
+    setDisconnectGrace(50);
+
+    try {
+      const start = await startGame(s1, code);
+      expect(start.success).toBe(true);
+      await gameStarted;
+      await turnStarted;
+
+      const eliminated = new Promise<PlayerUpdatedPayload>(
+        (resolve, reject) => {
+          const timeout = setTimeout(() => {
+            s2.off('playerUpdated', handler);
+            reject(new Error('timeout waiting for player elimination'));
+          }, 1500);
+          const handler = (payload: PlayerUpdatedPayload) => {
+            if (payload.playerId === p1 && payload.lives === 0) {
+              clearTimeout(timeout);
+              s2.off('playerUpdated', handler);
+              resolve(payload);
+            }
+          };
+          s2.on('playerUpdated', handler);
+        },
+      );
+
+      const gameEnded = new Promise<GameEndedPayload>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          s2.off('gameEnded', endHandler);
+          reject(new Error('timeout waiting for gameEnded'));
+        }, 1500);
+        const endHandler = (payload: GameEndedPayload) => {
+          clearTimeout(timeout);
+          s2.off('gameEnded', endHandler);
+          resolve(payload);
+        };
+        s2.on('gameEnded', endHandler);
+      });
+
+      s1.disconnect();
+
+      const [elim, ended] = await Promise.all([eliminated, gameEnded]);
+      expect(elim.playerId).toBe(p1);
+      expect(elim.lives).toBe(0);
+      expect(ended.winnerId).toBe(p2);
+    } finally {
+      setDisconnectGrace(10000);
+    }
   });
 
   it('explicit leave removes player (diff removed list)', async () => {

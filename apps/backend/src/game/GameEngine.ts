@@ -132,4 +132,45 @@ export class GameEngine {
       this.timeoutToken = null;
     }
   }
+
+  public forfeitPlayer(playerId: string): void {
+    const player = this.game.players.find((p) => p.id === playerId);
+    if (!player || player.isEliminated) return;
+
+    let currentId: string | null = null;
+    try {
+      currentId = this.rules.getCurrentPlayer().id;
+    } catch {
+      currentId = null;
+    }
+
+    player.lives = 0;
+    player.eliminate();
+    this.notifyPlayerUpdated(player);
+
+    if (this.handleGameOverIfAny()) {
+      this.clearTimeout();
+      return;
+    }
+
+    if (currentId && currentId === playerId) {
+      const active = this.game.getActivePlayers();
+      if (active.length > 0) {
+        this.game.currentTurnIndex = active.length - 1;
+      }
+      this.advanceTurn();
+      return;
+    }
+
+    if (currentId && currentId !== playerId) {
+      const active = this.game.getActivePlayers();
+      const index = active.findIndex((p) => p.id === currentId);
+      if (index >= 0) {
+        this.game.currentTurnIndex = index;
+        return;
+      }
+    }
+
+    this.advanceTurn();
+  }
 }

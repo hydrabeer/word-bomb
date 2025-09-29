@@ -821,9 +821,13 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
           const p = stillRoom.getPlayer(playerId);
           if (p && !p.isConnected) {
             const name = p.name;
+            const engine = getGameEngine(roomCode);
+            if (stillRoom.game && engine) {
+              engine.forfeitPlayer(playerId);
+            }
             stillRoom.removePlayer(playerId);
             emitPlayers(io, stillRoom);
-            system(roomCode, `${name} removed due to inactivity.`);
+            system(roomCode, `${name} was eliminated after disconnecting.`);
             cleanupRoomIfEmpty(roomCode);
           }
         }, DISCONNECT_GRACE_MS); // grace period
