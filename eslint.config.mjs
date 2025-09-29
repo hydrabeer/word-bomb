@@ -4,43 +4,36 @@ import eslint from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import tseslint from 'typescript-eslint';
 import vitest from '@vitest/eslint-plugin';
+import importX from 'eslint-plugin-import-x';
+
+/** Single source of truth for test globs */
+const TEST_GLOBS = [
+  '**/*.{test,spec}.ts',
+  '**/*.{test,spec}.tsx',
+  'apps/backend/test/**/*.ts',
+];
 
 export default tseslint.config(
-  // Base JS/** recommendations
+  // 1) Base JS rules
   eslint.configs.recommended,
 
-  // TS-ESLint v8 presets (type-aware + stylistic)
+  // 2) TypeScript strict presets (type-aware)
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
 
-  // Turn off all type-aware rules for test files; we'll lint them without type info
-  {
-    files: [
-      '**/*.{test,spec}.ts',
-      '**/*.{test,spec}.tsx',
-      'apps/backend/test/**/*.ts',
-    ],
-    rules: {
-      ...tseslint.configs.disableTypeChecked.rules,
-    },
-  },
-
-  // Global TS settings for your monorepo
+  // 3) Source files: type-aware + monorepo import hygiene
   {
     files: ['**/*.ts', '**/*.tsx'],
     ignores: [
-      '**/*.{test,spec}.ts',
-      '**/*.{test,spec}.tsx',
-      'apps/backend/test/**/*.ts',
-      'apps/backend/src/**/*.{test,spec}.ts',
-      '**/vitest.config.ts',
+      ...TEST_GLOBS, // tests handled below
+      '**/vitest.config.*',
+      '**/vite.config.*',
+      '**/eslint.config.*',
     ],
     languageOptions: {
       parserOptions: {
         projectService: true,
-        // Allow files not included in tsconfig (e.g., test files) to use a
-        // default project for type-aware linting, avoiding parser errors.
-        allowDefaultProject: true,
+        // allowDefaultProject defaults to false with projectService=true
         tsconfigRootDir: import.meta.dirname,
         project: [
           './apps/backend/tsconfig.json',
@@ -50,69 +43,49 @@ export default tseslint.config(
         ],
       },
     },
+    plugins: { 'import-x': importX },
     rules: {
-      // place shared TS rules here as needed
+      // Monorepo/module rules (not provided by TS/ESLint packs)
+      'import-x/no-self-import': 'error',
+      'import-x/no-relative-packages': 'error',
+      'import-x/no-cycle': ['error', { maxDepth: 6 }],
+      'import-x/no-extraneous-dependencies': [
+        'error',
+        {
+          packageDir: [
+            '.',
+            'apps/backend',
+            'apps/frontend',
+            'packages/domain',
+            'packages/types',
+          ],
+        },
+      ],
     },
   },
 
-  // Vitest: ONLY for test files
+  // 4) Tests: non type-aware + Vitest rules/globals
   {
-    files: [
-      '**/*.{test,spec}.ts',
-      '**/*.{test,spec}.tsx',
-      'apps/backend/test/**/*.ts',
-    ],
+    files: TEST_GLOBS,
+    languageOptions: {
+      parserOptions: { projectService: false },
+      globals: vitest.environments.env.globals,
+    },
     plugins: { vitest },
     rules: {
+      // Drop all type-aware rules and their noise in tests
+      ...tseslint.configs.disableTypeChecked.rules,
+
+      // Vitest recommendations
       ...vitest.configs.recommended.rules,
-    },
-    languageOptions: {
-      // give describe/it/expect globals
-      globals: vitest.environments.env.globals,
-      // Do not use the project service for tests; avoids tsconfig include issues
-      parserOptions: { projectService: false },
-    },
-  },
 
-  // Backend tests live under src but are excluded from tsconfig includes.
-  // Turn off the project service for them to avoid parser errors while still
-  // getting core ESLint + Vitest rules.
-  {
-    files: [
-      'apps/backend/src/**/*.{test,spec}.ts',
-      // Also match when running ESLint from within apps/backend CWD
-      'src/**/*.{test,spec}.ts',
-    ],
-    languageOptions: {
-      parserOptions: { projectService: false },
-    },
-  },
-
-  // Loosen a few rules in backend tests that hit dynamic socket shapes
-  {
-    files: ['apps/backend/test/**/*.ts'],
-    rules: {
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
-    },
-  },
-
-  // Loosen strict rules for backend tests that live under src as well
-  {
-    files: ['apps/backend/src/**/*.{test,spec}.ts'],
-    rules: {
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
+      // Practical loosening in tests
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-confusing-void-expression': 'off',
+      // (unsafe-* are already off via disableTypeChecked)
     },
   },
 
-  // Tooling configs (vite/vitest) — no project service (avoids include errors)
+  // 5) Tooling/config files: non type-aware to avoid include errors
   {
     files: [
       '**/vitest.config.{ts,cts,mts,js,cjs,mjs}',
@@ -125,6 +98,6 @@ export default tseslint.config(
     },
   },
 
-  // Put Prettier last to disable conflicting stylistic rules
+  // 6) Prettier last to disable stylistic conflicts
   eslintConfigPrettier,
 );
