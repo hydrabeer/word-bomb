@@ -1,4 +1,8 @@
-import express from 'express';
+import express, {
+  type Application,
+  type Request,
+  type Response,
+} from 'express';
 import {
   createServer,
   type IncomingMessage,
@@ -29,17 +33,18 @@ import {
 const rootLogger = createLogger('backend');
 initializeLoggerContext(rootLogger);
 
-const app = express();
+const FRONTEND_ORIGIN = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+const SHUTDOWN_FORCE_EXIT_TIMEOUT_MS = 5000;
+const DEFAULT_PORT = 3001;
+
+const app: Application = express();
 // Use helmet to set security headers
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        connectSrc: [
-          "'self'",
-          process.env.FRONTEND_URL ?? 'http://localhost:5173',
-        ],
+        connectSrc: ["'self'", FRONTEND_ORIGIN],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         objectSrc: ["'none'"],
@@ -63,18 +68,22 @@ app.use(express.json());
 app.use('/api/rooms', roomsRouter);
 
 // Lightweight health and readiness endpoints
-app.get('/healthz', (_req, res) => {
+export const healthHandler = (_req: Request, res: Response) => {
   res.status(200).send('ok');
-});
-app.get('/readyz', (_req, res) => {
+};
+
+export const readyHandler = (_req: Request, res: Response) => {
   const stats = getDictionaryStats();
   const ready = stats.wordCount > 0 && stats.fragmentCount > 0;
   res.status(ready ? 200 : 503).json({ ready, ...stats });
-});
+};
+
+app.get('/healthz', healthHandler);
+app.get('/readyz', readyHandler);
 
 // Adapter: Express app signature is (req, res, next). Node's createServer expects (req, res).
-// We provide a no-op next function and ensure a void return; no ESLint suppression needed.
-const nodeHandler: RequestListener = (
+// Provide a no-op next function so the handler satisfies both signatures.
+export const nodeHandler: RequestListener = (
   req: IncomingMessage,
   res: ServerResponse,
 ) => {
@@ -100,7 +109,7 @@ const io = new Server<
   SocketData
 >(server, {
   cors: {
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+    origin: FRONTEND_ORIGIN,
     methods: ['GET', 'POST'],
   },
 });
@@ -180,7 +189,7 @@ async function start(port: string | number) {
 }
 
 // Production: use environment variable; Dev: use 3001
-const PORT = process.env.PORT ?? 3001;
+const PORT = process.env.PORT ?? DEFAULT_PORT;
 const portNumber = typeof PORT === 'string' ? Number(PORT) : PORT;
 
 getLogger().info(
@@ -188,13 +197,19 @@ getLogger().info(
   'Starting Word Bomb backend',
 );
 
-start(PORT).catch((err: unknown) => {
-  getLogger().error(
-    { event: 'server_start_failed', err, port: portNumber },
-    'Failed to start app',
-  );
-  process.exit(1);
-});
+// In test environments we avoid calling start() automatically to prevent
+// tests from being terminated by process.exit in start()'s catch handler.
+if (process.env.NODE_ENV !== 'test') {
+  start(PORT).catch((err: unknown) => {
+    getLogger().error(
+      { event: 'server_start_failed', err, port: portNumber },
+      'Failed to start app',
+    );
+    // During Vitest runs we avoid calling process.exit since the runner treats
+    // that as an unexpected termination. Respect VITEST env var set by Vitest.
+    if (process.env.VITEST !== 'true') process.exit(1);
+  });
+}
 
 // When a client connects
 io.on('connection', (socket) => {
@@ -292,7 +307,9 @@ function shutdown(signal: NodeJS.Signals) {
       } else {
         closeLog.info({ event: 'server_closed' }, 'HTTP server closed');
       }
-      process.exit();
+      // Avoid calling process.exit during Vitest runs (Vitest detects and
+      // reports process.exit even when tests mock it). Respect VITEST env.
+      if (process.env.VITEST !== 'true') process.exit();
     });
   } else {
     // In tests, server may be a simple mock without close()
@@ -300,7 +317,7 @@ function shutdown(signal: NodeJS.Signals) {
       { event: 'server_close_skipped' },
       'Server close skipped (no close method)',
     );
-    process.exit();
+    if (process.env.VITEST !== 'true') process.exit();
   }
   // Safety timeout
   setTimeout(() => {
@@ -309,9 +326,11 @@ function shutdown(signal: NodeJS.Signals) {
       { event: 'shutdown_forced_exit' },
       'Forced exit after shutdown timeout',
     );
-    process.exit(0);
-  }, 5000).unref();
+    if (process.env.VITEST !== 'true') process.exit(0);
+  }, SHUTDOWN_FORCE_EXIT_TIMEOUT_MS).unref();
 }
 
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+
+export { app };

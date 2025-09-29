@@ -287,4 +287,30 @@ describe('dictionary module full coverage', () => {
     // Without loading dictionary, fragmentCounts is empty; in test env it should return 'aa'.
     expect(getRandomFragment(1)).toBe('aa');
   });
+
+  it('getRandomFragment throws when no fragments and not test env', () => {
+    // Create a fake fragmentCounts state by directly manipulating module (not ideal, but covers branch)
+    // We'll import a fresh module instance
+    vi.resetModules();
+    process.env.NODE_ENV = 'production';
+    const OUT_OF_RANGE_FRAGMENT_INDEX = 999999; // Used to trigger error when no fragments are available
+    return import('../dictionary').then((m) => {
+      // Force fragmentCounts to empty by calling internal methods via public API
+      // This is a bit of whitebox: if no fragments available and not test, it should throw
+      // Simulate by calling getRandomFragment when fragmentCounts is empty
+      expect(() => m.getRandomFragment(OUT_OF_RANGE_FRAGMENT_INDEX)).toThrow(
+        Error,
+      );
+    });
+  });
+
+  it('isUsingFallbackDictionary true in test fast path', async () => {
+    vi.resetModules();
+    process.env.NODE_ENV = 'test';
+    delete process.env.DICTIONARY_TEST_MODE;
+    const m = await import('../dictionary');
+    await m.loadDictionary();
+    expect(m.isValidWord('aa')).toBe(true);
+    expect(m.isUsingFallbackDictionary()).toBe(true);
+  });
 });
