@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RoomRulesDialog } from './RoomRulesDialog';
 import type { LobbyRules, BasicResponse } from '../hooks/useRoomRules';
@@ -33,7 +33,7 @@ describe('RoomRulesDialog', () => {
       .fn<(next: LobbyRules) => Promise<BasicResponse>>()
       .mockResolvedValue({ success: true });
 
-    const { container } = render(
+    render(
       <RoomRulesDialog
         open
         onClose={vi.fn()}
@@ -47,25 +47,25 @@ describe('RoomRulesDialog', () => {
 
     // Interact with the dialog controls: enable/disable all and toggle A via
     // the rendered grid inputs/buttons.
-    // Click the Enable all button in the dialog header
-    screen.getByRole('button', { name: /Enable all/i }).click();
+    const user = userEvent.setup({ delay: null });
+    await user.click(screen.getByRole('button', { name: /Enable all/i }));
 
     // Find the button for letter A (first letter) and toggle it
     const letterButton = screen.getByRole('button', {
       name: /Disable letter A|Enable letter A/,
     });
-    letterButton.click();
+    await user.click(letterButton);
 
     // Click Disable all to ensure the action works
-    screen.getByRole('button', { name: /Disable all/i }).click();
+    await user.click(screen.getByRole('button', { name: /Disable all/i }));
 
-    const form = container.querySelector('form')!;
-    form.dispatchEvent(
-      new Event('submit', { bubbles: true, cancelable: true }),
-    );
+    const form = document.querySelector('form');
+    expect(form).not.toBeNull();
+    fireEvent.submit(form!);
 
-    await Promise.resolve(); // microtask
-    expect(onSave).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('shows validation error when startingLives > maxLives and handles server error', async () => {
@@ -130,9 +130,11 @@ describe('RoomRulesDialog', () => {
 
     const form = container.querySelector('form')!;
     fireEvent.submit(form);
-    await Promise.resolve();
 
-    expect(onSave).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalled();
+    });
+
     const calledWith = onSave.mock.calls[0][0];
     expect(calledWith.bonusTemplate[0]).toBe(3);
   });
