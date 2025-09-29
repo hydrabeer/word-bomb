@@ -1,12 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { RoomRulesDialog } from './RoomRulesDialog';
 import type { LobbyRules, BasicResponse } from '../hooks/useRoomRules';
 
 const rules: LobbyRules = {
   maxLives: 3,
   startingLives: 2,
-  bonusTemplate: Array.from({ length: 26 }, () => 1),
+  bonusTemplate: new Array<number>(26).fill(1),
   minTurnDuration: 5,
   minWordsPerPrompt: 100,
 };
@@ -18,7 +19,7 @@ describe('RoomRulesDialog', () => {
         open={false}
         onClose={vi.fn()}
         rules={rules}
-        isLeader={true}
+        isLeader
         isUpdating={false}
         serverError={null}
         onSave={() => Promise.resolve({ success: true })}
@@ -30,36 +31,40 @@ describe('RoomRulesDialog', () => {
   it('renders and allows toggling letters and set-all actions', async () => {
     const onSave = vi
       .fn<(next: LobbyRules) => Promise<BasicResponse>>()
-      .mockResolvedValue({
-        success: true,
-      });
-    const onClose = vi.fn();
+      .mockResolvedValue({ success: true });
+
     const { container } = render(
       <RoomRulesDialog
         open
-        onClose={onClose}
+        onClose={vi.fn()}
         rules={rules}
-        isLeader={true}
+        isLeader
         isUpdating={false}
         serverError={null}
         onSave={onSave}
       />,
     );
 
-    // Toggle a specific letter (A) using its accessible label
-    const letterA = screen.getByRole('button', { name: /letter A/i });
-    fireEvent.click(letterA);
+    // Interact with the dialog controls: enable/disable all and toggle A via
+    // the rendered grid inputs/buttons.
+    // Click the Enable all button in the dialog header
+    screen.getByRole('button', { name: /Enable all/i }).click();
 
-    // Use set-all buttons
-    fireEvent.click(screen.getByRole('button', { name: 'Enable all' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Disable all' }));
+    // Find the button for letter A (first letter) and toggle it
+    const letterButton = screen.getByRole('button', {
+      name: /Disable letter A|Enable letter A/,
+    });
+    letterButton.click();
 
-    // Submit valid form via submit button
+    // Click Disable all to ensure the action works
+    screen.getByRole('button', { name: /Disable all/i }).click();
+
     const form = container.querySelector('form')!;
-    fireEvent.submit(form);
-    // ensure onSave was called
-    // Flush microtasks and assert instead of polling with waitFor
-    await Promise.resolve();
+    form.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+
+    await Promise.resolve(); // microtask
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
@@ -67,30 +72,32 @@ describe('RoomRulesDialog', () => {
     const onSave = vi
       .fn<(next: LobbyRules) => Promise<BasicResponse>>()
       .mockResolvedValue({ success: false, error: 'Server said nope' });
+
     const { getByLabelText, container } = render(
       <RoomRulesDialog
         open
         onClose={vi.fn()}
         rules={{ ...rules, startingLives: 5 }}
-        isLeader={true}
+        isLeader
         isUpdating={false}
         serverError={null}
         onSave={onSave}
       />,
     );
-    // Increase maxLives input lower than startingLives to trigger validation
+
     const form = container.querySelector('form')!;
     fireEvent.submit(form);
-    // Validation error appears synchronously
     expect(
       screen.getByText('Starting lives cannot exceed max lives.'),
     ).toBeInTheDocument();
 
-    // Fix validation then submit to see submitError displayed
-    const maxLives = getByLabelText('Max lives');
-    fireEvent.change(maxLives, { target: { value: '6' } });
+    // Fix validation with userEvent for realism (and still fast)
+    const user = userEvent.setup({ delay: null });
+    const maxLives = getByLabelText('Max lives') as HTMLInputElement;
+    await user.clear(maxLives);
+    await user.type(maxLives, '6');
+
     fireEvent.submit(form);
-    // Wait for async submit error to render
     await screen.findByText('Server said nope');
     expect(onSave).toHaveBeenCalled();
   });
@@ -99,28 +106,32 @@ describe('RoomRulesDialog', () => {
     const onSave = vi
       .fn<(next: LobbyRules) => Promise<BasicResponse>>()
       .mockResolvedValue({ success: true });
-    const onClose = vi.fn();
+
     const { container } = render(
       <RoomRulesDialog
         open
-        onClose={onClose}
+        onClose={vi.fn()}
         rules={rules}
-        isLeader={true}
+        isLeader
         isUpdating={false}
         serverError={null}
         onSave={onSave}
       />,
     );
-    // Find the A tile's button and change its adjacent input to 3
-    const aBtn = screen.getByRole('button', { name: /letter A/i });
-    const tile = aBtn.parentElement!;
-    const numberInput = tile.querySelector('input[type="number"]')!;
-    fireEvent.change(numberInput, { target: { value: '3' } });
-    // Submit
+
+    // Locate the tile for letter 'A' and its numeric input. This is more
+    // robust than assuming ordering of spinbuttons.
+    const aTile = screen.getByText('A');
+    const aTileContainer = aTile.closest('div')!;
+    const aInput = within(aTileContainer).getByRole('spinbutton');
+    const user = userEvent.setup({ delay: null });
+    await user.clear(aInput);
+    await user.type(aInput, '3');
+
     const form = container.querySelector('form')!;
     fireEvent.submit(form);
-    // No need to poll; microtask tick is enough
     await Promise.resolve();
+
     expect(onSave).toHaveBeenCalled();
     const calledWith = onSave.mock.calls[0][0];
     expect(calledWith.bonusTemplate[0]).toBe(3);
@@ -134,46 +145,45 @@ describe('RoomRulesDialog', () => {
         onClose={onClose}
         rules={rules}
         isLeader={false}
-        isUpdating={true}
-        serverError={'Delayed error'}
+        isUpdating
+        serverError="Delayed error"
         onSave={() => Promise.resolve({ success: true })}
       />,
     );
 
-    // serverError is shown
     expect(screen.getByText('Delayed error')).toBeInTheDocument();
 
-    // Escape key closes
+    // Escape closes
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    // Unmount then render again to test overlay click without duplicates
+    // Re-render to test overlay click without double-binding
     const { unmount } = first;
     unmount();
     onClose.mockClear();
+
     render(
       <RoomRulesDialog
         open
         onClose={onClose}
         rules={rules}
         isLeader={false}
-        isUpdating={true}
+        isUpdating
         serverError={null}
         onSave={() => Promise.resolve({ success: true })}
       />,
     );
 
+    // If your dialog root has data-testid, prefer querying it; otherwise:
     const overlay = screen.getAllByRole('dialog')[0];
-    fireEvent.click(overlay); // click overlay itself to trigger onClose
+    fireEvent.click(overlay);
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    // Controls disabled when not leader or updating
-    const inputs = screen.getAllByRole('spinbutton');
-    inputs.forEach((inp) => {
+    // Inputs disabled when not leader or updating
+    screen.getAllByRole('spinbutton').forEach((inp) => {
       expect((inp as HTMLInputElement).disabled).toBe(true);
     });
 
-    // shows Saving… text when isUpdating
     expect(screen.getByText('Saving…')).toBeInTheDocument();
   });
 });

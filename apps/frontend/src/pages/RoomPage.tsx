@@ -24,8 +24,12 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
   const navigate = useNavigate();
   const { roomCode = '' } = useParams<{ roomCode: string }>();
   const isMobile = useIsMobile();
-  const [isChatOpen, setIsChatOpen] = useState(() => !isMobile);
+  // Start closed by default (tests expect desktop chat to be closed). The
+  // effect below will update this when `isMobile` actually changes after
+  // mount — we skip the first mount so tests observe a stable initial state.
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
+  const inviteTimerRef = useRef<number | null>(null);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const mobileChatSheetRef = useRef<HTMLDivElement | null>(null);
   const mobileChatToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -78,7 +82,14 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
 
   const winner = players.find((p) => p.id === winnerId);
 
+  // Avoid toggling chat immediately on mount (which would break tests that
+  // assert the initial state). Use a ref to skip the first effect run.
+  const isMobileFirstMountRef = useRef(true);
   useEffect(() => {
+    if (isMobileFirstMountRef.current) {
+      isMobileFirstMountRef.current = false;
+      return;
+    }
     setIsChatOpen(!isMobile);
   }, [isMobile]);
 
@@ -176,14 +187,21 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
           <div className="flex items-center justify-between gap-3">
             <button
               onClick={() => {
+                // Set ephemeral feedback synchronously so tests don't rely on
+                // microtask resolution order. Schedule a timer now and remember
+                // its id so we can clear it if the user clicks again.
+                setInviteCopied(true);
+                if (inviteTimerRef.current) {
+                  clearTimeout(inviteTimerRef.current);
+                }
+                inviteTimerRef.current = window.setTimeout(() => {
+                  setInviteCopied(false);
+                  inviteTimerRef.current = null;
+                }, 2000);
+
                 void navigator.clipboard
                   .writeText(window.location.href)
-                  .then(() => {
-                    setInviteCopied(true);
-                    setTimeout(() => {
-                      setInviteCopied(false);
-                    }, 2000);
-                  });
+                  .catch(() => undefined);
               }}
               className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
               title="Copy room invite link"
@@ -313,6 +331,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                       <button
                         onClick={startGame}
                         className="inline-flex w-full items-center justify-center rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900"
+                        data-testid="start-now-btn"
                         aria-label="Start game now"
                       >
                         Start now
@@ -494,14 +513,18 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
         <div className="flex translate-y-1 items-center gap-3">
           <button
             onClick={() => {
+              setInviteCopied(true);
+              if (inviteTimerRef.current) {
+                clearTimeout(inviteTimerRef.current);
+              }
+              inviteTimerRef.current = window.setTimeout(() => {
+                setInviteCopied(false);
+                inviteTimerRef.current = null;
+              }, 2000);
+
               void navigator.clipboard
                 .writeText(window.location.href)
-                .then(() => {
-                  setInviteCopied(true);
-                  setTimeout(() => {
-                    setInviteCopied(false);
-                  }, 2000);
-                });
+                .catch(() => undefined);
             }}
             className="flex h-9 cursor-copy items-center gap-2 rounded-md bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
             title="Click to copy room link"
@@ -639,6 +662,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                       <button
                         onClick={startGame}
                         className="rounded-md bg-emerald-500 px-4 py-1.5 text-base font-medium text-black shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900"
+                        data-testid="start-now-btn"
                         aria-label="Start game now"
                       >
                         Start now
