@@ -76,16 +76,25 @@ interface IndexHarness {
 }
 
 function createLoggerMock(overrides: Partial<LoggerMock> = {}): LoggerMock {
+  const childMock: LoggerMock['child'] =
+    overrides.child ?? vi.fn(() => createNestedLogger());
+
+  function createNestedLogger(): LoggerMock {
+    return {
+      info: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: childMock,
+    };
+  }
+
   const logger: LoggerMock = {
     info: overrides.info ?? vi.fn(),
     error: overrides.error ?? vi.fn(),
     warn: overrides.warn ?? vi.fn(),
     debug: overrides.debug ?? vi.fn(),
-    child:
-      overrides.child ??
-      vi.fn(function child(this: LoggerMock) {
-        return logger;
-      }),
+    child: childMock,
   };
   vi.doMock('./logging', () => ({ createLogger: vi.fn(() => logger) }));
   return logger;
@@ -661,6 +670,7 @@ describe('index shutdown flow', () => {
   });
 
   it('runs the forced exit timeout branch', async () => {
+    vi.useFakeTimers();
     const warnSpy = vi.fn();
     const harness = await createIndexHarness({ logging: { warn: warnSpy } });
 
@@ -668,36 +678,38 @@ describe('index shutdown flow', () => {
       .spyOn(process, 'exit')
       .mockImplementation(() => undefined as never);
     const originalVitest = process.env.VITEST;
+    const timeoutSpy = vi.spyOn(globalThis, 'setTimeout');
     process.env.VITEST = 'false';
 
-    const timeoutSpy = vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
-      cb: () => void,
-    ) => {
-      cb();
-      return { unref: vi.fn() } as unknown as NodeJS.Timeout;
-    }) as unknown as typeof setTimeout);
-
     const restoreSignals = captureSignalState();
-    await harness.importIndex('development');
     const cleanup = restoreSignals;
 
-    const listeners = process.listeners('SIGTERM');
-    listeners.forEach((handler) => {
-      handler('SIGTERM');
-      process.removeListener('SIGTERM', handler);
-    });
+    try {
+      await harness.importIndex('development');
 
-    await Promise.resolve();
+      const listeners = process.listeners('SIGTERM');
+      listeners.forEach((handler) => {
+        handler('SIGTERM');
+        process.removeListener('SIGTERM', handler);
+      });
 
-    expect(timeoutSpy).toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ event: 'shutdown_forced_exit' }),
-      'Forced exit after shutdown timeout',
-    );
-    expect(exitSpy).toHaveBeenCalled();
+      await Promise.resolve();
 
-    cleanup();
-    process.env.VITEST = originalVitest;
+      expect(timeoutSpy).toHaveBeenCalled();
+
+      vi.runAllTimers();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ event: 'shutdown_forced_exit' }),
+        'Forced exit after shutdown timeout',
+      );
+      expect(exitSpy).toHaveBeenCalled();
+    } finally {
+      cleanup();
+      process.env.VITEST = originalVitest;
+      timeoutSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 });
 

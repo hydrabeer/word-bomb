@@ -13,7 +13,13 @@ describe('logging/context module', () => {
 
   it('childLogger returns a logger when context initialized', async () => {
     const mod = await import('./context');
-    const logger = { info: () => undefined, child: () => logger } as any;
+    function createMockLogger(): any {
+      return {
+        info: () => undefined,
+        child: vi.fn(() => createMockLogger()),
+      };
+    }
+    const logger = createMockLogger();
     mod.initializeLoggerContext(logger);
     const child = mod.childLogger({ reqId: 'x' });
     expect(child).not.toBeNull();
@@ -28,7 +34,13 @@ describe('logging/context module', () => {
     } = await import('./context');
 
     // Create a tiny logger-like object
-    const logger = { info: () => undefined, child: () => logger } as any;
+    function createMockLogger(): any {
+      return {
+        info: () => undefined,
+        child: vi.fn(() => createMockLogger()),
+      };
+    }
+    const logger = createMockLogger();
     initializeLoggerContext(logger);
 
     const seen: string[] = [];
