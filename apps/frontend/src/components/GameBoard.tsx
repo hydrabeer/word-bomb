@@ -89,6 +89,20 @@ export function GameBoard({
   };
 
   const isMobile = useMemo(() => window.innerWidth < 640, []); // Could be swapped to useIsMobile(640) if desired
+  const computedBonusAlphabetSettings = useMemo(
+    () =>
+      isMobile
+        ? {
+            ...bonusSettings,
+            size: 'sm',
+            position: 'bottom-left',
+            opacity: 0.9,
+            showNumbers: false,
+            layout: 'rows' as const,
+          }
+        : bonusSettings,
+    [bonusSettings, isMobile],
+  );
   interface PlayerView {
     player: GameState['players'][number];
     isActive: boolean;
@@ -201,9 +215,9 @@ export function GameBoard({
   const strokeDashoffset = progressElapsed * circumference;
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 shadow-lg">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 sm:rounded-xl sm:border sm:border-white/10 sm:shadow-lg">
       {/* Game Stats Bar */}
-      <div className="grid grid-cols-3 items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2 text-center text-sm shadow-inner backdrop-blur-sm">
+      <div className="hidden grid-cols-3 items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2 text-center text-sm shadow-inner backdrop-blur-sm sm:grid">
         <div className="flex flex-col items-start text-left">
           <span className="text-xs uppercase tracking-wider text-indigo-300">
             Fragment
@@ -257,7 +271,7 @@ export function GameBoard({
             gameState.players.find((p) => p.id === localPlayerId)
               ?.bonusProgress ?? null
           }
-          settings={bonusSettings}
+          settings={computedBonusAlphabetSettings}
         />
         {/* Red Reactive Bomb Ring */}
         <div className="absolute inset-0 flex items-center justify-center">
@@ -355,7 +369,7 @@ export function GameBoard({
 
       {/* Bottom bar (fixed height for consistency across states) */}
       <div
-        className={`border-t border-white/10 bg-black/20 px-4 shadow-inner backdrop-blur-sm transition-all duration-300 ${
+        className={`border-t border-white/10 bg-black/30 px-4 shadow-inner backdrop-blur-sm transition-all duration-300 ${
           isMobile
             ? 'sticky bottom-0 left-0 z-30 w-full py-3'
             : 'flex h-20 items-center'

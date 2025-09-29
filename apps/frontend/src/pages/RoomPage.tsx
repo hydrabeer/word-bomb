@@ -151,6 +151,17 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
   );
 
   const formattedElapsed = formatDurationSeconds(elapsedGameTime);
+  const localGamePlayer =
+    gameState?.players.find((player) => player.id === playerId) ?? null;
+  const currentLives = localGamePlayer?.lives ?? roomRules.startingLives;
+  const totalPlayersInGame = gameState?.players.length ?? players.length;
+  const activePlayersCount = gameState
+    ? gameState.players.filter((p) => !p.isEliminated).length
+    : seatedCount;
+  const playersStatusLabel =
+    visualState === 'playing'
+      ? `${activePlayersCount}/${totalPlayersInGame} left`
+      : `${seatedCount}/${players.length} ready`;
 
   function JoinGameButtons({ className = '' }: { className?: string } = {}) {
     return (
@@ -215,116 +226,134 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
           Skip to main content
         </a>
 
-        <header className="px-5 pb-6 pt-6">
+        <header className="relative z-20 flex flex-col gap-3 bg-black/30 px-4 pb-4 pt-6 shadow-lg shadow-black/30 backdrop-blur">
           <div className="flex items-center justify-between gap-3">
-            <button
-              onClick={() => {
-                // Set ephemeral feedback synchronously so tests don't rely on
-                // microtask resolution order. Schedule a timer now and remember
-                // its id so we can clear it if the user clicks again.
-                setInviteCopied(true);
-                if (inviteTimerRef.current) {
-                  clearTimeout(inviteTimerRef.current);
-                }
-                inviteTimerRef.current = window.setTimeout(() => {
-                  setInviteCopied(false);
-                  inviteTimerRef.current = null;
-                }, 2000);
-
-                void navigator.clipboard
-                  .writeText(window.location.href)
-                  .catch(() => undefined);
-              }}
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              title="Copy room invite link"
-              aria-label={
-                roomName
-                  ? `Copy room invite link for ${roomName}`
-                  : `Copy room invite link for Room ${roomCode}`
-              }
-            >
-              <FaLink className="h-4 w-4 text-white/80" />
-              <span>{inviteCopied ? 'Link copied!' : `Share ${roomCode}`}</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setIsChatOpen((prev) => !prev);
-              }}
-              ref={mobileChatToggleRef}
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              aria-controls="mobile-chat-sheet"
-              aria-expanded={isChatOpen}
-              aria-label={isChatOpen ? 'Hide chat panel' : 'Show chat panel'}
-            >
-              <span>Chat</span>
-              {isChatOpen ? (
-                <FaChevronDown className="h-3.5 w-3.5" />
-              ) : (
-                <FaChevronUp className="h-3.5 w-3.5" />
-              )}
-            </button>
-          </div>
-
-          <div className="mt-6 space-y-2">
-            <h1
-              id="page-title"
-              className="text-3xl font-semibold leading-tight text-white"
-            >
-              {roomName ?? `Room ${roomCode}`}
-            </h1>
-            {hasServerRules && (
-              <p className="text-sm text-white/70">
-                Lives {roomRules.startingLives}/{roomRules.maxLives} • WPP ≥{' '}
-                {roomRules.minWordsPerPrompt} • Min turn{' '}
-                {roomRules.minTurnDuration}s
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-white/60">
+                Room {roomCode}
               </p>
-            )}
+              <h1
+                id="page-title"
+                className="truncate text-2xl font-semibold leading-tight text-white"
+              >
+                {roomName ?? `Room ${roomCode}`}
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setInviteCopied(true);
+                  if (inviteTimerRef.current) {
+                    clearTimeout(inviteTimerRef.current);
+                  }
+                  inviteTimerRef.current = window.setTimeout(() => {
+                    setInviteCopied(false);
+                    inviteTimerRef.current = null;
+                  }, 2000);
+
+                  void navigator.clipboard
+                    .writeText(window.location.href)
+                    .catch(() => undefined);
+                }}
+                className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                title="Copy room invite link"
+                aria-label={
+                  roomName
+                    ? `Copy room invite link for ${roomName}`
+                    : `Copy room invite link for Room ${roomCode}`
+                }
+              >
+                <FaLink className="h-3.5 w-3.5 text-white/70" />
+                <span>{inviteCopied ? 'Copied!' : 'Share'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsChatOpen((prev) => !prev);
+                }}
+                ref={mobileChatToggleRef}
+                className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                aria-controls="mobile-chat-sheet"
+                aria-expanded={isChatOpen}
+                aria-label={isChatOpen ? 'Hide chat panel' : 'Show chat panel'}
+              >
+                <span>Chat</span>
+                {isChatOpen ? (
+                  <FaChevronDown className="h-3.5 w-3.5" />
+                ) : (
+                  <FaChevronUp className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
           </div>
 
-          {visualState === 'playing' && (
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-1.5 font-mono text-xs uppercase tracking-wide text-indigo-100">
-              Elapsed {formattedElapsed}
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/80">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 font-semibold text-emerald-100">
+                <span aria-hidden="true">❤️</span>
+                <span>
+                  {currentLives}/{roomRules.maxLives}
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 uppercase tracking-wide text-white/70">
+                Min {roomRules.minTurnDuration}s
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 uppercase tracking-wide text-white/70">
+                {playersStatusLabel}
+              </span>
+              {visualState === 'playing' && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 font-mono text-[11px] uppercase tracking-wide text-white">
+                  {formattedElapsed}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {hasServerRules && (
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/80">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 font-semibold uppercase tracking-wide text-emerald-100">
+                WPP ≥ {roomRules.minWordsPerPrompt}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRulesOpen(true);
+                }}
+                className="inline-flex items-center justify-center rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              >
+                Show rules
+              </button>
             </div>
           )}
 
-          <div className="mt-6 flex flex-col gap-3">
-            <JoinGameButtons className="w-full text-center" />
-            <button
-              type="button"
-              onClick={() => {
-                setIsRulesOpen(true);
-              }}
-              className="inline-flex items-center justify-center rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            >
-              {isLeader ? 'Edit room rules' : 'View room rules'}
-            </button>
+          <div className="mt-1">
+            <JoinGameButtons className="w-full justify-center text-sm uppercase tracking-wide" />
           </div>
         </header>
 
         <main
           id="main-content"
-          className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-28 pt-2"
+          className="relative flex flex-1 flex-col overflow-hidden"
           aria-live="polite"
         >
           {visualState === 'playing' && gameState ? (
-            <div className="space-y-4">
-              <div className="min-h-[60vh] rounded-3xl border border-white/10 bg-white/5 p-3 shadow-xl backdrop-blur-sm">
-                <GameBoard
-                  gameState={gameState}
-                  inputWord={inputWord}
-                  setInputWord={handleInputChange}
-                  handleSubmitWord={handleSubmitWord}
-                  bombCountdown={bombCountdown}
-                  rejected={rejected}
-                  liveInputs={liveInputs}
-                  lastWordAcceptedBy={lastWordAcceptedBy}
-                  lastSubmittedWords={lastSubmittedWords}
-                />
-              </div>
+            <div className="relative flex min-h-0 flex-1">
+              <GameBoard
+                gameState={gameState}
+                inputWord={inputWord}
+                setInputWord={handleInputChange}
+                handleSubmitWord={handleSubmitWord}
+                bombCountdown={bombCountdown}
+                rejected={rejected}
+                liveInputs={liveInputs}
+                lastWordAcceptedBy={lastWordAcceptedBy}
+                lastSubmittedWords={lastSubmittedWords}
+              />
             </div>
           ) : (
-            <div className="space-y-6 pb-4">
+            <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4">
               {winner && (
                 <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-pink-600/30 via-purple-700/30 to-indigo-900/30 p-6 text-center shadow-xl backdrop-blur-sm">
                   <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-pink-600 text-2xl font-bold text-white">
@@ -342,7 +371,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                 </section>
               )}
 
-              <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
+              <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
                 <div className="flex items-center justify-between gap-4">
                   <h2 className="text-lg font-semibold text-white">
                     Lobby status
@@ -377,7 +406,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                 )}
               </section>
 
-              <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
+              <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
                 <div className="flex items-center justify-between gap-4">
                   <h2 className="text-lg font-semibold text-white">Players</h2>
                   <span className="text-xs font-medium uppercase tracking-wide text-white/60">
@@ -433,7 +462,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
               </section>
 
               {!winner && (
-                <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
+                <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
                   <h2 className="text-lg font-semibold text-white">
                     How to play
                   </h2>

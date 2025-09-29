@@ -5,6 +5,7 @@ export interface BonusAlphabetSettings {
   position?: 'top-left' | 'bottom-left' | 'top-right' | 'bottom-right';
   opacity?: number; // 0..1
   showNumbers?: boolean; // show remaining counter
+  layout?: 'stacked' | 'rows';
 }
 
 export interface BonusAlphabetProps {
@@ -28,15 +29,36 @@ export function BonusAlphabet({ progress, settings }: BonusAlphabetProps) {
   const size = settings?.size ?? 'md';
   const position = settings?.position ?? 'top-right';
   const opacity = settings?.opacity ?? 0.75;
-  const showNumbers = settings?.showNumbers ?? true;
+  const layout = settings?.layout ?? 'stacked';
+  const showNumbers =
+    layout === 'rows' ? false : (settings?.showNumbers ?? true);
 
-  // Make tiles larger while keeping readable text
-  const tile = size === 'sm' ? 'w-6 h-6 text-[11px]' : 'w-8 h-8 text-sm';
+  const containerPositionClass =
+    layout === 'rows'
+      ? 'bottom-3 left-1/2 w-full max-w-[90vw] -translate-x-1/2 sm:bottom-4 sm:max-w-[22rem]'
+      : posClass[position];
+
+  const gridClass =
+    layout === 'rows'
+      ? 'grid-cols-[repeat(13,minmax(0,1fr))] gap-[3px] px-2'
+      : 'grid-cols-2 gap-[4px]';
+
+  const tile =
+    layout === 'rows'
+      ? 'h-7 w-7 text-[11px]'
+      : size === 'sm'
+        ? 'w-6 h-6 text-[11px]'
+        : 'w-8 h-8 text-sm';
 
   return (
     <div
-      className={`pointer-events-none absolute z-10 ${posClass[position]} grid grid-cols-2 gap-[4px]`}
-      style={{ opacity }}
+      className={`pointer-events-none absolute z-10 ${containerPositionClass} grid ${gridClass}`}
+      style={{
+        opacity,
+        ...(layout === 'rows'
+          ? { gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }
+          : undefined),
+      }}
       aria-hidden="true"
     >
       {Array.from({ length: 26 })

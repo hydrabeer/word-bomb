@@ -5,6 +5,7 @@ export interface BonusAlphabetSettings {
   position: 'top-left' | 'bottom-left' | 'top-right' | 'bottom-right';
   opacity: number; // 0..1
   showNumbers: boolean;
+  layout: 'stacked' | 'rows';
 }
 
 const STORAGE_KEY = 'wordbomb:bonusAlphabetSettings:v1';
@@ -14,6 +15,7 @@ const DEFAULT_SETTINGS: BonusAlphabetSettings = {
   position: 'top-right',
   opacity: 0.8,
   showNumbers: true,
+  layout: 'stacked',
 };
 
 export function useBonusAlphabetSettings() {
@@ -32,6 +34,7 @@ export function useBonusAlphabetSettings() {
           const position = o.position;
           const opacity = o.opacity;
           const showNumbers = o.showNumbers;
+          const layout = o.layout;
           if (
             (size === 'sm' || size === 'md') &&
             (position === 'top-left' ||
@@ -39,13 +42,15 @@ export function useBonusAlphabetSettings() {
               position === 'top-right' ||
               position === 'bottom-right') &&
             typeof opacity === 'number' &&
-            typeof showNumbers === 'boolean'
+            typeof showNumbers === 'boolean' &&
+            (layout === 'stacked' || layout === 'rows' || layout === undefined)
           ) {
             setSettings({
               size,
               position,
               opacity,
               showNumbers,
+              layout: layout ?? 'stacked',
             });
           }
         }
