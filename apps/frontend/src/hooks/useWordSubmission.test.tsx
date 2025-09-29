@@ -23,9 +23,13 @@ vi.mock('../socket', () => {
   const off: MockSocket['off'] = (e, cb) => {
     handlers[e] = handlers[e].filter((h) => h !== cb);
   };
-  const emit: MockSocket['emit'] = (e, p) => { emitMock(e, p); };
+  const emit: MockSocket['emit'] = (e, p) => {
+    emitMock(e, p);
+  };
   const __emitServer = (e: string, p?: unknown) => {
-    handlers[e].forEach((h) => { h(p); });
+    handlers[e].forEach((h) => {
+      h(p);
+    });
   };
   const __getEmitted = () => emitMock.mock.calls as [string, SubmitPayload][];
   const socket: MockSocket = { on, off, emit };
