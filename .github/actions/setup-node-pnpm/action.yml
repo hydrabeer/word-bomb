@@ -16,13 +16,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Setup Node (from .nvmrc) + pnpm cache
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: .nvmrc
-        cache: pnpm
-        cache-dependency-path: ${{ inputs.cache-dependency-path }}
-
     - name: Enable Corepack
       shell: bash
       run: corepack enable
@@ -32,6 +25,13 @@ runs:
       with:
         version: 10
         run_install: false
+
+    - name: Setup Node (from .nvmrc) + pnpm cache
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
 
     - name: pnpm fetch (prime store)
       if: ${{ inputs.offline == 'true' }}
