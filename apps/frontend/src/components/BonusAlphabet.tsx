@@ -33,14 +33,13 @@ export function BonusAlphabet({ progress, settings }: BonusAlphabetProps) {
   const showNumbers =
     layout === 'rows' ? false : (settings?.showNumbers ?? true);
 
-  const containerPositionClass =
-    layout === 'rows'
-      ? 'bottom-3 left-1/2 w-full max-w-[90vw] -translate-x-1/2 sm:bottom-4 sm:max-w-[22rem]'
-      : posClass[position];
+  const isInline = layout === 'rows';
+
+  const containerPositionClass = isInline ? 'w-full' : posClass[position];
 
   const gridClass =
     layout === 'rows'
-      ? 'grid-cols-[repeat(13,minmax(0,1fr))] gap-[3px] px-2'
+      ? 'mx-auto w-full max-w-[90vw] grid-cols-[repeat(13,minmax(0,1fr))] gap-[3px] px-2 sm:max-w-[22rem]'
       : 'grid-cols-2 gap-[4px]';
 
   const tile =
@@ -52,57 +51,65 @@ export function BonusAlphabet({ progress, settings }: BonusAlphabetProps) {
 
   return (
     <div
-      className={`pointer-events-none absolute z-10 ${containerPositionClass} grid ${gridClass}`}
-      style={{
-        opacity,
-        ...(layout === 'rows'
-          ? { gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }
-          : undefined),
-      }}
+      className={`${
+        isInline
+          ? 'pointer-events-none relative z-0 flex justify-center'
+          : 'pointer-events-none absolute z-10'
+      } ${containerPositionClass}`}
+      style={{ opacity }}
       aria-hidden="true"
     >
-      {Array.from({ length: 26 })
-        .map((_, i) => i)
-        .filter((i) => (progress.total[i] ?? 0) > 0)
-        .map((i) => {
-          const letter = String.fromCharCode(65 + i);
-          const remaining = progress.remaining[i] ?? 0;
-          const total = progress.total[i] ?? 0;
-          const required = Math.max(total, 0);
-          const done = remaining <= 0;
-          const active = required > 0;
-          const completedCount = required - Math.max(remaining, 0);
-          const ratio = required > 0 ? completedCount / required : 1;
-          const tileBgClass = done
-            ? 'bg-white/10'
-            : 'bg-emerald-500/20 ring-1 ring-emerald-400/30';
-          return (
-            <div
-              key={letter}
-              className={`${tile} relative flex items-center justify-center rounded ${tileBgClass} backdrop-blur-sm`}
-              style={{
-                filter: done ? 'grayscale(100%)' : undefined,
-                opacity: active ? 1 : 0.35,
-                boxShadow:
-                  active && completedCount > 0
-                    ? `inset 0 -${String(Math.round(ratio * 100))}% 0 0 rgba(16,185,129,0.28)`
-                    : undefined,
-              }}
-              title={`${letter}${active ? ` (${String(completedCount)}/${String(required)})` : ''}`}
-            >
-              <span
-                className={`font-bold ${done ? 'text-white/60' : 'text-white'}`}
+      <div
+        className={`grid ${gridClass}`}
+        style={
+          layout === 'rows'
+            ? { gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }
+            : undefined
+        }
+      >
+        {Array.from({ length: 26 })
+          .map((_, i) => i)
+          .filter((i) => (progress.total[i] ?? 0) > 0)
+          .map((i) => {
+            const letter = String.fromCharCode(65 + i);
+            const remaining = progress.remaining[i] ?? 0;
+            const total = progress.total[i] ?? 0;
+            const required = Math.max(total, 0);
+            const done = remaining <= 0;
+            const active = required > 0;
+            const completedCount = required - Math.max(remaining, 0);
+            const ratio = required > 0 ? completedCount / required : 1;
+            const tileBgClass = done
+              ? 'bg-white/10'
+              : 'bg-emerald-500/20 ring-1 ring-emerald-400/30';
+            return (
+              <div
+                key={letter}
+                className={`${tile} relative flex items-center justify-center rounded ${tileBgClass} backdrop-blur-sm`}
+                style={{
+                  filter: done ? 'grayscale(100%)' : undefined,
+                  opacity: active ? 1 : 0.35,
+                  boxShadow:
+                    active && completedCount > 0
+                      ? `inset 0 -${String(Math.round(ratio * 100))}% 0 0 rgba(16,185,129,0.28)`
+                      : undefined,
+                }}
+                title={`${letter}${active ? ` (${String(completedCount)}/${String(required)})` : ''}`}
               >
-                {letter}
-              </span>
-              {active && showNumbers && total > 1 && remaining > 0 && (
-                <span className="absolute -right-1 -top-1 rounded bg-black/70 px-[3px] py-[1px] text-[9px] leading-none text-white">
-                  {remaining}
+                <span
+                  className={`font-bold ${done ? 'text-white/60' : 'text-white'}`}
+                >
+                  {letter}
                 </span>
-              )}
-            </div>
-          );
-        })}
+                {active && showNumbers && total > 1 && remaining > 0 && (
+                  <span className="absolute -right-1 -top-1 rounded bg-black/70 px-[3px] py-[1px] text-[9px] leading-none text-white">
+                    {remaining}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+      </div>
     </div>
   );
 }

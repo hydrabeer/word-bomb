@@ -228,32 +228,32 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
           Skip to main content
         </a>
 
-        <header className="relative z-20 flex items-center justify-between gap-3 bg-black/40 px-4 py-4 shadow-lg shadow-black/30 backdrop-blur">
+        <header className="relative z-20 flex items-center justify-between gap-3 bg-black/40 px-4 py-3 shadow-lg shadow-black/30 backdrop-blur">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.2em] text-white/60">
               Room {roomCode}
             </p>
             <h1
               id="page-title"
-              className="truncate text-xl font-semibold leading-tight text-white"
+              className="truncate text-lg font-semibold leading-tight text-white"
             >
               {roomName ?? `Room ${roomCode}`}
             </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-white/70">
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 font-semibold text-emerald-100">
+            <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-white/70">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-[3px] font-semibold text-emerald-100">
                 <span aria-hidden="true">❤️</span>
                 <span>
                   {currentLives}/{roomRules.maxLives}
                 </span>
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 uppercase tracking-wide">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-[3px] uppercase tracking-wide">
                 {playersStatusLabel}
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 uppercase tracking-wide">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-[3px] uppercase tracking-wide">
                 Min {roomRules.minTurnDuration}s
               </span>
               {visualState === 'playing' && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-1 font-mono uppercase tracking-wide text-white">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-[3px] font-mono uppercase tracking-wide text-white">
                   {formattedElapsed}
                 </span>
               )}
@@ -275,7 +275,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                   .writeText(window.location.href)
                   .catch(() => undefined);
               }}
-              className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
               title="Copy room invite link"
               aria-label={
                 roomName
@@ -292,7 +292,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                 setIsChatOpen((prev) => !prev);
               }}
               ref={mobileChatToggleRef}
-              className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
               aria-controls="mobile-chat-sheet"
               aria-expanded={isChatOpen}
               aria-label={isChatOpen ? 'Hide chat panel' : 'Show chat panel'}
