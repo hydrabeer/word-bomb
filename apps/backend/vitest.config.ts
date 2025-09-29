@@ -31,8 +31,6 @@ export default defineConfig({
       reporter: ['text', 'json', 'html', 'lcov'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
-        '**/dist/**',
-        '**/build/**',
         '**/*.d.ts',
         'vitest.config.*',
         'test/**',
