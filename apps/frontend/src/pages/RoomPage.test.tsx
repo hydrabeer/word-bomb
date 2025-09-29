@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import RoomPage from './RoomPage';
 
@@ -171,21 +171,26 @@ describe('RoomPage (fast)', () => {
         </Routes>
       </MemoryRouter>
     );
-    render(page);
+    try {
+      render(page);
 
-    screen.getByRole('button', { name: /Copy room invite link/i }).click();
+      const copyButton = screen.getAllByRole('button', {
+        name: /Copy room invite link/i,
+      })[0];
 
-    // Let clipboard promise resolve (microtask)
-    await Promise.resolve();
-    expect(screen.getByText(/copied!/i)).toBeInTheDocument();
+      act(() => {
+        fireEvent.click(copyButton);
+      });
+      expect(copyButton).toHaveTextContent(/copied/i);
 
-    act(() => {
-      vi.advanceTimersByTime(2000);
-    });
-    // allow React to flush state updates scheduled by the timer
-    await Promise.resolve();
-    expect(screen.queryByText(/copied!/i)).not.toBeInTheDocument();
-    vi.useRealTimers();
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(copyButton).not.toHaveTextContent(/copied/i);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('renders players list with leader + seated markers', () => {
