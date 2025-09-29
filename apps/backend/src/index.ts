@@ -1,4 +1,8 @@
-import express, { type Application } from 'express';
+import express, {
+  type Application,
+  type Request,
+  type Response,
+} from 'express';
 import {
   createServer,
   type IncomingMessage,
@@ -29,17 +33,18 @@ import {
 const rootLogger = createLogger('backend');
 initializeLoggerContext(rootLogger);
 
-const app = express();
+const FRONTEND_ORIGIN = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+const SHUTDOWN_FORCE_EXIT_TIMEOUT_MS = 5000;
+const DEFAULT_PORT = 3001;
+
+const app: Application = express();
 // Use helmet to set security headers
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        connectSrc: [
-          "'self'",
-          process.env.FRONTEND_URL ?? 'http://localhost:5173',
-        ],
+        connectSrc: ["'self'", FRONTEND_ORIGIN],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         objectSrc: ["'none'"],
@@ -63,24 +68,22 @@ app.use(express.json());
 app.use('/api/rooms', roomsRouter);
 
 // Lightweight health and readiness endpoints
-import type { Request, Response } from 'express';
-
-export const __test_healthHandler = (_req: Request, res: Response) => {
+export const healthHandler = (_req: Request, res: Response) => {
   res.status(200).send('ok');
 };
 
-export const __test_readyHandler = (_req: Request, res: Response) => {
+export const readyHandler = (_req: Request, res: Response) => {
   const stats = getDictionaryStats();
   const ready = stats.wordCount > 0 && stats.fragmentCount > 0;
   res.status(ready ? 200 : 503).json({ ready, ...stats });
 };
 
-app.get('/healthz', __test_healthHandler);
-app.get('/readyz', __test_readyHandler);
+app.get('/healthz', healthHandler);
+app.get('/readyz', readyHandler);
 
 // Adapter: Express app signature is (req, res, next). Node's createServer expects (req, res).
-// We provide a no-op next function and ensure a void return; no ESLint suppression needed.
-const nodeHandler: RequestListener = (
+// Provide a no-op next function so the handler satisfies both signatures.
+export const nodeHandler: RequestListener = (
   req: IncomingMessage,
   res: ServerResponse,
 ) => {
@@ -97,10 +100,6 @@ const nodeHandler: RequestListener = (
 };
 const server = createServer(nodeHandler);
 
-// Test helper export: allow tests to invoke the raw Node request listener
-// to exercise route handlers without creating a real http.Server.
-export const __test_nodeHandler: RequestListener = nodeHandler;
-
 // Sets up the Socket.IO server. CORS (Cross-Origin Resource Sharing) just
 // lets our backend and our frontend talk to each other from different domains
 const io = new Server<
@@ -110,7 +109,7 @@ const io = new Server<
   SocketData
 >(server, {
   cors: {
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+    origin: FRONTEND_ORIGIN,
     methods: ['GET', 'POST'],
   },
 });
@@ -190,7 +189,7 @@ async function start(port: string | number) {
 }
 
 // Production: use environment variable; Dev: use 3001
-const PORT = process.env.PORT ?? 3001;
+const PORT = process.env.PORT ?? DEFAULT_PORT;
 const portNumber = typeof PORT === 'string' ? Number(PORT) : PORT;
 
 getLogger().info(
@@ -328,12 +327,10 @@ function shutdown(signal: NodeJS.Signals) {
       'Forced exit after shutdown timeout',
     );
     if (process.env.VITEST !== 'true') process.exit(0);
-  }, 5000).unref();
+  }, SHUTDOWN_FORCE_EXIT_TIMEOUT_MS).unref();
 }
 
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-// Test helper export: allow tests to import the express app instance to call
-// route handlers directly without relying on http.Server plumbing.
-export const __test_app: Application = app;
+export { app };
