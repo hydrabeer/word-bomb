@@ -2,19 +2,33 @@ name: Run tests and upload coverage
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened]
     paths:
       - 'apps/**'
       - 'packages/**'
       - 'pnpm-lock.yaml'
       - 'turbo.json'
   push:
-    branches: ['**']
+    branches:
+      - main # only after merge to main
+      # - 'release/**' # (optional) release branches
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'turbo.json'
 
 permissions:
   contents: read
 
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    # Run on PRs OR on pushes to main/tags (never on feature-branch pushes)
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
     name: Run tests and collect coverage
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -37,7 +51,6 @@ jobs:
       - name: Run tests (Vitest) with coverage in all workspaces
         run: pnpm test:coverage
 
-      # Upload even on failing tests so we still get partial reports/annotations
       - name: Upload results to Codecov
         if: always()
         uses: codecov/codecov-action@v5
