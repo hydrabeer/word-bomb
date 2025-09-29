@@ -16,13 +16,7 @@ describe('GameRoomManager', () => {
     expect(mgr.has('ABCD')).toBe(true);
     expect(mgr.get('ABCD')).toBe(r);
     // creating same code should throw
-    let threw = false;
-    try {
-      mgr.create('ABCD', rules);
-    } catch {
-      threw = true;
-    }
-    expect(threw).toBe(true);
+    expect(() => mgr.create('ABCD', rules)).toThrow();
     // seated players on empty room
     expect(mgr.getSeatedPlayers('ABCD')).toEqual([]);
     expect(mgr.delete('ABCD')).toBe(true);
