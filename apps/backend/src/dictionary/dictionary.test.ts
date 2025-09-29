@@ -297,13 +297,7 @@ describe('dictionary module full coverage', () => {
       // Force fragmentCounts to empty by calling internal methods via public API
       // This is a bit of whitebox: if no fragments available and not test, it should throw
       // Simulate by calling getRandomFragment when fragmentCounts is empty
-      try {
-        m.getRandomFragment(999999);
-        // if no throw, assert false
-        expect(false).toBe(true);
-      } catch (e) {
-        expect(e).toBeInstanceOf(Error);
-      }
+      expect(() => m.getRandomFragment(999999)).toThrow(Error);
     });
   });
 
