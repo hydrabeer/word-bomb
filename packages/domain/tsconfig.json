@@ -1,8 +1,10 @@
+// packages/domain/tsconfig.json
 {
   "extends": "@word-bomb/typescript-config/node-lib.json",
   "compilerOptions": {
-    "lib": ["ES2022", "DOM"],
-    "types": ["vitest/globals"]
+    // If the library truly runs in both Node and the browser, leave DOM here.
+    // Otherwise remove "DOM" to avoid accidental usage in Node-only consumers.
+    "lib": ["ES2022", "DOM"]
   },
   "include": ["src"]
 }
