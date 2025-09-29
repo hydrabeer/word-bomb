@@ -3,7 +3,13 @@ import { render } from '@testing-library/react';
 import { PlayerBubble } from './PlayerBubble';
 
 describe('PlayerBubble', () => {
-  const basePlayer = { id: 'p1', name: 'Alice', isEliminated: false, lives: 2 };
+  const basePlayer = {
+    id: 'p1',
+    name: 'Alice',
+    isEliminated: false,
+    lives: 2,
+    isConnected: true,
+  } as const;
   it('renders hearts, name, and highlighted text with flash/shake states', () => {
     const { container, rerender } = render(
       <PlayerBubble
@@ -38,5 +44,24 @@ describe('PlayerBubble', () => {
       />,
     );
     expect(container.textContent).toContain('💀');
+    expect(container.querySelector('[class*="saturate-0"]')).not.toBeNull();
+  });
+
+  it('labels player as disconnected when connection is lost', () => {
+    const { getByText, container } = render(
+      <PlayerBubble
+        player={{ ...basePlayer, isConnected: false }}
+        isActive={false}
+        isEliminated={false}
+        x={0}
+        y={0}
+        highlighted={null}
+        isUrgent={false}
+        flash={false}
+        shake={false}
+      />,
+    );
+    expect(getByText('Disconnected')).toBeInTheDocument();
+    expect(container.querySelector('[class*="saturate-0"]')).not.toBeNull();
   });
 });

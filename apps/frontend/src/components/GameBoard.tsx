@@ -19,6 +19,7 @@ export interface GameState {
     name: string;
     isEliminated: boolean;
     lives: number;
+    isConnected?: boolean;
     bonusProgress?: { remaining: number[]; total: number[] };
   }[];
 }

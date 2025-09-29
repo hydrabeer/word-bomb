@@ -83,6 +83,7 @@ describe('serialization player views', () => {
     expect(view.bonusProgress).toBeDefined();
     expect(view.bonusProgress?.remaining.length).toBe(26);
     expect(view.bonusProgress?.total.length).toBe(26);
+    expect(view.isConnected).toBe(false);
   });
 });
 

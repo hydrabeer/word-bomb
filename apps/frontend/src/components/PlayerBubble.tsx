@@ -25,6 +25,10 @@ function PlayerBubbleComponent({
   shake: boolean; // triggers rejection shake animation
   rotation?: number;
 }) {
+  const isDisconnected = player.isConnected === false;
+  const showDisconnectedBadge = isDisconnected && !isEliminated;
+  const isDimmed = isDisconnected || isEliminated;
+
   return (
     <div
       className="absolute left-1/2 top-1/2 transition-transform duration-500 ease-in-out"
@@ -48,15 +52,28 @@ function PlayerBubbleComponent({
         />
       )}
       {/* Hearts + Name (independent fixed stack) */}
+      {showDisconnectedBadge && (
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[86px]">
+          <span className="rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-100/80 shadow-lg">
+            Disconnected
+          </span>
+        </div>
+      )}
       <div
-        className="absolute flex flex-col items-center"
+        className={`absolute flex flex-col items-center ${
+          isDimmed ? 'opacity-50 saturate-0' : ''
+        }`}
         style={{
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%) translateY(-12px)',
         }}
       >
-        <div className="mb-1 flex h-6 w-max items-center justify-center gap-1 sm:h-7">
+        <div
+          className={`mb-1 flex h-6 w-max items-center justify-center gap-1 sm:h-7 ${
+            isDimmed ? 'grayscale' : ''
+          }`}
+        >
           {isEliminated ? (
             <span className="text-xl leading-none">💀</span>
           ) : (
@@ -104,7 +121,9 @@ function PlayerBubbleComponent({
         <span
           className={`whitespace-nowrap text-lg font-bold uppercase tracking-wide text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] sm:text-xl md:text-2xl ${
             isActive && highlighted ? 'animate-typing' : ''
-          } ${isEliminated ? 'opacity-30' : ''} ${shake ? 'animate-shake text-red-300' : ''}`}
+          } ${isEliminated ? 'opacity-30' : ''} ${
+            isDimmed ? 'opacity-50' : ''
+          } ${shake ? 'animate-shake text-red-300' : ''}`}
           style={{ visibility: highlighted ? 'visible' : 'hidden' }}
         >
           {highlighted ?? '\u200B'}

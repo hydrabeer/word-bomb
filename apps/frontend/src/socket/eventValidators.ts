@@ -30,6 +30,7 @@ interface InternalPlayerShape {
   name: string;
   isEliminated: boolean;
   lives: number;
+  isConnected?: boolean;
 }
 
 const parsePlayersArray = (value: unknown): InternalPlayerShape[] | null => {
@@ -54,6 +55,8 @@ const parsePlayersArray = (value: unknown): InternalPlayerShape[] | null => {
       name,
       isEliminated: Boolean(isEliminated),
       lives,
+      isConnected:
+        typeof raw.isConnected === 'boolean' ? raw.isConnected : undefined,
     });
   }
   return result;

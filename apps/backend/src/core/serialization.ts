@@ -27,6 +27,7 @@ export function toGamePlayerView(
     name: p.name,
     isEliminated: p.isEliminated,
     lives: p.lives,
+    isConnected: p.isConnected,
     bonusProgress: p.getBonusProgressSnapshot(rules.bonusTemplate),
   };
 }

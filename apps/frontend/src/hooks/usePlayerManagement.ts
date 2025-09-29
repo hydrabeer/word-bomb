@@ -14,6 +14,7 @@ export function usePlayerManagement(roomCode: string) {
       id: string;
       name: string;
       isSeated: boolean;
+      isConnected?: boolean;
     }[]
   >([]);
   const [leaderId, setLeaderId] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export function usePlayerManagement(roomCode: string) {
               id: a.id,
               name: a.name,
               isSeated: a.isSeated,
+              isConnected: a.isConnected,
             })),
           );
         }
