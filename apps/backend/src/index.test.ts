@@ -265,11 +265,11 @@ function createHttpMock(options: HttpMockOptions = {}) {
   };
 }
 
-async function createIndexHarness(
-  options: HarnessOptions = {},
-): Promise<IndexHarness> {
+function setupTestEnvironment() {
   vi.resetModules();
+}
 
+function createMocks(options: HarnessOptions = {}) {
   const logger = createLoggerMock(options.logging ?? {});
   const loggingContext = createLoggingContextMock(
     logger,
@@ -280,7 +280,11 @@ async function createIndexHarness(
   const socket = createSocketMock(options.socket ?? {});
   const engineRegistry = createEngineRegistryMock(options.engineRegistry ?? {});
 
-  async function importIndex(nodeEnv = 'development') {
+  return { logger, loggingContext, dictionary, http, socket, engineRegistry };
+}
+
+function createImportIndex() {
+  return async function importIndex(nodeEnv = 'development') {
     const previousEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = nodeEnv;
     try {
@@ -288,17 +292,29 @@ async function createIndexHarness(
     } finally {
       process.env.NODE_ENV = previousEnv;
     }
-  }
-
-  return {
-    importIndex,
-    http,
-    dictionary,
-    logger,
-    loggingContext,
-    socket,
-    engineRegistry,
   };
+}
+
+type HarnessMocks = ReturnType<typeof createMocks>;
+
+function createHarness(mocks: HarnessMocks): IndexHarness {
+  return {
+    importIndex: createImportIndex(),
+    http: mocks.http,
+    dictionary: mocks.dictionary,
+    logger: mocks.logger,
+    loggingContext: mocks.loggingContext,
+    socket: mocks.socket,
+    engineRegistry: mocks.engineRegistry,
+  };
+}
+
+async function createIndexHarness(
+  options: HarnessOptions = {},
+): Promise<IndexHarness> {
+  setupTestEnvironment();
+  const mocks = createMocks(options);
+  return createHarness(mocks);
 }
 
 function captureSignalState() {
