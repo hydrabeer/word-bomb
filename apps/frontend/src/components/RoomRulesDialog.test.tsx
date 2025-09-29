@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RoomRulesDialog } from './RoomRulesDialog';
 import type { LobbyRules, BasicResponse } from '../hooks/useRoomRules';
