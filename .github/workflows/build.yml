@@ -1,0 +1,41 @@
+name: Build
+
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'turbo.json'
+      - '**/tsconfig*.json'
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Cache Turborepo
+        uses: ./.github/actions/cache-turbo
+
+      # PRs: build affected only (fast); main: build full graph (release-grade)
+      - name: Build (affected only)
+        if: github.ref != 'refs/heads/main'
+        run: pnpm build -- --filter=...[origin/main]
+
+      - name: Build (full graph on main)
+        if: github.ref == 'refs/heads/main'
+        run: pnpm build

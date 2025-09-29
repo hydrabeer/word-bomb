@@ -1,0 +1,44 @@
+name: Setup Node & pnpm (with caching)
+description: 'Sets up Node from .nvmrc, pnpm, PNPM store cache, and installs deps (offline if possible).'
+inputs:
+  cache-dependency-path:
+    description: Path(s) to lockfile(s) for cache key
+    required: false
+    default: pnpm-lock.yaml
+  run-install:
+    description: Run pnpm install (true/false)
+    required: false
+    default: 'true'
+  offline:
+    description: Use pnpm fetch + offline install (true/false)
+    required: false
+    default: 'true'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node (from .nvmrc) + pnpm cache
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Setup pnpm (use version from packageManager)
+      uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: pnpm fetch (prime store)
+      if: ${{ inputs.offline == 'true' }}
+      shell: bash
+      run: pnpm fetch --silent
+
+    - name: pnpm install (offline, frozen by default in CI)
+      if: ${{ inputs.run-install == 'true' && inputs.offline == 'true' }}
+      shell: bash
+      run: pnpm install --offline
+
+    - name: pnpm install (online, frozen by default in CI)
+      if: ${{ inputs.run-install == 'true' && inputs.offline != 'true' }}
+      shell: bash
+      run: pnpm install

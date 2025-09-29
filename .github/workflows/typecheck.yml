@@ -1,0 +1,49 @@
+name: Typecheck
+
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'packages/typescript-config/**'
+      - 'tsconfig*.json'
+      - 'pnpm-lock.yaml'
+      - 'turbo.json'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'packages/typescript-config/**'
+      - 'tsconfig*.json'
+      - 'pnpm-lock.yaml'
+      - 'turbo.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: typecheck-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Cache Turborepo
+        uses: ./.github/actions/cache-turbo
+
+      # Affected-only on PRs; full graph on main
+      - name: Typecheck (affected only)
+        if: github.ref != 'refs/heads/main'
+        run: pnpm typecheck -- --filter=...[origin/main]
+
+      - name: Typecheck (full graph on main)
+        if: github.ref == 'refs/heads/main'
+        run: pnpm typecheck

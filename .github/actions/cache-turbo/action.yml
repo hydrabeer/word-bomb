@@ -1,0 +1,19 @@
+name: Cache Turborepo
+description: 'Caches .turbo directory keyed by common inputs.'
+inputs:
+  extra-key:
+    description: Extra hashFiles to include in cache key (newline-separated globs)
+    required: false
+    default: ''
+runs:
+  using: 'composite'
+  steps:
+    - name: Cache Turborepo
+      uses: actions/cache@v4
+      with:
+        path: |
+          .turbo
+          **/.vitestcache
+        key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json','pnpm-lock.yaml','**/package.json','packages/typescript-config/*.json', inputs.extra-key) }}
+        restore-keys: |
+          ${{ runner.os }}-turbo-
