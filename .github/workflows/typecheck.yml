@@ -32,6 +32,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Setup
         uses: ./.github/actions/setup-node-pnpm
@@ -39,11 +41,17 @@ jobs:
       - name: Cache Turborepo
         uses: ./.github/actions/cache-turbo
 
+      # Fetch only the PR base commit so Turbo can resolve the filter target
+      - name: Fetch base commit
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin ${{ github.event.pull_request.base.sha }}:${{ github.event.pull_request.base.sha }}
+
       # Affected-only on PRs; full graph on main
       - name: Typecheck (affected only)
         if: github.ref != 'refs/heads/main'
-        run: pnpm typecheck -- --filter=...[origin/main]
+        run: pnpm turbo run typecheck --filter=...['${{ github.event.pull_request.base.sha }}']
 
       - name: Typecheck (full graph on main)
         if: github.ref == 'refs/heads/main'
-        run: pnpm typecheck
+        run: pnpm turbo run typecheck

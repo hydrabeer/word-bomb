@@ -24,6 +24,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Setup
         uses: ./.github/actions/setup-node-pnpm
@@ -31,11 +33,15 @@ jobs:
       - name: Cache Turborepo
         uses: ./.github/actions/cache-turbo
 
-      # PRs: build affected only (fast); main: build full graph (release-grade)
+      - name: Fetch base commit
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE_SHA='${{ github.event.pull_request.base.sha }}'
+          git fetch --no-tags --depth=1 origin ${BASE_SHA}:${BASE_SHA}
+
       - name: Build (affected only)
         if: github.ref != 'refs/heads/main'
-        run: pnpm turbo run build --filter=...[origin/main]
-
+        run: pnpm turbo run build --filter=...['${{ github.event.pull_request.base.sha }}']
 
       - name: Build (full graph on main)
         if: github.ref == 'refs/heads/main'
