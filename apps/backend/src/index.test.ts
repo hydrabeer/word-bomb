@@ -214,7 +214,7 @@ function createHttpMock(options: HttpMockOptions = {}) {
         });
 
   const removeListener =
-    options.removeListener == null
+    options.removeListener === undefined
       ? undefined
       : vi.fn((event: string, handler: (error: Error) => void) => {
           return options.removeListener?.(event, handler);
