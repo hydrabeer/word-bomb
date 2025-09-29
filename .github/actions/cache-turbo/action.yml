@@ -13,7 +13,7 @@ runs:
       with:
         path: |
           .turbo
-          **/.vitestcache
+          **/.vite
         key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json','pnpm-lock.yaml','**/package.json','packages/typescript-config/*.json', inputs.extra-key) }}
         restore-keys: |
           ${{ runner.os }}-turbo-
