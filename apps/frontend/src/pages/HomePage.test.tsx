@@ -29,7 +29,9 @@ describe('HomePage', () => {
 
   it('sets the base document title on mount', async () => {
     setup();
-    await waitFor(() => expect(document.title).toBe('Word Bomb'));
+    await waitFor(() => {
+      expect(document.title).toBe('Word Bomb');
+    });
   });
 
   it('edits and saves name', () => {

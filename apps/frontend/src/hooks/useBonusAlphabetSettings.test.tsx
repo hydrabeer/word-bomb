@@ -41,7 +41,9 @@ describe('useBonusAlphabetSettings', () => {
   it('updates and persists to localStorage', () => {
     const setItemSpy = vi.spyOn(window.localStorage.__proto__, 'setItem');
     const { result } = renderHook(() => useBonusAlphabetSettings());
-    act(() => result.current.setSettings({ opacity: 0.3 }));
+    act(() => {
+      result.current.setSettings({ opacity: 0.3 });
+    });
     expect(result.current.settings.opacity).toBe(0.3);
     expect(setItemSpy).toHaveBeenCalledWith(
       STORAGE_KEY,
@@ -57,8 +59,12 @@ describe('useBonusAlphabetSettings', () => {
 
   it('reset returns to defaults', () => {
     const { result } = renderHook(() => useBonusAlphabetSettings());
-    act(() => result.current.setSettings({ size: 'sm' }));
-    act(() => result.current.reset());
+    act(() => {
+      result.current.setSettings({ size: 'sm' });
+    });
+    act(() => {
+      result.current.reset();
+    });
     expect(result.current.settings.size).toBe('md');
   });
 });

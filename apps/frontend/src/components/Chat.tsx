@@ -8,10 +8,10 @@ import React, {
 } from 'react';
 import { socket } from '../socket';
 import { useAutoScroll } from '../hooks/useAutoScroll';
-import { ChatMessageItem, ChatMessage } from './ChatMessageItem';
+import { ChatMessageItem, type ChatMessage } from './ChatMessageItem';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
 import { ChatMessageSchema } from '@game/domain/chat/ChatMessage';
-import { ChatMessagePayload } from '@word-bomb/types/socket';
+import { type ChatMessagePayload } from '@word-bomb/types/socket';
 import { FaPaperPlane } from 'react-icons/fa';
 
 interface ChatProps {
@@ -52,7 +52,7 @@ export default function Chat({
 
     // Set the new height based on scrollHeight (with a max height if desired)
     const newHeight = Math.min(textarea.scrollHeight, 150); // Max height of 150px
-    textarea.style.height = `${newHeight}px`;
+    textarea.style.height = `${String(newHeight)}px`;
   }, []);
 
   // Adjust height whenever message content changes
@@ -131,7 +131,7 @@ export default function Chat({
 
   return (
     <div
-      className={`flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 shadow-lg ${className || ''}`}
+      className={`flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-indigo-950 to-purple-900 shadow-lg ${className ?? ''}`}
       role={regionRole}
       aria-label={headingId ? undefined : 'Chat interface'}
       aria-labelledby={headingId}
@@ -165,7 +165,7 @@ export default function Chat({
         ) : (
           messages.map((msg, idx) => (
             <ChatMessageItem
-              key={`${msg.timestamp}-${idx}`}
+              key={`${String(msg.timestamp)}-${String(idx)}`}
               msg={msg}
               isCurrentUser={msg.sender === currentUsername}
             />

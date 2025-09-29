@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, KeyboardEvent } from 'react';
+import { useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   getOrCreatePlayerProfile,
@@ -21,7 +21,7 @@ export default function HomePage() {
 
   const handleSaveName = () => {
     const trimmed = name.trim();
-    if (!trimmed.match(/^.{1,20}$/)) {
+    if (!/^.{1,20}$/.exec(trimmed)) {
       alert('Name must be between 1 and 20 characters.');
       return;
     }
@@ -84,9 +84,9 @@ export default function HomePage() {
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <input
                       value={name}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setName(e.target.value)
-                      }
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                        setName(e.target.value);
+                      }}
                       onKeyDown={(e: KeyboardEvent<HTMLInputElement>) =>
                         e.key === 'Enter' && handleSaveName()
                       }
@@ -111,7 +111,9 @@ export default function HomePage() {
                       {name}
                     </span>
                     <button
-                      onClick={() => setEditing(true)}
+                      onClick={() => {
+                        setEditing(true);
+                      }}
                       className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium transition-all hover:bg-white/20 focus:ring-2 focus:ring-emerald-400 active:scale-95"
                       aria-label="Edit your name"
                     >
@@ -152,7 +154,9 @@ export default function HomePage() {
                   <input
                     id="roomName"
                     value={roomName}
-                    onChange={(e) => setRoomName(e.target.value)}
+                    onChange={(e) => {
+                      setRoomName(e.target.value);
+                    }}
                     maxLength={30}
                     placeholder="Enter room name"
                     className="w-full rounded-lg border border-indigo-600/30 bg-indigo-900/30 px-4 py-3 text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"

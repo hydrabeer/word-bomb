@@ -1,8 +1,7 @@
-// /apps/frontend/tsconfig.json
+// apps/frontend/tsconfig.json
 {
   "extends": "@word-bomb/typescript-config/react-app.json",
   "compilerOptions": {
-    "types": ["vitest/globals"],
     "allowImportingTsExtensions": true
   },
   "include": ["src", "vite-env.d.ts", "vite.config.ts", "types"]

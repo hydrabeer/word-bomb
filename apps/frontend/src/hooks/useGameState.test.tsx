@@ -16,11 +16,15 @@ vi.mock('../socket', () => {
     (handlers[e] ||= []).push(cb);
   };
   const off: MockSocket['off'] = (e, cb) => {
-    handlers[e] = (handlers[e] || []).filter((h) => h !== cb);
+    handlers[e] = handlers[e].filter((h) => h !== cb);
   };
-  const emit: MockSocket['emit'] = (e, p) => emitMock(e, p);
+  const emit: MockSocket['emit'] = (e, p) => {
+    emitMock(e, p);
+  };
   const __emitServer = (e: string, p?: unknown) => {
-    (handlers[e] || []).forEach((h) => h(p));
+    handlers[e].forEach((h) => {
+      h(p);
+    });
   };
   const socket: MockSocket = { on, off, emit };
   return { socket, __emitServer, __emitMock: emitMock };
@@ -81,7 +85,7 @@ describe('useGameState hook', () => {
     act(() => {
       __emitServer('wordAccepted', { playerId: 'p1', word: 'car' });
     });
-    expect(result.current.lastSubmittedWords.p1?.word).toBe('car');
+    expect(result.current.lastSubmittedWords.p1.word).toBe('car');
 
     act(() => {
       advance(2000);

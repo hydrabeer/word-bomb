@@ -23,7 +23,9 @@ export function useWordSubmission(roomCode: string, playerId: string) {
       });
       if (!success) {
         setRejected(true);
-        setTimeout(() => setRejected(false), 300);
+        setTimeout(() => {
+          setRejected(false);
+        }, 300);
       }
     }
     socket.on('actionAck', handleAck);
@@ -34,7 +36,7 @@ export function useWordSubmission(roomCode: string, playerId: string) {
 
   const handleSubmitWord = useCallback(() => {
     if (!inputWord.trim()) return;
-    const clientActionId = `submit-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const clientActionId = `submit-${String(Date.now())}-${Math.random().toString(36).slice(2)}`;
     setPendingIds((prev) => new Set(prev).add(clientActionId));
     // Optimistic clear
     setInputWord('');

@@ -54,7 +54,9 @@ export function RoomRulesDialog({
       }
     }
     window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
+    return () => {
+      window.removeEventListener('keydown', handleKey);
+    };
   }, [open, onClose]);
 
   const draftSummary = useMemo(
@@ -129,7 +131,9 @@ export function RoomRulesDialog({
     >
       <div
         className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-900 p-6 text-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
       >
         <header className="mb-6 flex items-start justify-between">
           <div>
@@ -168,12 +172,12 @@ export function RoomRulesDialog({
                   min={1}
                   max={10}
                   value={draft.startingLives}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setDraft((prev) => ({
                       ...prev,
                       startingLives: Number(e.target.value),
-                    }))
-                  }
+                    }));
+                  }}
                   disabled={!isLeader}
                   className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-lg font-medium text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50"
                 />
@@ -185,12 +189,12 @@ export function RoomRulesDialog({
                   min={1}
                   max={10}
                   value={draft.maxLives}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setDraft((prev) => ({
                       ...prev,
                       maxLives: Number(e.target.value),
-                    }))
-                  }
+                    }));
+                  }}
                   disabled={!isLeader}
                   className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-lg font-medium text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50"
                 />
@@ -213,12 +217,12 @@ export function RoomRulesDialog({
                   max={1000}
                   step={25}
                   value={draft.minWordsPerPrompt}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setDraft((prev) => ({
                       ...prev,
                       minWordsPerPrompt: Number(e.target.value),
-                    }))
-                  }
+                    }));
+                  }}
                   disabled={!isLeader}
                   className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-lg font-medium text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50"
                 />
@@ -235,12 +239,12 @@ export function RoomRulesDialog({
                   min={1}
                   max={10}
                   value={draft.minTurnDuration}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setDraft((prev) => ({
                       ...prev,
                       minTurnDuration: Number(e.target.value),
-                    }))
-                  }
+                    }));
+                  }}
                   disabled={!isLeader}
                   className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-lg font-medium text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-50"
                 />
@@ -259,7 +263,9 @@ export function RoomRulesDialog({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setAllBonus(1)}
+                  onClick={() => {
+                    setAllBonus(1);
+                  }}
                   disabled={!isLeader}
                   className="rounded-md border border-emerald-400/60 px-3 py-1 text-sm text-emerald-200 transition hover:bg-emerald-400/10 disabled:opacity-50"
                 >
@@ -267,7 +273,9 @@ export function RoomRulesDialog({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAllBonus(0)}
+                  onClick={() => {
+                    setAllBonus(0);
+                  }}
                   disabled={!isLeader}
                   className="rounded-md border border-red-400/60 px-3 py-1 text-sm text-red-200 transition hover:bg-red-400/10 disabled:opacity-50"
                 >
@@ -290,7 +298,9 @@ export function RoomRulesDialog({
                   >
                     <button
                       type="button"
-                      onClick={() => toggleLetter(idx)}
+                      onClick={() => {
+                        toggleLetter(idx);
+                      }}
                       disabled={!isLeader}
                       className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white transition hover:bg-white/20 disabled:opacity-50"
                       aria-label={
@@ -306,9 +316,9 @@ export function RoomRulesDialog({
                       min={BONUS_MIN}
                       max={BONUS_MAX}
                       value={value}
-                      onChange={(e) =>
-                        handleBonusChange(idx, Number(e.target.value))
-                      }
+                      onChange={(e) => {
+                        handleBonusChange(idx, Number(e.target.value));
+                      }}
                       disabled={!isLeader}
                       className="mt-2 w-full rounded-md border border-white/10 bg-black/30 px-2 py-1 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400 disabled:opacity-50"
                     />
@@ -318,7 +328,7 @@ export function RoomRulesDialog({
             </div>
           </section>
 
-          {(formError || submitError) && (
+          {(formError ?? submitError) && (
             <div className="rounded-lg border border-red-400/60 bg-red-500/10 px-4 py-3 text-sm text-red-200">
               {formError ?? submitError}
             </div>

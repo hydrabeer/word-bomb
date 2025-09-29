@@ -100,9 +100,9 @@ describe('Routing / room code handling', () => {
 
     renderRoute('/ABCD');
 
-    await waitFor(() =>
-      expect(document.title).toBe('Loading Room ABCD — Word Bomb'),
-    );
+    await waitFor(() => {
+      expect(document.title).toBe('Loading Room ABCD — Word Bomb');
+    });
 
     deferred.resolve({
       ok: true,
@@ -110,7 +110,9 @@ describe('Routing / room code handling', () => {
         Promise.resolve({ exists: true, name: '  Champions Lounge  ' }),
     });
 
-    await waitFor(() => expect(document.title).toBe('[ABCD] Champions Lounge'));
+    await waitFor(() => {
+      expect(document.title).toBe('[ABCD] Champions Lounge');
+    });
   });
 
   it('shows room missing page for valid-looking but nonexistent room', async () => {

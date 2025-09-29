@@ -180,7 +180,9 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                   .writeText(window.location.href)
                   .then(() => {
                     setInviteCopied(true);
-                    setTimeout(() => setInviteCopied(false), 2000);
+                    setTimeout(() => {
+                      setInviteCopied(false);
+                    }, 2000);
                   });
               }}
               className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
@@ -196,7 +198,9 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
             </button>
 
             <button
-              onClick={() => setIsChatOpen((prev) => !prev)}
+              onClick={() => {
+                setIsChatOpen((prev) => !prev);
+              }}
               ref={mobileChatToggleRef}
               className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
               aria-controls="mobile-chat-sheet"
@@ -219,7 +223,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
             >
               {roomName ?? `Room ${roomCode}`}
             </h1>
-            {hasServerRules && roomRules && (
+            {hasServerRules && (
               <p className="text-sm text-white/70">
                 Lives {roomRules.startingLives}/{roomRules.maxLives} • WPP ≥{' '}
                 {roomRules.minWordsPerPrompt} • Min turn{' '}
@@ -238,7 +242,9 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
             <JoinGameButtons className="w-full text-center" />
             <button
               type="button"
-              onClick={() => setIsRulesOpen(true)}
+              onClick={() => {
+                setIsRulesOpen(true);
+              }}
               className="inline-flex items-center justify-center rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-emerald-400"
             >
               {isLeader ? 'Edit room rules' : 'View room rules'}
@@ -447,7 +453,9 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
 
         <RoomRulesDialog
           open={isRulesOpen}
-          onClose={() => setIsRulesOpen(false)}
+          onClose={() => {
+            setIsRulesOpen(false);
+          }}
           rules={roomRules}
           isLeader={Boolean(isLeader)}
           isUpdating={isRulesUpdating}
@@ -479,7 +487,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
       <header className="relative flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3 shadow-sm backdrop-blur-sm">
         {/* Accessible page title for screen readers */}
         <h1 id="page-title" className="sr-only">
-          {roomName ? roomName : `Word Bomb Room ${roomCode}`}
+          {roomName ?? `Word Bomb Room ${roomCode}`}
         </h1>
 
         {/* Copy invite link */}
@@ -490,7 +498,9 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                 .writeText(window.location.href)
                 .then(() => {
                   setInviteCopied(true);
-                  setTimeout(() => setInviteCopied(false), 2000);
+                  setTimeout(() => {
+                    setInviteCopied(false);
+                  }, 2000);
                 });
             }}
             className="flex h-9 cursor-copy items-center gap-2 rounded-md bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
@@ -509,7 +519,9 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
         {/* Chat Toggle – square arrow in top-right of top bar (desktop only) */}
         <div className="hidden items-center md:flex">
           <button
-            onClick={() => setIsChatOpen(!isChatOpen)}
+            onClick={() => {
+              setIsChatOpen(!isChatOpen);
+            }}
             className="grid h-9 w-9 place-items-center rounded-md border border-white/10 bg-white/10 text-white shadow-sm transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
             aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
             aria-controls="desktop-chat-panel"
@@ -599,7 +611,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                       {roomName ?? `Room ${roomCode}`}
                     </span>
                   </h2>
-                  {hasServerRules && roomRules && (
+                  {hasServerRules && (
                     <p className="mt-2 text-sm text-indigo-200/80 sm:text-left">
                       Lives {roomRules.startingLives}/{roomRules.maxLives} • WPP
                       ≥ {roomRules.minWordsPerPrompt} • Min turn{' '}
@@ -609,7 +621,9 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsRulesOpen(true)}
+                  onClick={() => {
+                    setIsRulesOpen(true);
+                  }}
                   className="inline-flex items-center justify-center rounded-md border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-indigo-900"
                 >
                   {isLeader ? 'Edit room rules' : 'View room rules'}
@@ -734,7 +748,9 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
       {/* Removed old desktop floating chat toggle; unified control is in top bar */}
       <RoomRulesDialog
         open={isRulesOpen}
-        onClose={() => setIsRulesOpen(false)}
+        onClose={() => {
+          setIsRulesOpen(false);
+        }}
         rules={roomRules}
         isLeader={Boolean(isLeader)}
         isUpdating={isRulesUpdating}

@@ -9,7 +9,7 @@ vi.mock('../socket', () => {
     (handlers[e] ||= []).push(cb);
   };
   const off = (e: string, cb: (payload?: unknown) => void) => {
-    handlers[e] = (handlers[e] || []).filter((h) => h !== cb);
+    handlers[e] = handlers[e].filter((h) => h !== cb);
   };
   const emit = (
     e: string,
@@ -20,7 +20,9 @@ vi.mock('../socket', () => {
     if (ack) ack({ success: true });
   };
   const __emitServer = (e: string, payload?: unknown) => {
-    (handlers[e] || []).forEach((h) => h(payload));
+    handlers[e].forEach((h) => {
+      h(payload);
+    });
   };
   const emitMock = vi.fn();
   return { socket: { on, off, emit }, __emitServer, __emitMock: emitMock };

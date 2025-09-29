@@ -21,7 +21,7 @@ export default function RoomRoute() {
   useEffect(() => {
     let cancelled = false;
     // Defensive: Should only mount when pattern matches, but guard anyway
-    if (!roomCode.match(/^[A-Z]{4}$/)) {
+    if (!/^[A-Z]{4}$/.exec(roomCode)) {
       setStatus('invalidFormat');
       return;
     }
@@ -54,7 +54,7 @@ export default function RoomRoute() {
     }
     if (status === 'ready') {
       const trimmed = roomName.trim();
-      const label = trimmed.length > 0 ? trimmed : `${roomName}`;
+      const label = trimmed.length > 0 ? trimmed : roomName;
       return `[${roomCode}] ${label}`;
     }
     return undefined;

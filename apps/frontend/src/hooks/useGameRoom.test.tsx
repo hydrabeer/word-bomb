@@ -26,7 +26,9 @@ vi.mock('../socket', () => {
     __emitMock(event, payload);
   };
   const __emitServer = (event: string, payload?: unknown) => {
-    (handlers[event] || []).forEach((h) => h(payload));
+    (handlers[event] || []).forEach((h) => {
+      h(payload);
+    });
   };
   const __emitMock = vi.fn<(event: string, payload?: unknown) => void>();
   return {
@@ -67,9 +69,14 @@ describe('useGameRoom', () => {
       __emitMock: ReturnType<typeof vi.fn>;
     };
 
-    const { unmount } = renderHook(({ code }) => useGameRoom(code), {
-      initialProps: { code: 'ABC' },
-    });
+    const { unmount } = renderHook(
+      ({ code }) => {
+        useGameRoom(code);
+      },
+      {
+        initialProps: { code: 'ABC' },
+      },
+    );
 
     // joinRoom is deferred with setTimeout 0
     act(() => {
@@ -94,9 +101,14 @@ describe('useGameRoom', () => {
     const { __emitMock } = socketModule as unknown as {
       __emitMock: ReturnType<typeof vi.fn>;
     };
-    const { rerender } = renderHook(({ code }) => useGameRoom(code), {
-      initialProps: { code: 'ROOM1' },
-    });
+    const { rerender } = renderHook(
+      ({ code }) => {
+        useGameRoom(code);
+      },
+      {
+        initialProps: { code: 'ROOM1' },
+      },
+    );
 
     // allow first join
     act(() => {

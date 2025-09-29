@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { GameState } from '../components/GameBoard.tsx';
+import { type GameState } from '../components/GameBoard.tsx';
 
 export type VisualState = 'idle' | 'seated' | 'playing';
 

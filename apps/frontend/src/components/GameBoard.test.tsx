@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
-import { GameBoard, GameState } from './GameBoard';
+import { GameBoard, type GameState } from './GameBoard';
 
 const noop = () => undefined;
 

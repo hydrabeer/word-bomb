@@ -11,14 +11,17 @@ vi.mock('../socket', () => {
         (handlers[e] ||= []).push(cb);
       },
       off: (e: string, cb: (p: unknown) => void) => {
-        handlers[e] = (handlers[e] || []).filter((h) => h !== cb);
+        handlers[e] = handlers[e].filter((h) => h !== cb);
       },
       emit: (_: string, __: unknown, ack?: (res: unknown) => void) => {
         ack?.({ success: false, error: 'No response from server.' });
       },
     },
-    __emitServer: (e: string, p: unknown) =>
-      (handlers[e] || []).forEach((h) => h(p)),
+    __emitServer: (e: string, p: unknown) => {
+      handlers[e].forEach((h) => {
+        h(p);
+      });
+    },
   };
 });
 import * as socketModule from '../socket';

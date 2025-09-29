@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BonusAlphabet } from './BonusAlphabet';
 
@@ -36,7 +37,7 @@ describe('BonusAlphabet', () => {
   it('greys out completed or inactive letters and hides counter at 0', () => {
     render(<BonusAlphabet progress={baseProgress()} />);
     const dTile = screen.getByText('D').parentElement!;
-    expect(dTile.getAttribute('style') || '').toContain('grayscale(100%)');
+    expect(dTile.getAttribute('style') ?? '').toContain('grayscale(100%)');
     // Inactive C is not rendered at all (total=0)
     expect(screen.queryByText('C')).toBeNull();
     // D has remaining 0 -> no counter element

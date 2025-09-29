@@ -70,6 +70,8 @@ export function useBonusAlphabetSettings() {
   return {
     settings,
     setSettings: update,
-    reset: () => setSettings(DEFAULT_SETTINGS),
+    reset: () => {
+      setSettings(DEFAULT_SETTINGS);
+    },
   };
 }

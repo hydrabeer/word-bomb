@@ -19,11 +19,14 @@ vi.mock('../socket', () => {
         (handlers[e] ||= []).push(cb);
       },
       off: (e: string, cb: (...a: unknown[]) => void) => {
-        handlers[e] = (handlers[e] || []).filter((h) => h !== cb);
+        handlers[e] = handlers[e].filter((h) => h !== cb);
       },
     },
-    __emitServer: (e: string, ...a: unknown[]) =>
-      (handlers[e] || []).forEach((h) => h(...a)),
+    __emitServer: (e: string, ...a: unknown[]) => {
+      handlers[e].forEach((h) => {
+        h(...a);
+      });
+    },
   };
 });
 import * as socketModule from '../socket';
@@ -40,7 +43,9 @@ describe('useSocketConnection', () => {
       value: { pathname: '/disconnected' },
       writable: true,
     });
-    renderHook(() => useSocketConnection());
+    renderHook(() => {
+      useSocketConnection();
+    });
     (
       socketModule as unknown as {
         __emitServer: (e: string, ...a: unknown[]) => void;
@@ -55,7 +60,9 @@ describe('useSocketConnection', () => {
       value: { pathname: '/room/ROOM' },
       writable: true,
     });
-    renderHook(() => useSocketConnection());
+    renderHook(() => {
+      useSocketConnection();
+    });
     (
       socketModule as unknown as {
         __emitServer: (e: string, ...a: unknown[]) => void;

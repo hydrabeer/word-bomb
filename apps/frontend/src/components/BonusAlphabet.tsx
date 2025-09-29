@@ -63,10 +63,10 @@ export function BonusAlphabet({ progress, settings }: BonusAlphabetProps) {
                 opacity: active ? 1 : 0.35,
                 boxShadow:
                   active && completedCount > 0
-                    ? `inset 0 -${Math.round(ratio * 100)}% 0 0 rgba(16,185,129,0.28)`
+                    ? `inset 0 -${String(Math.round(ratio * 100))}% 0 0 rgba(16,185,129,0.28)`
                     : undefined,
               }}
-              title={`${letter}${active ? ` (${completedCount}/${required})` : ''}`}
+              title={`${letter}${active ? ` (${String(completedCount)}/${String(required)})` : ''}`}
             >
               <span
                 className={`font-bold ${done ? 'text-white/60' : 'text-white'}`}

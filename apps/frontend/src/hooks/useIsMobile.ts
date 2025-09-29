@@ -6,9 +6,13 @@ export function useIsMobile(breakpoint = 768) {
     typeof window === 'undefined' ? false : window.innerWidth < breakpoint,
   );
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < breakpoint);
+    const handler = () => {
+      setIsMobile(window.innerWidth < breakpoint);
+    };
     window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
+    return () => {
+      window.removeEventListener('resize', handler);
+    };
   }, [breakpoint]);
   return isMobile;
 }

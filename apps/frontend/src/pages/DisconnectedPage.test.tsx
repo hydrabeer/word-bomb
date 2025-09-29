@@ -36,7 +36,9 @@ vi.mock('../socket', () => {
     // update connected flag based on event to mirror real socket behavior
     if (event === 'connect') connected = true;
     if (event === 'connect_error') connected = false;
-    list.forEach((fn) => fn(payload));
+    list.forEach((fn) => {
+      fn(payload);
+    });
   }
   function resetSocket() {
     connected = false;

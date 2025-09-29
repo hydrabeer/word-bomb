@@ -1,5 +1,11 @@
 // apps/frontend/src/components/GameBoard.tsx
-import { useRef, useEffect, KeyboardEvent, JSX, useMemo } from 'react';
+import {
+  useRef,
+  useEffect,
+  type KeyboardEvent,
+  type JSX,
+  useMemo,
+} from 'react';
 import { PlayerBubble } from './PlayerBubble';
 import { BonusAlphabet } from './BonusAlphabet';
 import { useBonusAlphabetSettings } from '../hooks/useBonusAlphabetSettings';
@@ -44,7 +50,7 @@ export function GameBoard({
   const localPlayerId = useMemo(() => {
     try {
       return (
-        JSON.parse(localStorage.getItem('wordbomb:profile:v1') || 'null') as {
+        JSON.parse(localStorage.getItem('wordbomb:profile:v1') ?? 'null') as {
           id: string;
         } | null
       )?.id;
@@ -69,7 +75,9 @@ export function GameBoard({
     };
     // Removed highlight cache (cheap to compute, saves lines / complexity)
     const timeout = setTimeout(focusInput, 50);
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+    };
   }, [isMyTurn]);
 
   const onKeyDownHandler = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -158,7 +166,9 @@ export function GameBoard({
     };
 
     input.addEventListener('focus', handleFocus);
-    return () => input.removeEventListener('focus', handleFocus);
+    return () => {
+      input.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   if (!gameState) {
@@ -174,9 +184,10 @@ export function GameBoard({
   }
 
   // Calculate bomb countdown percentage for visual indicator
-  const countdownPercentage = gameState
-    ? Math.min(100, Math.max(0, (bombCountdown / gameState.bombDuration) * 100))
-    : 100;
+  const countdownPercentage = Math.min(
+    100,
+    Math.max(0, (bombCountdown / gameState.bombDuration) * 100),
+  );
 
   // Red reactive ring parameters (single color theme)
   const progressRemaining = countdownPercentage / 100; // 1 -> full time, 0 -> expired
@@ -209,7 +220,7 @@ export function GameBoard({
             <div
               className="h-full origin-left bg-gradient-to-r from-red-500 via-red-400 to-red-500"
               style={{
-                width: `${countdownPercentage}%`,
+                width: `${String(countdownPercentage)}%`,
                 transition: 'width 0.15s linear',
               }}
             />
@@ -255,9 +266,9 @@ export function GameBoard({
               style={{
                 opacity: ringGlowOpacity,
                 // Breathing scale (slight) synced exactly with pulsePhase
-                transform: `scale(${1 + pulsePhase * 0.035})`,
+                transform: `scale(${String(1 + pulsePhase * 0.035)})`,
                 transition: 'transform 0.15s linear, opacity 0.15s linear',
-                filter: `drop-shadow(0 0 ${8 + pulsePhase * 6}px rgba(239,68,68,${0.45 + pulsePhase * 0.35})) drop-shadow(0 0 ${18 + pulsePhase * 10}px rgba(239,68,68,${0.25 + pulsePhase * 0.25}))`,
+                filter: `drop-shadow(0 0 ${String(8 + pulsePhase * 6)}px rgba(239,68,68,${String(0.45 + pulsePhase * 0.35)})) drop-shadow(0 0 ${String(18 + pulsePhase * 10)}px rgba(239,68,68,${String(0.25 + pulsePhase * 0.25)}))`,
               }}
             >
               <svg
@@ -318,7 +329,7 @@ export function GameBoard({
             style={{
               transform:
                 isMobile && rotationOffset !== 0
-                  ? `rotate(${rotationOffset}deg)`
+                  ? `rotate(${String(rotationOffset)}deg)`
                   : undefined,
               transition: 'transform 0.4s ease-in-out',
             }}
@@ -331,7 +342,7 @@ export function GameBoard({
                 flash={lastWordAcceptedBy === view.player.id}
                 shake={
                   rejected &&
-                  gameState?.currentPlayerId === view.player.id &&
+                  gameState.currentPlayerId === view.player.id &&
                   !!view.highlighted
                 }
                 rotation={-rotationOffset} // So contents stay upright

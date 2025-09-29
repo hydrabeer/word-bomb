@@ -8,57 +8,64 @@ import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import vitest from '@vitest/eslint-plugin';
-import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
+import globals from 'globals';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const TEST_GLOBS = ['**/*.{test,spec}.{ts,tsx}'];
 
 export default tseslint.config(
-  // Base JS + TS (type-aware)
+  // Base JS + TS
   eslint.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
   tseslint.configs.stylisticTypeChecked,
 
-  // React (flat configs)
+  // React (flat) + new JSX runtime
   reactPlugin.configs.flat.recommended,
   reactPlugin.configs.flat['jsx-runtime'],
 
-  // React Refresh (Vite HMR)
+  // React Refresh (HMR)
   reactRefresh.configs.recommended,
 
-  // React Hooks plugin rules
+  // React Hooks (not included in React presets)
   {
     plugins: { 'react-hooks': reactHooks },
     rules: { ...reactHooks.configs.recommended.rules },
   },
 
-  // Project settings for TS files
+  // App/source files (TS/TSX)
   {
     files: ['**/*.{ts,tsx,mts,cts}'],
-    settings: {
-      react: { version: 'detect' },
-    },
+    settings: { react: { version: 'detect' } },
     languageOptions: {
+      // Browser globals for the app
+      globals: {
+        ...globals.browser,
+        // Vite exposes import.meta — TS understands it; ESLint doesn't need extra globals
+      },
       parserOptions: {
         projectService: true,
         project: ['./tsconfig.json'],
-        tsconfigRootDir: __dirname,
+        tsconfigRootDir: import.meta.dirname, // you can drop fileURLToPath()
       },
-    },
-    rules: {
-      '@typescript-eslint/prefer-regexp-exec': 'off',
-      '@typescript-eslint/prefer-nullish-coalescing': 'off',
     },
   },
 
-  // Vitest: ONLY apply to tests
+  // Vitest: ONLY for tests
   {
-    files: ['**/*.{test,spec}.{ts,tsx}'],
+    files: TEST_GLOBS,
     plugins: { vitest },
-    rules: { ...vitest.configs.recommended.rules },
+    rules: {
+      ...vitest.configs.recommended.rules,
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
     languageOptions: {
+      // Vitest globals; keep type-aware IF your tsconfig includes tests.
+      // If not, switch to projectService:false to avoid parser errors / speed up.
       globals: vitest.environments.env.globals,
-      parserOptions: { projectService: true }, // still type-aware in tests
+      parserOptions: {
+        projectService: true,
+        project: ['./tsconfig.test.json'], // <-- point at test project
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
   },
 
@@ -75,6 +82,6 @@ export default tseslint.config(
     ],
   },
 
-  // Put Prettier last to disable stylistic conflicts
+  // Prettier last
   eslintConfigPrettier,
 );

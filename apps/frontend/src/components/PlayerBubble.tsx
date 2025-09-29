@@ -1,6 +1,6 @@
 // apps/frontend/src/components/PlayerBubble.tsx
-import { JSX, memo } from 'react';
-import { GameState } from './GameBoard.tsx';
+import { type JSX, memo } from 'react';
+import { type GameState } from './GameBoard.tsx';
 
 function PlayerBubbleComponent({
   player,
@@ -29,7 +29,7 @@ function PlayerBubbleComponent({
     <div
       className="absolute left-1/2 top-1/2 transition-transform duration-500 ease-in-out"
       style={{
-        transform: `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rotation}deg)`,
+        transform: `translate(-50%, -50%) translate(${String(x)}px, ${String(y)}px) rotate(${String(rotation)}deg)`,
         width: 0,
         height: 0,
       }}

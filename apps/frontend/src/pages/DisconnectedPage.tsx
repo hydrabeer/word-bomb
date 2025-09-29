@@ -6,8 +6,8 @@ import { getOrCreatePlayerProfile } from '../utils/playerProfile';
 export default function DisconnectedPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const roomCode = searchParams.get('room') || '';
-  const reason = searchParams.get('reason') || 'connection lost';
+  const roomCode = searchParams.get('room') ?? '';
+  const reason = searchParams.get('reason') ?? 'connection lost';
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<
     'idle' | 'reconnecting' | 'failed' | 'success'
@@ -44,7 +44,7 @@ export default function DisconnectedPage() {
   useEffect(() => {
     const base = 'Disconnected';
     if (status === 'reconnecting') {
-      document.title = `${base} — Reconnecting (attempt ${attempt}/${MAX_ATTEMPTS})`;
+      document.title = `${base} — Reconnecting (attempt ${String(attempt)}/${String(MAX_ATTEMPTS)})`;
     } else if (status === 'success') {
       document.title = `${base} — Reconnected`;
     } else if (status === 'failed') {
@@ -189,7 +189,7 @@ export default function DisconnectedPage() {
   const progressMessage = (() => {
     switch (status) {
       case 'reconnecting':
-        return `Reconnecting (attempt ${attempt}/${MAX_ATTEMPTS})...`;
+        return `Reconnecting (attempt ${String(attempt)}/${String(MAX_ATTEMPTS)})...`;
       case 'failed':
         return attempt >= MAX_ATTEMPTS
           ? 'Unable to reconnect automatically.'

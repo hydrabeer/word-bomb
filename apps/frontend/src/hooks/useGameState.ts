@@ -47,7 +47,9 @@ export function useGameState(roomCode: string) {
         setTimeLeftSec(Math.ceil(diff / 1000));
       }
     }, 250);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+    };
   }, [countdownDeadline]);
 
   // Game timer effect
@@ -58,7 +60,9 @@ export function useGameState(roomCode: string) {
       setElapsedGameTime(Math.floor((Date.now() - gameStartedAt) / 1000));
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [gameStartedAt]);
 
   // Bomb countdown effect
@@ -68,7 +72,9 @@ export function useGameState(roomCode: string) {
       const left = Math.ceil((turnDeadline - Date.now()) / 1000);
       setBombCountdown(Math.max(left, 0));
     }, 250);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [turnDeadline]);
 
   // Socket event handlers
@@ -171,7 +177,9 @@ export function useGameState(roomCode: string) {
         [playerId]: { word: word.trim(), fragment: fragmentSnapshot },
       }));
       setLastWordAcceptedBy(playerId);
-      setTimeout(() => setLastWordAcceptedBy(null), 500);
+      setTimeout(() => {
+        setLastWordAcceptedBy(null);
+      }, 500);
     }
 
     socket.on('gameCountdownStarted', handleGameCountdownStarted);

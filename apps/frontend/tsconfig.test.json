@@ -1,0 +1,8 @@
+// apps/frontend/tsconfig.test.json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals"]
+  },
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+}

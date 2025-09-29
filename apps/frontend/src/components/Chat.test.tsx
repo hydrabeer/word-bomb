@@ -24,14 +24,17 @@ interface MockSocket {
 vi.mock('../socket', () => {
   const handlers: Record<string, Handler[]> = {};
   const emitMock = vi.fn<(e: string, payload: unknown) => void>();
-  const __emitServer: MockSocket['__emitServer'] = (e, p) =>
-    (handlers[e] || []).forEach((h) => h(p));
+  const __emitServer: MockSocket['__emitServer'] = (e, p) => {
+    handlers[e].forEach((h) => {
+      h(p);
+    });
+  };
   const socket: MockSocket = {
     on: (e, cb) => {
       (handlers[e] ||= []).push(cb);
     },
     off: (e, cb) => {
-      handlers[e] = (handlers[e] || []).filter((h) => h !== cb);
+      handlers[e] = handlers[e].filter((h) => h !== cb);
     },
     emit: emitMock,
     __emitServer,
