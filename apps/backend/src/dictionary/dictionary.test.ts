@@ -293,11 +293,12 @@ describe('dictionary module full coverage', () => {
     // We'll import a fresh module instance
     vi.resetModules();
     process.env.NODE_ENV = 'production';
+    const OUT_OF_RANGE_FRAGMENT_INDEX = 999999; // Used to trigger error when no fragments are available
     return import('../dictionary').then((m) => {
       // Force fragmentCounts to empty by calling internal methods via public API
       // This is a bit of whitebox: if no fragments available and not test, it should throw
       // Simulate by calling getRandomFragment when fragmentCounts is empty
-      expect(() => m.getRandomFragment(999999)).toThrow(Error);
+      expect(() => m.getRandomFragment(OUT_OF_RANGE_FRAGMENT_INDEX)).toThrow(Error);
     });
   });
 
