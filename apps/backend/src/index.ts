@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Application } from 'express';
 import {
   createServer,
   type IncomingMessage,
@@ -63,14 +63,20 @@ app.use(express.json());
 app.use('/api/rooms', roomsRouter);
 
 // Lightweight health and readiness endpoints
-app.get('/healthz', (_req, res) => {
+import type { Request, Response } from 'express';
+
+export const __test_healthHandler = (_req: Request, res: Response) => {
   res.status(200).send('ok');
-});
-app.get('/readyz', (_req, res) => {
+};
+
+export const __test_readyHandler = (_req: Request, res: Response) => {
   const stats = getDictionaryStats();
   const ready = stats.wordCount > 0 && stats.fragmentCount > 0;
   res.status(ready ? 200 : 503).json({ ready, ...stats });
-});
+};
+
+app.get('/healthz', __test_healthHandler);
+app.get('/readyz', __test_readyHandler);
 
 // Adapter: Express app signature is (req, res, next). Node's createServer expects (req, res).
 // We provide a no-op next function and ensure a void return; no ESLint suppression needed.
@@ -90,6 +96,10 @@ const nodeHandler: RequestListener = (
   });
 };
 const server = createServer(nodeHandler);
+
+// Test helper export: allow tests to invoke the raw Node request listener
+// to exercise route handlers without creating a real http.Server.
+export const __test_nodeHandler: RequestListener = nodeHandler;
 
 // Sets up the Socket.IO server. CORS (Cross-Origin Resource Sharing) just
 // lets our backend and our frontend talk to each other from different domains
@@ -188,13 +198,19 @@ getLogger().info(
   'Starting Word Bomb backend',
 );
 
-start(PORT).catch((err: unknown) => {
-  getLogger().error(
-    { event: 'server_start_failed', err, port: portNumber },
-    'Failed to start app',
-  );
-  process.exit(1);
-});
+// In test environments we avoid calling start() automatically to prevent
+// tests from being terminated by process.exit in start()'s catch handler.
+if (process.env.NODE_ENV !== 'test') {
+  start(PORT).catch((err: unknown) => {
+    getLogger().error(
+      { event: 'server_start_failed', err, port: portNumber },
+      'Failed to start app',
+    );
+    // During Vitest runs we avoid calling process.exit since the runner treats
+    // that as an unexpected termination. Respect VITEST env var set by Vitest.
+    if (process.env.VITEST !== 'true') process.exit(1);
+  });
+}
 
 // When a client connects
 io.on('connection', (socket) => {
@@ -292,7 +308,9 @@ function shutdown(signal: NodeJS.Signals) {
       } else {
         closeLog.info({ event: 'server_closed' }, 'HTTP server closed');
       }
-      process.exit();
+      // Avoid calling process.exit during Vitest runs (Vitest detects and
+      // reports process.exit even when tests mock it). Respect VITEST env.
+      if (process.env.VITEST !== 'true') process.exit();
     });
   } else {
     // In tests, server may be a simple mock without close()
@@ -300,7 +318,7 @@ function shutdown(signal: NodeJS.Signals) {
       { event: 'server_close_skipped' },
       'Server close skipped (no close method)',
     );
-    process.exit();
+    if (process.env.VITEST !== 'true') process.exit();
   }
   // Safety timeout
   setTimeout(() => {
@@ -309,9 +327,13 @@ function shutdown(signal: NodeJS.Signals) {
       { event: 'shutdown_forced_exit' },
       'Forced exit after shutdown timeout',
     );
-    process.exit(0);
+    if (process.env.VITEST !== 'true') process.exit(0);
   }, 5000).unref();
 }
 
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+
+// Test helper export: allow tests to import the express app instance to call
+// route handlers directly without relying on http.Server plumbing.
+export const __test_app: Application = app;

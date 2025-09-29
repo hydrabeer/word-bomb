@@ -1,11 +1,35 @@
 import { describe, it, expect } from 'vitest';
-import { gameEngines } from './engineRegistry';
-import type { GameEngine } from './GameEngine';
+import {
+  gameEngines,
+  setGameEngine,
+  getGameEngine,
+  shutdownEngines,
+} from './engineRegistry';
 
-describe('engineRegistry coverage', () => {
-  it('set/get/delete/clear work as expected', () => {
-    const e1 = { tag: 'e1' } as unknown as GameEngine;
-    const e2 = { tag: 'e2' } as unknown as GameEngine;
+describe('engineRegistry', () => {
+  it('set/get/delete and shutdownEngines clear engines', () => {
+    const fake = { clearTimeout: () => undefined } as any;
+    setGameEngine('X', fake);
+    expect(getGameEngine('X')).toBe(fake);
+    shutdownEngines();
+    expect(getGameEngine('X')).toBeUndefined();
+  });
+
+  it('shutdownEngines swallows errors from clearTimeout', () => {
+    const bad = {
+      clearTimeout: () => {
+        throw new Error('boom');
+      },
+    } as any;
+    setGameEngine('Y', bad);
+    // should not throw
+    shutdownEngines();
+    expect(getGameEngine('Y')).toBeUndefined();
+  });
+
+  it('gameEngines collection helpers behave correctly', () => {
+    const e1 = { tag: 'e1' } as unknown as any;
+    const e2 = { tag: 'e2' } as unknown as any;
     gameEngines.clear();
     gameEngines.set('A', e1);
     expect(gameEngines.get('A')).toBe(e1);

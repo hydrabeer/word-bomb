@@ -62,7 +62,13 @@ vi.mock('http', () => ({
 describe('index bootstrap', () => {
   it('loads dictionary, starts server, registers adapter events', async () => {
     infoSpy.mockClear();
-    await import('./index');
+    const prevEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
+    try {
+      await import('./index');
+    } finally {
+      process.env.NODE_ENV = prevEnv;
+    }
     await Promise.resolve();
     expect(loadDictionaryMock).toHaveBeenCalledTimes(1);
     expect(listenCalls.length).toBeGreaterThan(0);
