@@ -34,7 +34,8 @@ jobs:
       # PRs: build affected only (fast); main: build full graph (release-grade)
       - name: Build (affected only)
         if: github.ref != 'refs/heads/main'
-        run: pnpm build -- --filter=...[origin/main]
+        run: pnpm turbo run build --filter=...[origin/main]
+
 
       - name: Build (full graph on main)
         if: github.ref == 'refs/heads/main'
