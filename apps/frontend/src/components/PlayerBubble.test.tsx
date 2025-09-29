@@ -3,7 +3,13 @@ import { render } from '@testing-library/react';
 import { PlayerBubble } from './PlayerBubble';
 
 describe('PlayerBubble', () => {
-  const basePlayer = { id: 'p1', name: 'Alice', isEliminated: false, lives: 2 };
+  const basePlayer = {
+    id: 'p1',
+    name: 'Alice',
+    isEliminated: false,
+    lives: 2,
+    isConnected: true,
+  } as const;
   it('renders hearts, name, and highlighted text with flash/shake states', () => {
     const { container, rerender } = render(
       <PlayerBubble
@@ -38,5 +44,22 @@ describe('PlayerBubble', () => {
       />,
     );
     expect(container.textContent).toContain('💀');
+  });
+
+  it('shows reconnecting banner when player is disconnected', () => {
+    const { getByText } = render(
+      <PlayerBubble
+        player={{ ...basePlayer, isConnected: false }}
+        isActive={false}
+        isEliminated={false}
+        x={0}
+        y={0}
+        highlighted={null}
+        isUrgent={false}
+        flash={false}
+        shake={false}
+      />,
+    );
+    expect(getByText('Reconnecting…')).toBeInTheDocument();
   });
 });

@@ -221,4 +221,89 @@ describe('GameEngine extra coverage', () => {
     expect(onTurnTimeout).toHaveBeenCalledTimes(1);
     expect(onTurnTimeout.mock.calls[0][0].id).toBe('A');
   });
+
+  it('forfeitPlayer eliminates current player and continues with next turn', () => {
+    const players = [
+      createPlayer({
+        id: 'A',
+        name: 'Alice',
+        isLeader: true,
+        lives: 3,
+        bonusTemplate: rules.bonusTemplate,
+      }),
+      createPlayer({
+        id: 'B',
+        name: 'Bob',
+        isLeader: false,
+        lives: 3,
+        bonusTemplate: rules.bonusTemplate,
+      }),
+      createPlayer({
+        id: 'C',
+        name: 'Cleo',
+        isLeader: false,
+        lives: 3,
+        bonusTemplate: rules.bonusTemplate,
+      }),
+    ];
+    const game = new Game({
+      roomCode: 'ABCD',
+      players,
+      currentTurnIndex: 0,
+      fragment: 'ar',
+      state: 'active',
+      rules,
+    });
+    const emitted: { e: string; payload: unknown }[] = [];
+    const engine = new GameEngine({
+      game,
+      emit: <
+        K extends keyof import('@word-bomb/types/socket').ServerToClientEvents,
+      >(
+        event: K,
+        ...args: Parameters<
+          import('@word-bomb/types/socket').ServerToClientEvents[K]
+        >
+      ) => {
+        emitted.push({ e: String(event), payload: args[0] });
+      },
+      scheduler: {
+        schedule: (delayMs, cb) => setTimeout(cb, delayMs),
+        cancel: (token) => {
+          clearTimeout(token as any);
+        },
+      },
+      eventsPort: {
+        turnStarted: () => {
+          /* noop */
+        },
+        playerUpdated: () => {
+          /* noop */
+        },
+        wordAccepted: () => {
+          /* noop */
+        },
+        gameEnded: () => {
+          /* noop */
+        },
+      },
+      dictionary: stubDictionary(),
+    });
+
+    engine.beginGame();
+    emitted.length = 0; // reset to observe forfeit emissions only
+
+    engine.forfeitPlayer('A');
+
+    expect(players[0].isEliminated).toBe(true);
+    expect(players[0].lives).toBe(0);
+
+    const updateEvent = emitted.find((ev) => ev.e === 'playerUpdated');
+    expect(updateEvent).toBeDefined();
+
+    const nextTurn = emitted.findLast?.((ev) => ev.e === 'turnStarted');
+    const payload = (nextTurn ?? emitted.find((ev) => ev.e === 'turnStarted'))
+      ?.payload as ReturnType<typeof buildTurnStartedPayload> | undefined;
+    expect(payload?.playerId).toBe('B');
+  });
 });

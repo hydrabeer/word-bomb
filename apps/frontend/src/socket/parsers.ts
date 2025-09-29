@@ -19,6 +19,7 @@ const DEFAULT_PLAYER = {
   name: 'Unknown',
   isEliminated: false,
   lives: 0,
+  isConnected: true,
 } as const;
 
 export interface PlayerEntryParsed {
@@ -26,6 +27,7 @@ export interface PlayerEntryParsed {
   name: string;
   isEliminated: boolean;
   lives: number;
+  isConnected: boolean;
   bonusProgress?: { remaining: number[]; total: number[] };
 }
 
@@ -34,6 +36,7 @@ const createDefaultPlayerEntry = (): PlayerEntryParsed => ({
   name: DEFAULT_PLAYER.name,
   isEliminated: DEFAULT_PLAYER.isEliminated,
   lives: DEFAULT_PLAYER.lives,
+  isConnected: DEFAULT_PLAYER.isConnected,
 });
 
 const parseBonusProgress = (
@@ -66,6 +69,10 @@ const parsePlayerEntries = (players: unknown[]): PlayerEntryParsed[] =>
       name: typeof obj.name === 'string' ? obj.name : DEFAULT_PLAYER.name,
       isEliminated: !!obj.isEliminated,
       lives: typeof obj.lives === 'number' ? obj.lives : DEFAULT_PLAYER.lives,
+      isConnected:
+        typeof obj.isConnected === 'boolean'
+          ? obj.isConnected
+          : DEFAULT_PLAYER.isConnected,
     };
 
     const bonus = parseBonusProgress(obj.bonusProgress);
