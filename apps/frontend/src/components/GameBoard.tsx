@@ -10,6 +10,7 @@ import {
 import { PlayerBubble } from './PlayerBubble';
 import { BonusAlphabet } from './BonusAlphabet';
 import { useBonusAlphabetSettings } from '../hooks/useBonusAlphabetSettings';
+import type { BonusAlphabetSettings } from '../hooks/useBonusAlphabetSettings';
 
 export interface GameState {
   fragment: string;
@@ -93,17 +94,17 @@ export function GameBoard({
     if (typeof window === 'undefined') return false;
     return window.innerWidth < 640;
   }, []); // Could be swapped to useIsMobile(640) if desired
-  const computedBonusAlphabetSettings = useMemo(
+  const computedBonusAlphabetSettings = useMemo<BonusAlphabetSettings>(
     () =>
       isMobile
-        ? {
+        ? ({
             ...bonusSettings,
             size: 'sm',
             position: 'bottom-left',
             opacity: 0.9,
             showNumbers: false,
-            layout: 'rows' as const,
-          }
+            layout: 'rows',
+          } as BonusAlphabetSettings)
         : bonusSettings,
     [bonusSettings, isMobile],
   );
@@ -255,7 +256,7 @@ export function GameBoard({
   const strokeDashoffset = progressElapsed * circumference;
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 sm:rounded-xl sm:border sm:border-white/10 sm:shadow-lg">
+    <div className="flex w-full flex-1 flex-col overflow-hidden bg-gradient-to-br from-indigo-950 to-purple-900 text-indigo-100 sm:rounded-xl sm:border sm:border-white/10 sm:shadow-lg">
       {/* Game Stats Bar */}
       <div className="hidden grid-cols-3 items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2 text-center text-sm shadow-inner backdrop-blur-sm sm:grid">
         <div className="flex flex-col items-start text-left">
