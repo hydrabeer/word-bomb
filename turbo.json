@@ -13,15 +13,20 @@
       "dependsOn": ["^build"]
     },
     "clean": { "cache": false },
-    "dev": {
-      "persistent": true,
-      "cache": false
-    },
+    "dev": { "persistent": true, "cache": false },
     "lint": { "outputs": [], "dependsOn": ["^lint"] },
 
-    "test": { "dependsOn": ["^test"], "inputs": ["vitest.config.*"] },
+    "test": {
+      "dependsOn": ["^test"],
+      "inputs": ["vitest.config.*"]
+    },
     "test:watch": { "cache": false, "persistent": true },
-    "test:coverage": { "dependsOn": ["^build"], "outputs": ["coverage/**"] },
+
+    "test:coverage": {
+      "dependsOn": ["^test"],
+      "outputs": ["coverage/**"],
+      "inputs": ["vitest.config.*"]
+    },
 
     "typecheck": {
       "dependsOn": ["^typecheck"],
