@@ -8,10 +8,12 @@ import React, {
 } from 'react';
 import { socket } from '../socket';
 import { useAutoScroll } from '../hooks/useAutoScroll';
-import { ChatMessageItem, type ChatMessage } from './ChatMessageItem';
 import { getOrCreatePlayerProfile } from '../utils/playerProfile';
-import { ChatMessageSchema } from '@game/domain/chat/ChatMessage';
-import { type ChatMessagePayload } from '@word-bomb/types/socket';
+import { ChatMessageItem } from './ChatMessageItem';
+import type {
+  ChatMessagePayload,
+  ChatMessageDraft,
+} from '@word-bomb/types/socket';
 import { FaPaperPlane } from 'react-icons/fa';
 
 interface ChatProps {
@@ -31,7 +33,7 @@ export default function Chat({
   autoFocus = false,
   regionRole = 'complementary',
 }: ChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessagePayload[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const containerRef = useAutoScroll<HTMLDivElement>([messages]);
@@ -82,11 +84,7 @@ export default function Chat({
     const handleNewMessage = (data: ChatMessagePayload) => {
       // Only accept messages for the active room
       if (data.roomCode !== roomCode) return;
-      const normalized: ChatMessage = {
-        ...data,
-        type: data.type ?? 'user',
-      };
-      setMessages((prev) => [...prev, normalized]);
+      setMessages((prev) => [...prev, data]);
     };
 
     socket.on('chatMessage', handleNewMessage);
@@ -101,23 +99,12 @@ export default function Chat({
 
     setIsLoading(true);
 
-    const messagePayload = {
+    const draft: ChatMessageDraft = {
       roomCode,
       sender: currentUsername,
       message: trimmed,
-      timestamp: Date.now(),
-      type: 'user' as const,
     };
-
-    const result = ChatMessageSchema.safeParse(messagePayload);
-
-    if (!result.success) {
-      alert('Invalid message.');
-      setIsLoading(false);
-      return;
-    }
-
-    socket.emit('chatMessage', result.data);
+    socket.emit('chatMessage', draft);
     setNewMessage('');
     setIsLoading(false);
   }, [newMessage, roomCode, currentUsername, isLoading]);

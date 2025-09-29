@@ -3,15 +3,16 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "exports": {
-    "./socket": {
-      "types": "./src/socket.ts",
-      "default": "./dist/socket.js"
-    }
-  },
+  "sideEffects": false,
   "files": [
     "dist"
   ],
+  "exports": {
+    "./socket": {
+      "types": "./dist/socket.d.ts"
+    }
+  },
+  "types": "./dist/socket.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

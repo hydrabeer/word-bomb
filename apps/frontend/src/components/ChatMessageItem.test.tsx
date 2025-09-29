@@ -1,23 +1,30 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { ChatMessageItem, type ChatMessage } from './ChatMessageItem';
+import { ChatMessageItem } from './ChatMessageItem';
+import type { ChatMessagePayload } from '@word-bomb/types/socket';
 
-const baseMsg: ChatMessage = {
+// (Optional) stabilize time-dependent formatting
+beforeAll(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2025-01-01T12:00:00Z'));
+});
+
+const mkMsg = (
+  overrides: Partial<ChatMessagePayload> = {},
+): ChatMessagePayload => ({
+  roomCode: 'ABCD',
   sender: 'Bob',
   message: 'hello world',
   timestamp: Date.now(),
   type: 'user',
-};
+  ...overrides,
+});
 
 describe('ChatMessageItem', () => {
   it('renders system message variant and linkifies', () => {
     render(
       <ChatMessageItem
-        msg={{
-          ...baseMsg,
-          type: 'system',
-          message: 'Visit https://example.com',
-        }}
+        msg={mkMsg({ type: 'system', message: 'Visit https://example.com' })}
       />,
     );
     const sys = screen.getByTestId('system-message');
@@ -27,15 +34,14 @@ describe('ChatMessageItem', () => {
   });
 
   it('renders user message and respects isCurrentUser alignment', () => {
-    render(<ChatMessageItem msg={baseMsg} isCurrentUser />);
+    render(<ChatMessageItem msg={mkMsg()} isCurrentUser />);
     const user = screen.getByTestId('user-message');
     expect(user).toBeInTheDocument();
-    // aria-label includes time; just verify sender is present
     expect(screen.getByText('Bob')).toBeInTheDocument();
   });
 
   it('does not linkify plain words without protocol or www', () => {
-    render(<ChatMessageItem msg={{ ...baseMsg, message: 'example.com' }} />);
+    render(<ChatMessageItem msg={mkMsg({ message: 'example.com' })} />);
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

@@ -33,13 +33,13 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage"
   },
   "dependencies": {
-    "zod": "^3.24.2",
-    "@word-bomb/types": "workspace:*"
+    "@word-bomb/types": "workspace:*",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
-    "@word-bomb/typescript-config": "workspace:*",
-    "vitest": "^3.2.4",
     "@vitest/coverage-v8": "^3.2.4",
-    "typescript": "^5.8.3"
+    "@word-bomb/typescript-config": "workspace:*",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }

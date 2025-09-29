@@ -1,9 +1,8 @@
-// Socket and shared DTO types extracted from domain package
+// Socket and shared DTO types
 export interface BasicResponse {
   success: boolean;
   error?: string;
 }
-
 export interface JoinRoomPayload {
   roomCode: string;
   playerId: string;
@@ -27,12 +26,24 @@ export interface SubmitWordPayload {
 export interface StartGamePayload {
   roomCode: string;
 }
+
+export type ChatMessageType = 'user' | 'system';
+
+// Client → Server: no timestamp, optional type (server defaults 'user')
+export interface ChatMessageDraft {
+  roomCode: string;
+  sender: string;
+  message: string;
+  type?: ChatMessageType;
+}
+
+// Server -> Clients: authoritative event with server timestamp & concrete type
 export interface ChatMessagePayload {
   roomCode: string;
   sender: string;
   message: string;
   timestamp: number;
-  type?: 'user' | 'system';
+  type: 'user' | 'system';
 }
 
 export interface PlayersUpdatedPayload {
@@ -119,7 +130,7 @@ export interface RoomRulesPayload {
 export interface ClientToServerEvents {
   joinRoom: (data: JoinRoomPayload, cb?: (res: BasicResponse) => void) => void;
   leaveRoom: (data: LeaveRoomPayload) => void;
-  chatMessage: (data: ChatMessagePayload) => void;
+  chatMessage: (data: ChatMessageDraft) => void;
   setPlayerSeated: (
     data: SetPlayerSeatedPayload,
     cb?: (res: BasicResponse) => void,

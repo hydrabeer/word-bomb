@@ -2,13 +2,7 @@
 import dayjs from 'dayjs';
 import { FaUser } from 'react-icons/fa';
 import Linkify from 'linkify-react';
-
-export interface ChatMessage {
-  sender: string;
-  message: string;
-  timestamp: number;
-  type: 'user' | 'system';
-}
+import type { ChatMessagePayload as ChatMessage } from '@word-bomb/types/socket';
 
 interface ChatMessageItemProps {
   msg: ChatMessage;

@@ -1,7 +1,7 @@
 // apps/backend/src/socket/roomHandlers.ts
 
 import { roomManager } from '../room/roomManagerSingleton';
-import { ChatMessageSchema } from '@game/domain/chat/ChatMessage';
+import { toAuthoritativeChatMessage } from '@game/domain/chat/ChatMessage';
 import { GameRulesSchema } from '@game/domain/rooms/GameRoomRules';
 import { noop } from '@game/domain/utils/noop';
 import { GameRoom } from '@game/domain/rooms/GameRoom';
@@ -421,30 +421,18 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   socket.on(
     'chatMessage',
     withContext((raw: unknown) => {
-      if (!isObject(raw)) return;
-      const rec: Record<string, unknown> = isObject(raw) ? raw : {};
-      const candidate = {
-        ...rec,
-        timestamp: Date.now(),
-        type: typeof rec.type === 'string' ? rec.type : 'user',
-      };
-      const result = ChatMessageSchema.safeParse(candidate);
-      if (!result.success) {
+      try {
+        const chatMessage = toAuthoritativeChatMessage(raw);
+        io.to(socketRoomId(chatMessage.roomCode)).emit(
+          'chatMessage',
+          chatMessage,
+        );
+      } catch (err) {
         getLogger().warn(
-          {
-            event: 'invalid_chat_message',
-            err: result.error,
-            socketId: socket.id,
-          },
+          { event: 'invalid_chat_message', err, socketId: socket.id },
           'Rejected chat message',
         );
-        return;
       }
-      const chatMessage = result.data;
-      io.to(socketRoomId(chatMessage.roomCode)).emit(
-        'chatMessage',
-        chatMessage,
-      );
     }),
   );
 
