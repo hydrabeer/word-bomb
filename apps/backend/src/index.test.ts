@@ -75,26 +75,25 @@ interface IndexHarness {
   engineRegistry: { shutdownEngines: ReturnType<typeof vi.fn> };
 }
 
+function createNestedLogger(): LoggerMock {
+  const child = vi.fn(() => createNestedLogger());
+
+  return {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    child,
+  };
+}
+
 function createLoggerMock(overrides: Partial<LoggerMock> = {}): LoggerMock {
-  const childMock: LoggerMock['child'] =
-    overrides.child ?? vi.fn(() => createNestedLogger());
-
-  function createNestedLogger(): LoggerMock {
-    return {
-      info: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-      debug: vi.fn(),
-      child: childMock,
-    };
-  }
-
   const logger: LoggerMock = {
     info: overrides.info ?? vi.fn(),
     error: overrides.error ?? vi.fn(),
     warn: overrides.warn ?? vi.fn(),
     debug: overrides.debug ?? vi.fn(),
-    child: childMock,
+    child: overrides.child ?? vi.fn(() => createNestedLogger()),
   };
   vi.doMock('./logging', () => ({ createLogger: vi.fn(() => logger) }));
   return logger;
