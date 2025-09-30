@@ -2,123 +2,149 @@
 
 [![codecov](https://codecov.io/gh/hydrabeer/word-bomb/graph/badge.svg?token=CZU4XTPVQK)](https://codecov.io/gh/hydrabeer/word-bomb)
 
-# Table of Contents
+## TL;DR Quick Start (Local Dev)
 
-- [Overview](#overview)
-- [🧰 Prerequisites](#-prerequisites)
-  - [Node.js](#nodejs)
-  - [pnpm (monorepo package manager)](#pnpm-monorepo-package-manager)
-- [📦 Setup](#-setup)
-  - [1. Clone the repo](#1-clone-the-repo)
-  - [2. Install dependencies with pnpm](#2-install-dependencies-with-pnpm)
-  - [3. Setup dev environment](#3-setup-dev-environment)
-  - [4. Start the server](#4-start-the-server)
-- [🔐 Dictionary Setup](#-dictionary-setup)
-- [🛠 Packages](#-packages)
-- [🧪 Scripts](#-scripts)
+### Prereqs
 
-## Overview
-
-This monorepo is a reimagining of the classic game _Bomb Party_, built with
-modern web tech.  
-Players race against the bomb timer to type real words containing a given
-fragment — miss it, and
-you lose a life! Last player standing wins.
-
-Built with:
-
-- 🧠 TypeScript
-- ⚛️ React + React Router
-- ⚡ Vite
-- 🎨 Tailwind CSS
-- 📡 Express + Socket.IO
-- 📦 pnpm Workspaces
-
----
-
-## 🧰 Prerequisites
-
-Make sure you have the following installed:
-
-### Node.js
-
-Install via [nodejs.org](https://nodejs.org/) or a version manager
-like [nvm](https://github.com/nvm-sh/nvm).
-
-### pnpm ([monorepo](https://monorepo.tools/#what-is-a-monorepo) package manager)
-
-Enable pnpm with Corepack (requires Node.js v18+):
-
-```bash
-corepack enable
-corepack prepare pnpm@latest --activate
-```
-
-Alternatively, install manually with:
-
-```bash
-npm install -g pnpm
-```
-
-## 📦 Setup
-
-### 1. Clone the repo
+- Install Node from [nodejs.org](https://nodejs.org/)
 
 ```bash
 git clone https://github.com/hydrabeer/word-bomb.git
 cd word-bomb
-```
 
-### 2. Install dependencies with pnpm
+# Make sure you have node installed
+node -v
 
-```bash
-pnpm install
-```
+# Lets you use pnpm, our package manager
+corepack enable
 
-### 3. Setup dev environment
+# Install all the dependencies
+pnpm install --frozen-lockfile
 
-You'll need to make a file, `apps/frontend/.env`, containing:
-
-```.dotenv
-VITE_BACKEND_URL=http://localhost:3001
-```
-
-for the backend server to work.
-
-### 4. Start the server
-
-Run this from the root of the repo to start both the frontend and backend servers:
-
-```bash
+# Start the backend and frontend dev servers
 pnpm dev
 ```
 
-## 🔐 Dictionary Setup
+When you start the dev server, it'll give you a link to the frontend, `http://localhost:5173` by default. The frontend will talk to the backend on `http://localhost:3001` unless configured otherwise with environment variables.
 
-This project uses a large (secret!) dictionary for word validation.
+### Dictionary setup
 
-As a developer, you can find your own dictionary for testing and place it at:
+To actually play in dev, you'll need to download a word list and put it at `apps/backend/src/dictionary/words.txt`.
+
+---
+
+## Monorepo Map
 
 ```
-apps/backend/src/dictionary/words.txt
+apps/
+  backend/     # Express + Socket.IO server, room orchestration, logging
+  frontend/    # React UI, routes, components, hooks
+packages/
+  domain/      # Pure game/domain logic for the backend
+  types/       # Shared TypeScript types (socket payloads, events)
+  typescript-config/  # Shared tsconfig presets
+
+docs/          # Read some!
 ```
 
-(It's already gitignored.)
+Design intent: **business rules live in `packages/domain`**, imported by both backend and tests. Backend focuses on orchestration (rooms, timers, sockets). Frontend focuses on the player UI/UX with a mobile‑first mindset.
 
-## 🛠 Packages
+---
 
-- [apps/frontend](apps/frontend): React + Vite client
-- [apps/backend](apps/backend): Express + Socket.IO server
-- [packages/domain](packages/domain): Shared game logic and types
+## Scripts & Tasks (no magic, just pnpm)
 
-## 🧪 Scripts
-
-The following scripts are available in the root of the repo:
+Common one‑liners, from repo root:
 
 ```bash
-pnpm dev         # Run dev servers
-pnpm lint        # Run eslint across packages
-pnpm format      # Format codebase with Prettier
+# Install deps
+pnpm install --frozen-lockfile
+
+# Typecheck only (no emit)
+pnpm typecheck
+
+# Lint (TypeScript)
+pnpm lint
+
+# Format files
+pnpm format
+
+# Run all tests with coverage (workspace configs)
+pnpm test:coverage
+
+# -F is short for --filter, useful for focusing
+pnpm -F backend test:coverage
+pnpm -F frontend test:coverage
+pnpm -F @word-bomb/domain test:coverage
+pnpm -F @word-bomb/types test:coverage
 ```
 
-All three of these should be run and any errors fixed before committing code.
+Coverage goal is **100%** – iterate until green.
+
+---
+
+## Development Notes
+
+- **Domain‑first**: put new game rules and computations in `packages/domain` with exhaustive tests; import into backend/frontend.
+- **Typed sockets**: shared event names and payloads live in `packages/types`. Add/modify there first, then wire in backend/ frontend.
+- **Mobile UX**: ensure keyboard‑safe layouts and readable timers; test on small viewports early.
+- **Logging**: backend logging utilities live under `apps/backend/src/logging`. Use structured logs; do not commit code with `console.log` in it.
+
+---
+
+## Testing
+
+The repo uses **Vitest** everywhere.
+
+**Patterns**
+
+- Unit tests colocated with sources or under `src/**` next to the module.
+- Integration tests live under `apps/**/test` where appropriate.
+- Prefer **pure tests** in `packages/domain` and keep I/O out.
+
+**Useful flags**
+
+```bash
+# Watch mode while developing a specific area
+pnpm -F frontend test:watch src/components/GameBoard.test.tsx
+
+# Debug a single test name
+pnpm -F backend test -t "startGameForRoom emits events in order"
+```
+
+---
+
+## CI expectations (high level)
+
+- PRs must pass: **typecheck, lint, tests + coverage**.
+- **Conventional Commits** required (scopes like `frontend|backend|domain|types|infra|docs`).
+- Keep a single `CHANGELOG.md` updated for user‑visible changes.
+- If you introduce/alter a protocol or major design choice, add an **ADR** in `docs/adr/`.
+
+---
+
+## Docs Standard
+
+This repo adopts:
+
+- **Diátaxis** structure (`/docs/{tutorials,how-to,reference,explanations}`) as it grows.
+- **Keep a Changelog** + **Semantic Versioning**.
+- **Conventional Commits**.
+- **ADRs** (MADR format) for architectural decisions.
+
+---
+
+## Contributing
+
+1. Fork & branch: `feat/<scope>-<short-description>`
+2. Implement with tests; keep domain logic in `packages/domain` where possible.
+3. Lint/format/typecheck locally.
+4. Update `CHANGELOG.md` if user‑visible.
+5. Open PR with checklist; link any ADR changes.
+
+`CONTRIBUTING.md` codifies versions, scripts, and the PR checklist.
+
+---
+
+## License
+
+This project is currently **UNLICENSED** (proprietary). Do not distribute without permission.
