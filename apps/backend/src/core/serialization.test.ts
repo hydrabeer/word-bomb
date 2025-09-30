@@ -99,6 +99,13 @@ describe('serialization payload builders', () => {
     expect(payload.players.find((p) => p.id === 'S')?.isSeated).toBe(true);
   });
 
+  it('buildPlayersUpdatedPayload omits leader id when none exists', () => {
+    const room = new GameRoom({ code: 'EMPT' }, rules);
+    const payload = buildPlayersUpdatedPayload(room);
+    expect(payload.leaderId).toBeUndefined();
+    expect(payload.players).toEqual([]);
+  });
+
   it('buildTurnStartedPayload reflects current player and fragment', () => {
     const { game, p1 } = makeGame('ROOM');
     // ensure p1 is current
@@ -130,5 +137,29 @@ describe('serialization payload builders', () => {
     expect(payload.roomCode).toBe('WXYZ');
     expect(payload.currentPlayer).toBe(pA.id);
     expect(payload.players.map((p) => p.id)).toEqual(['A', 'B']);
+  });
+
+  it('buildGameStartedPayload falls back to null leader when room has none', () => {
+    const room = new GameRoom({ code: 'NULL' }, rules);
+    room.addPlayer({ id: 'A', name: 'Alpha' });
+    room.addPlayer({ id: 'B', name: 'Beta' });
+    const pA = room.getPlayer('A');
+    const pB = room.getPlayer('B');
+    if (!pA || !pB) throw new Error('Players missing');
+
+    room.removePlayer('A');
+    room.removePlayer('B');
+
+    const game = new Game({
+      roomCode: 'NULL',
+      players: [pA, pB],
+      currentTurnIndex: 1,
+      fragment: 'zz',
+      state: 'active',
+      rules,
+    });
+
+    const payload = buildGameStartedPayload(room, game);
+    expect(payload.leaderId).toBeNull();
   });
 });

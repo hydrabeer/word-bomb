@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type express from 'express';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 type Listener = (...args: unknown[]) => void;
 
@@ -437,6 +439,10 @@ describe('index start-up', () => {
     callAdapterHandlers(harness, 'delete-room', 'room:123');
     callAdapterHandlers(harness, 'join-room', 'room:123', 'socket-1');
     callAdapterHandlers(harness, 'leave-room', 'room:123', 'socket-1');
+    callAdapterHandlers(harness, 'create-room', 'lobby');
+    callAdapterHandlers(harness, 'delete-room', 'lobby');
+    callAdapterHandlers(harness, 'join-room', 'lobby', 'socket-1');
+    callAdapterHandlers(harness, 'leave-room', 'lobby', 'socket-1');
 
     const debugEvents = harness.logger.debug.mock.calls.map(
       (call) => call[0]?.event,
@@ -512,6 +518,21 @@ describe('index start-up', () => {
       'error',
       expect.any(Function),
     );
+  });
+
+  it('coerces string port environment variable to a number in logs', async () => {
+    const harness = await createIndexHarness();
+    const restoreSignals = captureSignalState();
+    const previousPort = process.env.PORT;
+    process.env.PORT = '4010';
+    await harness.importIndex('development');
+    restoreSignals();
+    process.env.PORT = previousPort;
+
+    const startLog = harness.logger.info.mock.calls.find(
+      (call) => call[0]?.event === 'server_start',
+    );
+    expect(startLog?.[0]?.port).toBe(4010);
   });
 
   it('logs when dictionary stats cannot be retrieved', async () => {
@@ -726,6 +747,39 @@ describe('index shutdown flow', () => {
       vi.useRealTimers();
     }
   });
+
+  it('logs errors when engine shutdown throws', async () => {
+    const errorSpy = vi.fn();
+    const harness = await createIndexHarness({
+      http: {
+        close: (cb) => cb(),
+      },
+      engineRegistry: {
+        shutdownEngines: vi.fn(() => {
+          throw new Error('boom');
+        }),
+      },
+      logging: { error: errorSpy },
+    });
+
+    const restoreSignals = captureSignalState();
+    await harness.importIndex('development');
+
+    const listeners = process.listeners('SIGTERM');
+    listeners.forEach((handler) => {
+      handler('SIGTERM');
+      process.removeListener('SIGTERM', handler);
+    });
+
+    await Promise.resolve();
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'engines_shutdown_error' }),
+      'Error during engines shutdown',
+    );
+
+    restoreSignals();
+  });
 });
 
 describe('http handlers', () => {
@@ -780,5 +834,46 @@ describe('http handlers', () => {
     expect(typeof mod.nodeHandler).toBe('function');
     expect(mod.nodeHandler).toBe(harness.http.nodeHandler);
     expect(mod.app).toBeDefined();
+  });
+
+  it('invokes the underlying express handler when nodeHandler is called', async () => {
+    setupTestEnvironment();
+    const expressHandler = vi.fn();
+    const expressMock = vi.fn(() => {
+      const app = ((req: unknown, res: unknown, next: () => void) => {
+        expressHandler(req, res, next);
+        if (typeof next === 'function') {
+          next();
+        }
+      }) as unknown as express.Application;
+      (app as unknown as { use: () => void }).use = vi.fn();
+      (app as unknown as { get: () => void }).get = vi.fn();
+      return app;
+    });
+    const routerMock = vi.fn(() => ({
+      use: vi.fn(),
+      get: vi.fn(),
+      post: vi.fn(),
+    }));
+    expressMock.json = vi.fn(() => vi.fn());
+    vi.doMock('express', () => ({
+      __esModule: true,
+      default: Object.assign(expressMock, { Router: routerMock }),
+      Router: routerMock,
+    }));
+
+    const harness = createHarness(createMocks());
+    const mod = await harness.importIndex('test');
+
+    const req = {
+      method: 'GET',
+      url: '/healthz',
+    } as unknown as IncomingMessage;
+    const res = { statusCode: 0 } as unknown as ServerResponse;
+
+    expect(() => mod.nodeHandler(req, res)).not.toThrow();
+    expect(expressHandler).toHaveBeenCalledWith(req, res, expect.any(Function));
+
+    vi.resetModules();
   });
 });
