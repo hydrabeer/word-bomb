@@ -1,34 +1,38 @@
 # AGENTS.md
 
-## Purpose
+> **Single source of truth** for how both **automation** and **humans** operate this monorepo. Encodes exact commands, ports, paths, and guardrails so agents and people behave identically.
 
-This guide gives **agents** and **human contributors** a single, exact workflow for this monorepo. It encodes the repo’s real scripts, tools, and conventions so automation and people do the same thing.
+Monorepo layout: `apps/*`, `packages/*`.
 
-> Monorepo layout: `apps/*`, `packages/*` (from `pnpm-workspace.yaml`).
+---
+
+## Environment
+
+- **Frontend → Backend URL:** `VITE_BACKEND_URL` (set in `apps/frontend/.env.local`)
+- **Backend → Frontend for CORS** `FRONTEND_URL` (set in `apps/backend/.env`)
 
 ---
 
 ## Canonical Commands (run at repo root)
 
 ```sh
-# Install (human): installs everything with lockfile updates allowed
-pnpm install
-
 # Install (automation/CI): never mutate lockfile
 pnpm install --frozen-lockfile
 
 # Dev
-pnpm dev          # runs all dev tasks in parallel
-pnpm dev:backend  # only backend
-pnpm dev:frontend # only frontend
+pnpm dev           # run all dev tasks in parallel (frontend + backend)
+pnpm dev:backend   # backend only (listens on :3001)
+pnpm dev:frontend  # frontend only (listens on :5173)
 
-# Format, lint, typecheck, test
-pnpm format       # Prettier write
-pnpm lint         # Turborepo -> per‑package lint tasks
-pnpm typecheck    # Turborepo -> per‑package typecheck
-pnpm test         # Turborepo -> per‑package test
-pnpm test:watch   # watch mode (uncached, persistent)
-pnpm test:coverage
+# Hygiene
+pnpm format        # Prettier write (incl. Markdown)
+pnpm lint          # Turborepo → per‑package ESLint
+pnpm typecheck     # Turborepo → per‑package tsc --noEmit
+
+# Tests
+pnpm test          # Turborepo → per‑package tests
+pnpm test:watch    # watch mode (uncached, persistent)
+pnpm test:coverage # collect and report coverage across workspaces
 
 # Build & clean
 pnpm build
@@ -37,150 +41,119 @@ pnpm clean
 
 **Notes**
 
-- The repo uses **Turborepo**; all above commands fan out to package tasks per `turbo.json`.
-- Prettier is configured with `prettier-plugin-tailwindcss`; use `pnpm format` before every commit.
-- Use `--filter <project_name>` for package‑scoped commands when needed (e.g., `pnpm --filter backend test`).
+- Turborepo fans out to package tasks per `turbo.json`.
+- Use `--filter <name>` for package‑scoped runs (e.g., `pnpm --filter backend test`).
+- Frontend **must** read `VITE_BACKEND_URL` for API/socket origin during dev and build.
 
 ---
 
-## Testing Instructions
-
-- CI plans live in `.github/workflows/`.
-- Run a package’s tests:
-  ```sh
-  pnpm --filter <project_name> test
-  ```
-- From inside a package directory, `pnpm test` is sufficient.
-- Focus a single test with Vitest:
-  ```sh
-  pnpm --filter <project_name> test -t "<test name>"
-  ```
-- Coverage for a package:
-  ```sh
-  pnpm --filter <project_name> test:coverage
-  ```
-- After moving files or changing imports, verify lint/type rules:
-  ```sh
-  pnpm --filter <project_name> lint
-  pnpm --filter <project_name> typecheck
-  ```
-
-### Test File Conventions
-
-- **All** test files end with `.test.ts`.
-- Base name mirrors the module under test (e.g., `roomManager.ts` ↔ `roomManager.test.ts`).
-- Add/update tests for any changed code.
-
-### Error Handling
-
-- Fix errors rather than suppressing them.
-- No `// eslint-disable` or `@ts-ignore` without a short justification comment.
-
----
-
-## Lint, Typecheck, and Formatting
-
-- **Lint** is driven by Turborepo per‐package tasks; cache artifacts are stored as `.eslintcache` (see `turbo.json`).
-- **Typecheck** runs with per‐package `tsconfig*` inputs (see `turbo.json`). Ensure project references are up to date when adding packages.
-- **Format** uses Prettier with Tailwind plugin; run `pnpm format` at root.
-
-> Recommendation: add non‑mutating checks (optional, see below) so CI can verify without rewriting.
-
----
-
-## Acceptance Criteria (hard requirements)
-
-A commit/PR is acceptable only if **all** are true:
-
-- Code is formatted: `pnpm format` has been run
-- Lint passes: `pnpm lint`
-- Typecheck passes: `pnpm typecheck`
-- Tests pass: `pnpm test` (and coverage where required)
-- New/changed code has corresponding tests
-- No unjustified `eslint-disable`/`@ts-ignore`
-
-Treat any CI failure as a merge blocker.
-
----
-
-## Scripts & Tasks (source of truth)
-
-From `package.json` (root):
-
-- `build` → `turbo run build`
-- `clean` → `turbo run clean`
-- `dev` → `turbo run dev --parallel`
-- `dev:backend` → `pnpm --filter backend dev`
-- `dev:frontend` → `pnpm --filter frontend dev`
-- `format` → `prettier --write .`
-- `lint` → `turbo run lint`
-- `typecheck` → `turbo run typecheck`
-- `test` → `turbo run test`
-- `test:watch` → `turbo run test:watch --parallel`
-- `test:coverage` → `turbo run test:coverage`
-
-From `turbo.json` (task shape):
-
-- `build` depends on parent builds; outputs: `dist/**`, `tsconfig*.tsbuildinfo`
-- `lint` depends on parent lint; inputs: `**/*.{ts,tsx}`, config files; outputs: `.eslintcache`
-- `test` depends on parent tests; inputs: TS files + `vitest.config.*`; outputs: `.vite/vitest`
-- `test:coverage` depends on parent tests; outputs: `coverage/**`, `.vite/vitest`
-- `test:watch` is persistent and uncached
-- `typecheck` depends on parent typechecks; inputs include TS and `tsconfig*`
-
-> Implication: if you change TS, ESLint, or Vitest config in one package, up‑tree dependents will re‑run via Turborepo.
-
----
-
-## Workspace Filters (examples)
+## Workspace Filters (quick reference)
 
 ```sh
-# Single package
+# Single package by name
 pnpm --filter backend test
 
-# All apps only
-pnpm --filter ./apps... test
+# All apps
+pnpm --filter ./apps... test:coverage
 
-# A package and its dependents
+# Package and its dependents
 pnpm --filter "...@word-bomb/types" typecheck
 
 # Everything except frontend
 pnpm --filter "!frontend" lint
 ```
 
-> Use filters to keep hot loops fast while preserving correctness.
+---
+
+## Testing & Coverage (policy)
+
+- Runner: **Vitest** everywhere.
+- Layout: unit tests colocated (`*.test.ts[x]`), package integration under `apps/**/test`.
+- **Frontend coverage target: 100%** (no file exclusions allowed). Backend/packages trend upward; no negative deltas.
+- CI uploads coverage (Codecov badge in README). Treat regressions as failures.
+
+Common invocations:
+
+```sh
+pnpm -F frontend test:coverage
+pnpm -F backend test -t "startGameForRoom emits events in order"
+```
 
 ---
 
-## Agent Boundaries
+## Lint, Typecheck, Formatting
 
-Agents **must**:
-
-- Use `pnpm install --frozen-lockfile` in automation.
-- Run `pnpm format && pnpm lint && pnpm typecheck && pnpm test` before proposing commits.
-- Prefer filtered runs (`--filter <project_name>`) when changing a single package, then a final root run before commit.
-- Never alter `pnpm.overrides`, lockfiles, or version ranges unless explicitly requested.
-- Avoid bumping versions or changing release/repo metadata.
-
-Agents **should not**:
-
-- Modify Turborepo task wiring (`turbo.json`) without explicit instruction.
-- Introduce new scripts at root unless asked.
+- **ESLint:** `pnpm lint` (no warnings allowed in CI).
+- **TypeScript:** `pnpm typecheck` (per‑package `tsconfig*`).
+- **Prettier:** `pnpm format` before committing.
+- **No** `// eslint-disable` or `@ts-ignore` without a short justification.
 
 ---
 
+## Protocol Changes (hard rules)
+
+When modifying socket events or payloads:
+
+1. Edit **`packages/types/src/socket.ts`** first (single source of truth).
+2. Conform to **ADR‑0002** (envelope, naming, acks, versioning).
+3. If breaking: bump **protocol `v`**, support N/N‑1 on server, update `system:hello` range, and add **[BREAKING]** entry to `CHANGELOG.md`.
+4. Update backend handlers and frontend validators (`apps/frontend/src/socket/eventValidators.ts`).
+5. Add/adjust tests in **types**, **backend**, and **frontend**.
+
 ---
 
-## Troubleshooting (common gotchas)
+## PR Acceptance Criteria (merge gate)
 
-- **Tests pulling from `dist/`**: ensure packages’ `tsconfig.json` exclude `dist` and that Vitest includes only `src`.
-- **Filters not matching**: confirm package names via each `package.json` (not the root) and prefer name‑based filters when ambiguous.
-- **Unexpected re‑runs**: Turborepo caches by `inputs`/`outputs`; changing config files listed in `turbo.json` invalidates caches by design.
+A PR is acceptable **only if** ALL are true:
+
+- `pnpm format`, `pnpm lint`, `pnpm typecheck`, `pnpm test:coverage` pass.
+- New/changed code has corresponding tests.
+- Frontend coverage remains **≥ 100%**.
+- User‑visible changes are recorded in `CHANGELOG.md` (Keep a Changelog).
+- If a decision or protocol changed, an **ADR** is added/updated.
+- Commits follow **Conventional Commits** with scopes: `frontend|backend|domain|types|infra|docs|repo`.
 
 ---
 
-## Security & Hygiene
+## Docs Alignment (what to update where)
 
-- Do not commit secrets. Use `.env` + `.env.example` patterns.
-- Avoid adding new direct dependencies in leaf packages when a shared package can own them.
-- Keep dependency graphs tidy (use your chosen tool e.g., dependency‑cruiser for audits).
+- **README.md** – onboarding & repo map (link from PR if new workflows added).
+- **CONTRIBUTING.md** – ports, env, scripts, commit/PR rules (keep in sync with this page).
+- **CHANGELOG.md** – user‑visible changes per release, with **Unreleased** section.
+- **ADR‑0002** – any socket protocol or versioning change.
+
+---
+
+## Troubleshooting
+
+- **Frontend can’t reach backend:** check `VITE_BACKEND_URL` and backend `FRONTEND_URL`.
+- **No words in dev:** add `apps/backend/src/dictionary/words.txt` or set `DICTIONARY_URL`.
+- **Vitest sees `dist/`:** verify `tsconfig.json` excludes `dist/` and the Vitest config includes `src/**`.
+- **Unexpected Turborepo runs:** config file changes are cache inputs by design (see `turbo.json`).
+
+---
+
+## Non‑Goals for Agents
+
+- Do **not** modify lockfiles, `pnpm.overrides`, release tags, repo metadata, or CI workflows unless explicitly requested.
+- Do **not** rewire Turborepo tasks or add root scripts without approval.
+- Do **not** change ports, env var names, or dictionary paths.
+
+---
+
+## Appendix: Minimal Env Examples
+
+**`apps/backend/.env`**
+
+```
+PORT=3001
+NODE_ENV=development
+FRONTEND_URL=http://localhost:5173
+DICTIONARY_URL=
+```
+
+**`apps/frontend/.env.local`**
+
+```
+VITE_BACKEND_URL=http://localhost:3001
+```
