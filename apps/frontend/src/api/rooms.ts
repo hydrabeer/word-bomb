@@ -1,4 +1,4 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
 export async function createRoom(name?: string): Promise<{ code: string }> {
   const res = await fetch(BACKEND_URL + '/api/rooms', {
