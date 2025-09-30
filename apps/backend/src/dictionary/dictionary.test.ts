@@ -176,19 +176,102 @@ describe('dictionary module full coverage', () => {
           } as unknown,
         }) as unknown as typeof import('fs'),
     );
+    const failingHttp = {
+      get: () => ({
+        on: (event: string, handler: (e?: unknown) => void) => {
+          if (event === 'error') handler(new Error('forced error'));
+          return {};
+        },
+      }),
+    } satisfies Partial<typeof import('https')>;
+    vi.doMock('https', () => ({ ...failingHttp, default: failingHttp }));
+    const { loadDictionary } = await freshDictionary();
+    await loadDictionary();
+    expect(readSpy).not.toHaveBeenCalled();
+  });
+
+  it('loads the on-disk dictionary when DICTIONARY_TEST_MODE forces full load', async () => {
+    setEnv({ NODE_ENV: 'test', DICTIONARY_TEST_MODE: 'full' });
+    const sample = ['apple', 'banana', 'supercalifragilisticexpialidocious'].join('\n');
+    const readSpy = vi.fn(() => sample);
     vi.doMock(
-      'https',
+      'fs',
       () =>
         ({
-          get: () => ({
-            on: (event: string, handler: (e?: unknown) => void) => {
-              if (event === 'error') handler(new Error('forced error'));
-              return {};
-            },
-          }),
-          default: {} as unknown,
-        }) as unknown as typeof import('https'),
+          readFileSync: readSpy,
+          default: { readFileSync: readSpy },
+        }) as unknown as typeof import('fs'),
     );
+    const { loadDictionary, isValidWord, getDictionaryStats } = await freshDictionary();
+    await loadDictionary();
+    expect(readSpy).toHaveBeenCalled();
+    expect(isValidWord('apple')).toBe(true);
+    expect(isValidWord('BANANA')).toBe(true);
+    // Word longer than 30 chars should be filtered out
+    expect(isValidWord('supercalifragilisticexpialidocious')).toBe(false);
+    const stats = getDictionaryStats();
+    expect(stats.wordCount).toBe(2);
+    expect(stats.fragmentCount).toBeGreaterThan(0);
+  });
+
+  it('returns the most frequent fragment as fallback when threshold is unmet', async () => {
+    setEnv({ NODE_ENV: 'development' });
+    const sample = ['aaaa', 'aaab'].join('\n');
+    const readSpy = vi.fn(() => sample);
+    vi.doMock(
+      'fs',
+      () =>
+        ({
+          readFileSync: readSpy,
+          default: { readFileSync: readSpy },
+        }) as unknown as typeof import('fs'),
+    );
+    const { loadDictionary, getRandomFragment } = await freshDictionary();
+    await loadDictionary();
+    const fragment = getRandomFragment(999);
+    expect(fragment).toBe('aa');
+  });
+
+  it('handles download responses without a status code', async () => {
+    setEnv({
+      NODE_ENV: 'production',
+      DICTIONARY_URL: 'https://example.com/dict.txt',
+    });
+    const readSpy = vi.fn();
+    vi.doMock(
+      'fs',
+      () =>
+        ({
+          createWriteStream: () => ({
+            on: () => ({}),
+            close: (cb: () => void) => cb(),
+          }),
+          readFileSync: readSpy,
+          default: {
+            createWriteStream: () => ({
+              on: () => ({}),
+              close: (cb: () => void) => cb(),
+            }),
+            readFileSync: readSpy,
+          } as unknown,
+        }) as unknown as typeof import('fs'),
+    );
+    const undefinedStatusHttp = {
+      get: (
+        _url: string,
+        cb: (res: { statusCode?: number; pipe: (w: unknown) => void }) => void,
+      ) => {
+        const res = {
+          statusCode: undefined as number | undefined,
+          pipe: () => {
+            /* noop */
+          },
+        };
+        cb(res);
+        return { on: () => ({}) };
+      },
+    } satisfies Partial<typeof import('https')>;
+    vi.doMock('https', () => ({ ...undefinedStatusHttp, default: undefinedStatusHttp }));
     const { loadDictionary } = await freshDictionary();
     await loadDictionary();
     expect(readSpy).not.toHaveBeenCalled();
@@ -245,29 +328,22 @@ describe('dictionary module full coverage', () => {
           } as unknown,
         }) as unknown as typeof import('fs'),
     );
-    vi.doMock(
-      'https',
-      () =>
-        ({
-          get: (
-            _url: string,
-            cb: (res: {
-              statusCode: number;
-              pipe: (w: unknown) => void;
-            }) => void,
-          ) => {
-            const res = {
-              statusCode: 500,
-              pipe: () => {
-                /* no-op */
-              },
-            };
-            cb(res);
-            return { on: () => ({}) };
+    const fakeHttp = {
+      get: (
+        _url: string,
+        cb: (res: { statusCode: number; pipe: (w: unknown) => void }) => void,
+      ) => {
+        const res = {
+          statusCode: 500,
+          pipe: () => {
+            /* no-op */
           },
-          default: {} as unknown,
-        }) as unknown as typeof import('https'),
-    );
+        };
+        cb(res);
+        return { on: () => ({}) };
+      },
+    } satisfies Partial<typeof import('https')>;
+    vi.doMock('https', () => ({ ...fakeHttp, default: fakeHttp }));
     const { loadDictionary } = await freshDictionary();
     await loadDictionary();
     expect(readSpy).not.toHaveBeenCalled();

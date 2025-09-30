@@ -271,4 +271,37 @@ describe('RoomBroadcaster', () => {
       expect.objectContaining({ playerId: 'P1' }),
     );
   });
+
+  it('logs a warning when payload serialization fails before emitting', () => {
+    const { broadcaster, emitMock } = setupBroadcaster();
+    const cyclic: any = {};
+    cyclic.self = cyclic;
+
+    const unsafe = broadcaster as unknown as {
+      emit: (roomCode: string, event: string, payload: unknown) => void;
+    };
+
+    unsafe.emit('ROOM', 'playersUpdated', cyclic);
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'message_out_serialize_failed' }),
+      'Failed to measure payload size',
+    );
+    expect(emitMock).toHaveBeenCalledWith('playersUpdated', cyclic);
+  });
+
+  it('supports measuring payloads with multiple arguments', () => {
+    const { broadcaster, emitMock } = setupBroadcaster();
+    const unsafe = broadcaster as unknown as {
+      emit: (roomCode: string, event: string, ...payload: unknown[]) => void;
+    };
+
+    unsafe.emit('ROOM', 'playersUpdated', 'first', { second: true });
+
+    expect(emitMock).toHaveBeenCalledWith(
+      'playersUpdated',
+      'first',
+      { second: true },
+    );
+  });
 });

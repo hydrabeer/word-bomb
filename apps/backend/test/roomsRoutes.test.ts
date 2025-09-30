@@ -172,6 +172,39 @@ describe('rooms router handlers', () => {
     expect(createMock).toHaveBeenCalledTimes(100);
   });
 
+  it('createRoomHandler retries when generated code already exists', () => {
+    const createMock = roomManager.create as ReturnType<typeof vi.fn>;
+    createMock.mockImplementation(() => ({}));
+    const hasMock = roomManager.has as ReturnType<typeof vi.fn>;
+    hasMock.mockImplementationOnce(() => true).mockImplementationOnce(() => false);
+    roomCodeGeneratorMock
+      .mockImplementationOnce(() => 'AAAA')
+      .mockImplementationOnce(() => 'BBBB');
+
+    const { response } = createMockResponse<{ code: string }>();
+    setRoomCodeGenerator(roomCodeGeneratorMock);
+
+    createRoomHandler({ body: {} } as unknown as Request, response as unknown as Response);
+
+    expect(hasMock).toHaveBeenCalledTimes(2);
+    expect(createMock).toHaveBeenCalledWith('BBBB', expect.any(Object), '');
+  });
+
+  it('createRoomHandler handles missing request body gracefully', () => {
+    (roomManager.create as ReturnType<typeof vi.fn>).mockImplementation(
+      () => ({}),
+    );
+    roomCodeGeneratorMock.mockReturnValue('ZZZZ');
+    setRoomCodeGenerator(roomCodeGeneratorMock);
+    const { response } = createMockResponse<{ code: string }>();
+
+    createRoomHandler({} as unknown as Request, response as unknown as Response);
+
+    const [, , providedName] = (roomManager.create as ReturnType<typeof vi.fn>).mock
+      .calls[0] as [string, Record<string, unknown>, string];
+    expect(providedName).toBe('');
+  });
+
   it('createRoomHandler lowers minWordsPerPrompt when dictionary fallback is active', () => {
     (roomManager.create as ReturnType<typeof vi.fn>).mockImplementation(
       () => ({}),
@@ -215,6 +248,18 @@ describe('rooms router handlers', () => {
       exists: true,
       name: 'Trivia night',
     });
+  });
+
+  it('getRoomHandler normalizes non-string room names', () => {
+    (roomManager.get as ReturnType<typeof vi.fn>).mockReturnValue({ name: 42 });
+    const { response, jsonMock } = createMockResponse<{ exists: boolean; name: string }>();
+
+    getRoomHandler(
+      { params: { code: 'ROOM' } } as unknown as Request,
+      response as unknown as Response,
+    );
+
+    expect(jsonMock).toHaveBeenCalledWith({ exists: true, name: '' });
   });
 
   it('getRoomHandler returns 404 when room is missing', () => {

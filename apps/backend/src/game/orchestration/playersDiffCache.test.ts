@@ -60,6 +60,40 @@ describe('playersDiffCache', () => {
     }
   });
 
+  it('detects name changes for existing players', () => {
+    const room = createRoomWithPlayers('NAME', [
+      { id: 'A', name: 'Alice' },
+      { id: 'B', name: 'Bob' },
+    ]);
+    computePlayersDiff(room);
+    const alice = room.getPlayer('A');
+    if (!alice) throw new Error('missing player');
+    alice.name = 'Alicia';
+    const diff = computePlayersDiff(room);
+    expect(diff).not.toBeNull();
+    if (diff) {
+      expect(diff.updated.find((u) => u.id === 'A')?.changes.name).toBe('Alicia');
+    }
+  });
+
+  it('tracks connectivity changes without altering leader assignments', () => {
+    const room = createRoomWithPlayers('NETX', [
+      { id: 'A', name: 'Alice' },
+      { id: 'B', name: 'Bob' },
+    ]);
+    computePlayersDiff(room); // establish baseline with leader A
+    const alice = room.getPlayer('A');
+    if (!alice) throw new Error('missing player');
+    alice.isConnected = false;
+    const diff = computePlayersDiff(room);
+    expect(diff).not.toBeNull();
+    if (diff) {
+      const update = diff.updated.find((u) => u.id === 'A');
+      expect(update?.changes.isConnected).toBe(false);
+      expect(diff.leaderIdChanged).toBeUndefined();
+    }
+  });
+
   it('reports leader transitions including removal', () => {
     const room = createRoomWithPlayers('LEAD', [
       { id: 'A', name: 'Alice' },

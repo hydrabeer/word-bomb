@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Game } from '@game/domain/game/Game';
 import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import { GameRulesService } from '@game/domain/game/services/GameRulesService';
 import { createPlayer } from '@game/domain/players/createPlayer';
 import { GameEngine } from './GameEngine';
 import type { DictionaryPort } from '../dictionary';
@@ -305,5 +306,181 @@ describe('GameEngine extra coverage', () => {
     const payload = (nextTurn ?? emitted.find((ev) => ev.e === 'turnStarted'))
       ?.payload as ReturnType<typeof buildTurnStartedPayload> | undefined;
     expect(payload?.playerId).toBe('B');
+  });
+
+  it('forfeitPlayer tolerates errors retrieving the current player', () => {
+    const game = makeGame();
+    const engine = new GameEngine({
+      game,
+      emit: () => {
+        /* noop */
+      },
+      scheduler: {
+        schedule: (delayMs, cb) => setTimeout(cb, delayMs),
+        cancel: (token) => {
+          clearTimeout(token as any);
+        },
+      },
+      eventsPort: {
+        turnStarted: () => {
+          /* noop */
+        },
+        playerUpdated: () => {
+          /* noop */
+        },
+        wordAccepted: () => {
+          /* noop */
+        },
+        gameEnded: () => {
+          /* noop */
+        },
+      },
+      dictionary: stubDictionary(),
+    });
+    const advanceSpy = vi
+      .spyOn(engine as unknown as { advanceTurn: () => void }, 'advanceTurn')
+      .mockImplementation(() => {
+        /* noop */
+      });
+    const gameOverSpy = vi
+      .spyOn(engine as unknown as { handleGameOverIfAny: () => boolean }, 'handleGameOverIfAny')
+      .mockReturnValue(false);
+    const getCurrentSpy = vi
+      .spyOn(GameRulesService.prototype, 'getCurrentPlayer')
+      .mockImplementationOnce(() => {
+        throw new Error('unavailable');
+      });
+
+    engine.forfeitPlayer('B');
+
+    expect(advanceSpy).toHaveBeenCalled();
+
+    advanceSpy.mockRestore();
+    gameOverSpy.mockRestore();
+    getCurrentSpy.mockRestore();
+  });
+
+  it('forfeitPlayer aligns current turn index to existing player when forfeiting others', () => {
+    const players = [
+      createPlayer({
+        id: 'A',
+        name: 'Alpha',
+        isLeader: true,
+        lives: 3,
+        bonusTemplate: rules.bonusTemplate,
+      }),
+      createPlayer({
+        id: 'B',
+        name: 'Beta',
+        isLeader: false,
+        lives: 3,
+        bonusTemplate: rules.bonusTemplate,
+      }),
+      createPlayer({
+        id: 'C',
+        name: 'Gamma',
+        isLeader: false,
+        lives: 3,
+        bonusTemplate: rules.bonusTemplate,
+      }),
+    ];
+    const game = new Game({
+      roomCode: 'ROOM',
+      players,
+      currentTurnIndex: 0,
+      fragment: 'ga',
+      state: 'active',
+      rules,
+    });
+    const engine = new GameEngine({
+      game,
+      emit: () => {
+        /* noop */
+      },
+      scheduler: {
+        schedule: (delayMs, cb) => setTimeout(cb, delayMs),
+        cancel: (token) => {
+          clearTimeout(token as any);
+        },
+      },
+      eventsPort: {
+        turnStarted: () => {
+          /* noop */
+        },
+        playerUpdated: () => {
+          /* noop */
+        },
+        wordAccepted: () => {
+          /* noop */
+        },
+        gameEnded: () => {
+          /* noop */
+        },
+      },
+      dictionary: stubDictionary(),
+    });
+    const advanceSpy = vi
+      .spyOn(engine as unknown as { advanceTurn: () => void }, 'advanceTurn')
+      .mockImplementation(() => {
+        /* noop */
+      });
+    const currentSpy = vi
+      .spyOn(GameRulesService.prototype, 'getCurrentPlayer')
+      .mockImplementation(() => players[2]);
+
+    engine.forfeitPlayer('B');
+
+    expect(game.currentTurnIndex).toBe(
+      game.getActivePlayers().findIndex((p) => p.id === 'C'),
+    );
+    expect(advanceSpy).not.toHaveBeenCalled();
+
+    advanceSpy.mockRestore();
+    currentSpy.mockRestore();
+  });
+
+  it('forfeitPlayer ignores unknown and already eliminated players', () => {
+    const game = makeGame();
+    const engine = new GameEngine({
+      game,
+      emit: () => {
+        /* noop */
+      },
+      scheduler: {
+        schedule: (delayMs, cb) => setTimeout(cb, delayMs),
+        cancel: (token) => {
+          clearTimeout(token as any);
+        },
+      },
+      eventsPort: {
+        turnStarted: () => {
+          /* noop */
+        },
+        playerUpdated: () => {
+          /* noop */
+        },
+        wordAccepted: () => {
+          /* noop */
+        },
+        gameEnded: () => {
+          /* noop */
+        },
+      },
+      dictionary: stubDictionary(),
+    });
+    const advanceSpy = vi
+      .spyOn(engine as unknown as { advanceTurn: () => void }, 'advanceTurn')
+      .mockImplementation(() => {
+        /* noop */
+      });
+
+    engine.forfeitPlayer('missing');
+    const player = game.players[0];
+    player.eliminate();
+    engine.forfeitPlayer(player.id);
+
+    expect(advanceSpy).not.toHaveBeenCalled();
+
+    advanceSpy.mockRestore();
   });
 });
