@@ -343,7 +343,10 @@ describe('GameEngine extra coverage', () => {
         /* noop */
       });
     const gameOverSpy = vi
-      .spyOn(engine as unknown as { handleGameOverIfAny: () => boolean }, 'handleGameOverIfAny')
+      .spyOn(
+        engine as unknown as { handleGameOverIfAny: () => boolean },
+        'handleGameOverIfAny',
+      )
       .mockReturnValue(false);
     const getCurrentSpy = vi
       .spyOn(GameRulesService.prototype, 'getCurrentPlayer')

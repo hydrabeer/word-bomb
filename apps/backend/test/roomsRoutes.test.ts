@@ -176,7 +176,9 @@ describe('rooms router handlers', () => {
     const createMock = roomManager.create as ReturnType<typeof vi.fn>;
     createMock.mockImplementation(() => ({}));
     const hasMock = roomManager.has as ReturnType<typeof vi.fn>;
-    hasMock.mockImplementationOnce(() => true).mockImplementationOnce(() => false);
+    hasMock
+      .mockImplementationOnce(() => true)
+      .mockImplementationOnce(() => false);
     roomCodeGeneratorMock
       .mockImplementationOnce(() => 'AAAA')
       .mockImplementationOnce(() => 'BBBB');
@@ -184,7 +186,10 @@ describe('rooms router handlers', () => {
     const { response } = createMockResponse<{ code: string }>();
     setRoomCodeGenerator(roomCodeGeneratorMock);
 
-    createRoomHandler({ body: {} } as unknown as Request, response as unknown as Response);
+    createRoomHandler(
+      { body: {} } as unknown as Request,
+      response as unknown as Response,
+    );
 
     expect(hasMock).toHaveBeenCalledTimes(2);
     expect(createMock).toHaveBeenCalledWith('BBBB', expect.any(Object), '');
@@ -198,10 +203,13 @@ describe('rooms router handlers', () => {
     setRoomCodeGenerator(roomCodeGeneratorMock);
     const { response } = createMockResponse<{ code: string }>();
 
-    createRoomHandler({} as unknown as Request, response as unknown as Response);
+    createRoomHandler(
+      {} as unknown as Request,
+      response as unknown as Response,
+    );
 
-    const [, , providedName] = (roomManager.create as ReturnType<typeof vi.fn>).mock
-      .calls[0] as [string, Record<string, unknown>, string];
+    const [, , providedName] = (roomManager.create as ReturnType<typeof vi.fn>)
+      .mock.calls[0] as [string, Record<string, unknown>, string];
     expect(providedName).toBe('');
   });
 
@@ -252,7 +260,10 @@ describe('rooms router handlers', () => {
 
   it('getRoomHandler normalizes non-string room names', () => {
     (roomManager.get as ReturnType<typeof vi.fn>).mockReturnValue({ name: 42 });
-    const { response, jsonMock } = createMockResponse<{ exists: boolean; name: string }>();
+    const { response, jsonMock } = createMockResponse<{
+      exists: boolean;
+      name: string;
+    }>();
 
     getRoomHandler(
       { params: { code: 'ROOM' } } as unknown as Request,

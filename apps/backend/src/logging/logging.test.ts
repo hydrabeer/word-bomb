@@ -85,7 +85,10 @@ describe('structured logger', () => {
       lines.push(...chunk.split(/\n+/).filter(Boolean));
     });
 
-    const logger = createLogger({ service: 'backend-test', destination: stream });
+    const logger = createLogger({
+      service: 'backend-test',
+      destination: stream,
+    });
     logger.error({ event: 'string_error', err: 'not-an-error' }, 'oops');
     if (typeof logger.flush === 'function') {
       logger.flush();
@@ -110,7 +113,10 @@ describe('structured logger', () => {
       lines.push(...chunk.split(/\n+/).filter(Boolean));
     });
 
-    const logger = createLogger({ service: 'version-test', destination: stream });
+    const logger = createLogger({
+      service: 'version-test',
+      destination: stream,
+    });
     logger.info({ event: 'version_check' }, 'version');
     if (typeof logger.flush === 'function') {
       logger.flush();
@@ -159,7 +165,9 @@ describe('structured logger', () => {
     expect(formatter.pid).toBe(process.pid);
     const withPid = logger.options.formatters.bindings({ pid: 42 } as any);
     expect(withPid.pid).toBe(42);
-    expect(logger.options.formatters.log({ foo: 'bar' })).toEqual({ foo: 'bar' });
+    expect(logger.options.formatters.log({ foo: 'bar' })).toEqual({
+      foo: 'bar',
+    });
     expect(calls).toHaveLength(1);
 
     if (originalNpmVersion === undefined) {

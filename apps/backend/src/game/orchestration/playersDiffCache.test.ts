@@ -72,7 +72,9 @@ describe('playersDiffCache', () => {
     const diff = computePlayersDiff(room);
     expect(diff).not.toBeNull();
     if (diff) {
-      expect(diff.updated.find((u) => u.id === 'A')?.changes.name).toBe('Alicia');
+      expect(diff.updated.find((u) => u.id === 'A')?.changes.name).toBe(
+        'Alicia',
+      );
     }
   });
 

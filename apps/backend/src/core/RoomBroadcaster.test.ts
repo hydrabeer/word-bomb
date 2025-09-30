@@ -298,10 +298,8 @@ describe('RoomBroadcaster', () => {
 
     unsafe.emit('ROOM', 'playersUpdated', 'first', { second: true });
 
-    expect(emitMock).toHaveBeenCalledWith(
-      'playersUpdated',
-      'first',
-      { second: true },
-    );
+    expect(emitMock).toHaveBeenCalledWith('playersUpdated', 'first', {
+      second: true,
+    });
   });
 });

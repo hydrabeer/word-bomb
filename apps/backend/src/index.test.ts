@@ -865,15 +865,14 @@ describe('http handlers', () => {
     const harness = createHarness(createMocks());
     const mod = await harness.importIndex('test');
 
-    const req = { method: 'GET', url: '/healthz' } as unknown as IncomingMessage;
+    const req = {
+      method: 'GET',
+      url: '/healthz',
+    } as unknown as IncomingMessage;
     const res = { statusCode: 0 } as unknown as ServerResponse;
 
     expect(() => mod.nodeHandler(req, res)).not.toThrow();
-    expect(expressHandler).toHaveBeenCalledWith(
-      req,
-      res,
-      expect.any(Function),
-    );
+    expect(expressHandler).toHaveBeenCalledWith(req, res, expect.any(Function));
 
     vi.resetModules();
   });
