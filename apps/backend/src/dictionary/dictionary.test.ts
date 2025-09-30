@@ -192,7 +192,11 @@ describe('dictionary module full coverage', () => {
 
   it('loads the on-disk dictionary when DICTIONARY_TEST_MODE forces full load', async () => {
     setEnv({ NODE_ENV: 'test', DICTIONARY_TEST_MODE: 'full' });
-    const sample = ['apple', 'banana', 'supercalifragilisticexpialidocious'].join('\n');
+    const sample = [
+      'apple',
+      'banana',
+      'supercalifragilisticexpialidocious',
+    ].join('\n');
     const readSpy = vi.fn(() => sample);
     vi.doMock(
       'fs',
@@ -202,7 +206,8 @@ describe('dictionary module full coverage', () => {
           default: { readFileSync: readSpy },
         }) as unknown as typeof import('fs'),
     );
-    const { loadDictionary, isValidWord, getDictionaryStats } = await freshDictionary();
+    const { loadDictionary, isValidWord, getDictionaryStats } =
+      await freshDictionary();
     await loadDictionary();
     expect(readSpy).toHaveBeenCalled();
     expect(isValidWord('apple')).toBe(true);
@@ -271,7 +276,10 @@ describe('dictionary module full coverage', () => {
         return { on: () => ({}) };
       },
     } satisfies Partial<typeof import('https')>;
-    vi.doMock('https', () => ({ ...undefinedStatusHttp, default: undefinedStatusHttp }));
+    vi.doMock('https', () => ({
+      ...undefinedStatusHttp,
+      default: undefinedStatusHttp,
+    }));
     const { loadDictionary } = await freshDictionary();
     await loadDictionary();
     expect(readSpy).not.toHaveBeenCalled();
@@ -388,5 +396,15 @@ describe('dictionary module full coverage', () => {
     await m.loadDictionary();
     expect(m.isValidWord('aa')).toBe(true);
     expect(m.isUsingFallbackDictionary()).toBe(true);
+  });
+
+  it('createDictionaryPort exposes isValid and getRandomFragment', async () => {
+    setEnv({ NODE_ENV: 'test' });
+    const { loadDictionary, createDictionaryPort } = await freshDictionary();
+    await loadDictionary();
+    const port = createDictionaryPort();
+    expect(port.isValid('AA')).toBe(true);
+    const fragment = port.getRandomFragment(1);
+    expect(fragment.length === 2 || fragment.length === 3).toBe(true);
   });
 });

@@ -50,9 +50,14 @@ vi.mock('../core/RoomBroadcaster', () => ({
 const { roomManager } = await import('../room/roomManagerSingleton');
 const { emitPlayers } = await import('../game/orchestration/emitPlayers');
 const { getGameEngine } = await import('../game/engineRegistry');
-const { startGameForRoom } = await import('../game/orchestration/startGameForRoom');
-const { toAuthoritativeChatMessage } = await import('@game/domain/chat/ChatMessage');
+const { startGameForRoom } = await import(
+  '../game/orchestration/startGameForRoom'
+);
+const { toAuthoritativeChatMessage } = await import(
+  '@game/domain/chat/ChatMessage'
+);
 const serialization = await import('../core/serialization');
+const { getLogger } = await import('../logging/context');
 
 type Fn<A extends unknown[] = unknown[], R = unknown> = (...args: A) => R;
 type MockFn<A extends unknown[] = unknown[], R = unknown> = Mock<Fn<A, R>>;
@@ -273,8 +278,7 @@ function setupHarness(room?: MockRoom) {
       ) => void,
     getChatHandler: () =>
       socket.getHandler('chatMessage') as (raw: unknown) => void,
-    getDisconnectHandler: () =>
-      socket.getHandler('disconnect') as () => void,
+    getDisconnectHandler: () => socket.getHandler('disconnect') as () => void,
   };
 }
 
@@ -317,7 +321,10 @@ describe('registerRoomHandlers', () => {
     const { getJoinHandler } = setupHarness(room);
     const callback = vi.fn();
 
-    getJoinHandler()({ roomCode: 'NSTR', playerId: 'P1', name: 123 } as any, callback);
+    getJoinHandler()(
+      { roomCode: 'NSTR', playerId: 'P1', name: 123 } as any,
+      callback,
+    );
 
     expect(callback).toHaveBeenCalledWith({
       success: false,
@@ -369,7 +376,10 @@ describe('registerRoomHandlers', () => {
     socket.data.currentRoomCode = 'OLD';
     const callback = vi.fn();
 
-    getJoinHandler()({ roomCode: 'ROOM', playerId: 'P1', name: 'Alice' }, callback);
+    getJoinHandler()(
+      { roomCode: 'ROOM', playerId: 'P1', name: 'Alice' },
+      callback,
+    );
 
     expect(callback).toHaveBeenCalledWith({ success: true });
   });
@@ -390,7 +400,10 @@ describe('registerRoomHandlers', () => {
     socket.data.currentRoomCode = 'OLD';
     const callback = vi.fn();
 
-    getJoinHandler()({ roomCode: 'NEWR', playerId: 'P1', name: 'Alice' }, callback);
+    getJoinHandler()(
+      { roomCode: 'NEWR', playerId: 'P1', name: 'Alice' },
+      callback,
+    );
 
     expect(callback).toHaveBeenCalledWith({ success: true });
     expect(oldRoom.removePlayer).toHaveBeenCalledWith('P1');
@@ -408,7 +421,10 @@ describe('registerRoomHandlers', () => {
     socket.data.currentRoomCode = 'RECN';
     const callback = vi.fn();
 
-    getJoinHandler()({ roomCode: 'RECN', playerId: 'P1', name: 'Alice' }, callback);
+    getJoinHandler()(
+      { roomCode: 'RECN', playerId: 'P1', name: 'Alice' },
+      callback,
+    );
 
     expect(room.setPlayerConnected).toHaveBeenCalledWith('P1', true);
     expect(callback).toHaveBeenCalledWith({ success: true });
@@ -601,9 +617,7 @@ describe('registerRoomHandlers', () => {
   it('swallows serialization errors when emitting existing game snapshots', () => {
     const room = createMockRoom({
       code: 'ROOM',
-      players: [
-        { id: 'P1', name: 'Alpha', isSeated: true, isConnected: true },
-      ],
+      players: [{ id: 'P1', name: 'Alpha', isSeated: true, isConnected: true }],
       game: {
         getCurrentPlayer: () => ({ id: 'P1' }),
       },
@@ -617,7 +631,10 @@ describe('registerRoomHandlers', () => {
     const { getJoinHandler } = setupHarness(room);
 
     expect(() =>
-      getJoinHandler()({ roomCode: 'ROOM', playerId: 'P1', name: 'Alpha' }, vi.fn()),
+      getJoinHandler()(
+        { roomCode: 'ROOM', playerId: 'P1', name: 'Alpha' },
+        vi.fn(),
+      ),
     ).not.toThrow();
 
     gamePayloadSpy.mockRestore();
@@ -680,9 +697,7 @@ describe('registerRoomHandlers', () => {
   it('continues cleanup even when cancelGameStartTimer throws', () => {
     const room = createMockRoom({
       code: 'ROOM',
-      players: [
-        { id: 'P1', name: 'Alpha', isSeated: true, isConnected: true },
-      ],
+      players: [{ id: 'P1', name: 'Alpha', isSeated: true, isConnected: true }],
     });
     room.cancelGameStartTimer.mockImplementation(() => {
       throw new Error('stop fail');
@@ -690,13 +705,17 @@ describe('registerRoomHandlers', () => {
     const deleteMock = roomManager.delete as MockFn<[string], void>;
     const { getLeaveHandler } = setupHarness(room);
 
-    expect(() => getLeaveHandler()({ roomCode: 'ROOM', playerId: 'P1' })).not.toThrow();
+    expect(() =>
+      getLeaveHandler()({ roomCode: 'ROOM', playerId: 'P1' }),
+    ).not.toThrow();
     expect(deleteMock).toHaveBeenCalledWith('ROOM');
   });
 
   it('ignores leaveRoom when room does not exist', () => {
     const { getLeaveHandler } = setupHarness();
-    expect(() => getLeaveHandler()({ roomCode: 'NONE', playerId: 'P1' })).not.toThrow();
+    expect(() =>
+      getLeaveHandler()({ roomCode: 'NONE', playerId: 'P1' }),
+    ).not.toThrow();
   });
 
   it('ignores leaveRoom when player is not in the room', () => {
@@ -704,25 +723,35 @@ describe('registerRoomHandlers', () => {
     room.getPlayer.mockReturnValue(undefined);
     const { getLeaveHandler } = setupHarness(room);
 
-    expect(() => getLeaveHandler()({ roomCode: 'ROOM', playerId: 'P1' })).not.toThrow();
+    expect(() =>
+      getLeaveHandler()({ roomCode: 'ROOM', playerId: 'P1' }),
+    ).not.toThrow();
   });
 
   it('cleanupRoomIfEmpty exits quietly when room already deleted', () => {
     const room = createMockRoom({
       code: 'ROOM',
-      players: [{ id: 'P1', name: 'Alpha', isSeated: false, isConnected: true }],
+      players: [
+        { id: 'P1', name: 'Alpha', isSeated: false, isConnected: true },
+      ],
     });
     const { getLeaveHandler } = setupHarness(room);
     const getMock = roomManager.get as MockFn<[string], MockRoom | undefined>;
-    getMock.mockImplementationOnce((code) => (code === 'ROOM' ? room : undefined));
+    getMock.mockImplementationOnce((code) =>
+      code === 'ROOM' ? room : undefined,
+    );
     getMock.mockImplementationOnce(() => undefined);
 
-    expect(() => getLeaveHandler()({ roomCode: 'ROOM', playerId: 'P1' })).not.toThrow();
+    expect(() =>
+      getLeaveHandler()({ roomCode: 'ROOM', playerId: 'P1' }),
+    ).not.toThrow();
   });
 
   it('handles chatMessage parser failures gracefully', () => {
     const { getChatHandler } = setupHarness();
-    (toAuthoritativeChatMessage as MockFn<[unknown], unknown>).mockImplementationOnce(() => {
+    (
+      toAuthoritativeChatMessage as MockFn<[unknown], unknown>
+    ).mockImplementationOnce(() => {
       throw new Error('bad message');
     });
 
@@ -797,7 +826,11 @@ describe('registerRoomHandlers', () => {
     room.hasPlayer.mockReturnValue(true);
     room.isGameTimerRunning.mockReturnValue(false);
     const { getSetSeatedHandler } = setupHarness(room);
-    (startGameForRoom as MockFn<[TypedServer, MockRoom], void>).mockImplementationOnce(() => {
+    const logger = getLogger();
+    const errorSpy = vi.spyOn(logger, 'error');
+    (
+      startGameForRoom as MockFn<[TypedServer, MockRoom], void>
+    ).mockImplementationOnce(() => {
       throw new Error('auto-start');
     });
 
@@ -806,6 +839,12 @@ describe('registerRoomHandlers', () => {
       vi.fn(),
     );
     room.triggerTimer();
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'auto_start_error', gameId: 'ROOM' }),
+      'Auto start failed',
+    );
+    errorSpy.mockRestore();
 
     (startGameForRoom as MockFn<[TypedServer, MockRoom], void>).mockReset();
   });
@@ -831,7 +870,9 @@ describe('registerRoomHandlers', () => {
       ],
     });
     room.hasPlayer.mockReturnValue(true);
-    (startGameForRoom as MockFn<[TypedServer, MockRoom], void>).mockImplementationOnce(() => {
+    (
+      startGameForRoom as MockFn<[TypedServer, MockRoom], void>
+    ).mockImplementationOnce(() => {
       throw new Error('start failed');
     });
     const { getStartHandler } = setupHarness(room);
@@ -894,7 +935,7 @@ describe('registerRoomHandlers', () => {
       code: 'ROOM',
       players: [{ id: 'P1', name: 'Alpha', isSeated: true, isConnected: true }],
       game: {
-        getCurrentPlayer: () => ({ id: 'OTHER' } as any),
+        getCurrentPlayer: () => ({ id: 'OTHER' }) as any,
       },
     });
     const { getPlayerTypingHandler, io } = setupHarness(room);
@@ -908,7 +949,7 @@ describe('registerRoomHandlers', () => {
       code: 'ROOM',
       players: [{ id: 'P1', name: 'Alpha', isSeated: true, isConnected: true }],
       game: {
-        getCurrentPlayer: () => ({ id: 'P1' } as any),
+        getCurrentPlayer: () => ({ id: 'P1' }) as any,
       },
     });
     const { getPlayerTypingHandler, io } = setupHarness(room);
@@ -926,7 +967,7 @@ describe('registerRoomHandlers', () => {
       code: 'ROOM',
       players: [{ id: 'P1', name: 'Alpha', isSeated: true, isConnected: true }],
       game: {
-        getCurrentPlayer: () => ({ id: 'P1' } as any),
+        getCurrentPlayer: () => ({ id: 'P1' }) as any,
       },
     });
     const { getPlayerTypingHandler, io } = setupHarness(room);
@@ -953,9 +994,7 @@ describe('registerRoomHandlers', () => {
     vi.useFakeTimers();
     const room = createMockRoom({
       code: 'ROOM',
-      players: [
-        { id: 'P1', name: 'Alpha', isSeated: true, isConnected: true },
-      ],
+      players: [{ id: 'P1', name: 'Alpha', isSeated: true, isConnected: true }],
     });
     room.hasPlayer.mockReturnValue(true);
     room.getPlayer.mockReturnValue({
@@ -969,7 +1008,9 @@ describe('registerRoomHandlers', () => {
     socket.data.currentPlayerId = 'P1';
 
     const getMock = roomManager.get as MockFn<[string], MockRoom | undefined>;
-    getMock.mockImplementationOnce((code) => (code === 'ROOM' ? room : undefined));
+    getMock.mockImplementationOnce((code) =>
+      code === 'ROOM' ? room : undefined,
+    );
     getMock.mockImplementation(() => undefined);
 
     try {
@@ -987,16 +1028,14 @@ describe('registerRoomHandlers', () => {
     vi.useFakeTimers();
     const room = createMockRoom({
       code: 'ROOM',
-      players: [
-        { id: 'P1', name: 'Alpha', isSeated: true, isConnected: true },
-      ],
+      players: [{ id: 'P1', name: 'Alpha', isSeated: true, isConnected: true }],
     });
     const engine = { forfeitPlayer: vi.fn() };
-    (getGameEngine as MockFn<[string], typeof engine | undefined>).mockReturnValue(
-      engine,
-    );
+    (
+      getGameEngine as MockFn<[string], typeof engine | undefined>
+    ).mockReturnValue(engine);
     room.game = {
-      getCurrentPlayer: () => ({ id: 'P1', name: 'Alpha' } as any),
+      getCurrentPlayer: () => ({ id: 'P1', name: 'Alpha' }) as any,
       started: true,
     } as any;
     const { getDisconnectHandler, socket } = setupHarness(room);
@@ -1041,9 +1080,7 @@ describe('registerRoomHandlers', () => {
   it('submitWord reports missing engine errors back to the client', () => {
     const room = createMockRoom({
       code: 'ROOM',
-      players: [
-        { id: 'P1', name: 'Alpha', isSeated: true, isConnected: true },
-      ],
+      players: [{ id: 'P1', name: 'Alpha', isSeated: true, isConnected: true }],
     });
     room.hasPlayer.mockReturnValue(true);
     room.game = {
@@ -1201,10 +1238,7 @@ describe('registerRoomHandlers', () => {
     socket.data.currentPlayerId = 'leader';
     const callback = vi.fn();
 
-    getUpdateRulesHandler()(
-      { roomCode: 'ROOM', rules: room.rules },
-      callback,
-    );
+    getUpdateRulesHandler()({ roomCode: 'ROOM', rules: room.rules }, callback);
 
     expect(callback).toHaveBeenCalledWith({
       success: false,
