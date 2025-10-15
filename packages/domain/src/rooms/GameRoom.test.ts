@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GameRoom } from './GameRoom';
 import type { GameRoomRules } from './GameRoomRules';
 import { randomUUID } from 'crypto';
-import { PlayerProps } from '../players/Player';
+import { PlayerProps, PlayerSchema } from '../players/Player';
 import { BonusProgress } from '../game/BonusProgress';
 import type { Game } from '../game/Game';
 
@@ -75,6 +75,35 @@ describe('GameRoom', () => {
 
     const result = room.getPlayer(p.id);
     expect(result?.isSeated).toBe(true);
+  });
+
+  it('updatePlayerName returns false when player is missing', () => {
+    expect(room.updatePlayerName('missing', 'NewName')).toBe(false);
+  });
+
+  it('updatePlayerName ignores unchanged names without parsing', () => {
+    const p = makePlayerProps({ name: 'SameName' });
+    room.addPlayer(p);
+
+    const parseSpy = vi.spyOn(PlayerSchema.shape.name, 'parse');
+
+    expect(room.updatePlayerName(p.id, 'SameName')).toBe(true);
+    expect(parseSpy).not.toHaveBeenCalled();
+
+    parseSpy.mockRestore();
+  });
+
+  it('updatePlayerName validates and applies new names', () => {
+    const p = makePlayerProps({ name: 'OldName' });
+    room.addPlayer(p);
+
+    const parseSpy = vi.spyOn(PlayerSchema.shape.name, 'parse');
+
+    expect(room.updatePlayerName(p.id, 'NewName')).toBe(true);
+    expect(parseSpy).toHaveBeenCalledWith('NewName');
+    expect(room.getPlayer(p.id)?.name).toBe('NewName');
+
+    parseSpy.mockRestore();
   });
 
   it('updates player connectivity without removing them', () => {

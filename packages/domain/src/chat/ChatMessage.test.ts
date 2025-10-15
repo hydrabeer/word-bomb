@@ -1,5 +1,14 @@
-import { describe, it, expect } from 'vitest';
-import { ChatMessageSchema } from './ChatMessage';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import {
+  ChatMessageSchema,
+  isChatMessage,
+  parseChatMessage,
+  toAuthoritativeChatMessage,
+} from './ChatMessage';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('ChatMessageSchema', () => {
   it('validates a correct chat message', () => {
@@ -82,5 +91,54 @@ describe('ChatMessageSchema', () => {
     };
 
     expect(() => ChatMessageSchema.parse(invalidMessage)).toThrow();
+  });
+
+  it('identifies valid messages with isChatMessage', () => {
+    const validMessage = {
+      roomCode: 'ABCD',
+      sender: 'ValidUser',
+      message: 'Hi!',
+      timestamp: 1672531200,
+      type: 'system',
+    };
+
+    expect(isChatMessage(validMessage)).toBe(true);
+    expect(isChatMessage({})).toBe(false);
+  });
+
+  it('parses a message and applies defaults with parseChatMessage', () => {
+    const parsed = parseChatMessage({
+      roomCode: 'WXYZ',
+      sender: 'Jane',
+      message: 'Default type please.',
+      timestamp: 42,
+    });
+
+    expect(parsed.type).toBe('user');
+    expect(parsed).toMatchObject({
+      roomCode: 'WXYZ',
+      sender: 'Jane',
+      message: 'Default type please.',
+      timestamp: 42,
+    });
+  });
+
+  it('converts inbound messages to authoritative payloads', () => {
+    const now = 1234567890;
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+
+    const payload = toAuthoritativeChatMessage({
+      roomCode: 'ABCD',
+      sender: 'Jane',
+      message: 'Hello',
+    });
+
+    expect(payload).toEqual({
+      roomCode: 'ABCD',
+      sender: 'Jane',
+      message: 'Hello',
+      timestamp: now,
+      type: 'user',
+    });
   });
 });
