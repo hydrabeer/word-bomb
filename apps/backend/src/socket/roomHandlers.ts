@@ -20,7 +20,7 @@ import { deleteGameEngine } from '../game/engineRegistry';
 import { removePlayersDiffCacheForRoom } from '../game/orchestration/playersDiffCache';
 
 import type { TypedServer, TypedSocket } from './typedSocket';
-import { createSocketDataAccessor } from './socketDataAccessor';
+import { SocketSession } from './socketSession';
 import { getLogContext, getLogger, runWithContext } from '../logging/context';
 
 // Configurable grace period (ms) before removing a disconnected player.
@@ -140,6 +140,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     return { roomCode, rules };
   };
   const broadcaster = new RoomBroadcaster(io);
+  const session = new SocketSession(socket);
 
   function normalizeCb(cb: unknown): (res: BasicResponse) => void {
     return typeof cb === 'function'
@@ -150,32 +151,6 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   function system(roomCode: string, message: string) {
     broadcaster.systemMessage(roomCode, message);
   }
-
-  const createStringAccessor = (key: string) =>
-    createSocketDataAccessor(
-      socket,
-      key,
-      (value): value is string => typeof value === 'string',
-    );
-
-  const roomCodeAccessor = createStringAccessor('currentRoomCode');
-  const playerIdAccessor = createStringAccessor('currentPlayerId');
-
-  const getCurrentRoomCode = (): string | undefined => roomCodeAccessor.get();
-  const setCurrentRoomCode = (code: string): void => {
-    roomCodeAccessor.set(code);
-  };
-  const clearCurrentRoomCode = (): void => {
-    roomCodeAccessor.clear();
-  };
-
-  const getCurrentPlayerId = (): string | undefined => playerIdAccessor.get();
-  const setCurrentPlayerId = (playerId: string): void => {
-    playerIdAccessor.set(playerId);
-  };
-  const clearCurrentPlayerId = (): void => {
-    playerIdAccessor.clear();
-  };
 
   const disposeRoom = (code: string, roomInstance: GameRoom): void => {
     try {
@@ -251,7 +226,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return;
     }
     try {
-      const existing = getCurrentRoomCode();
+      const existing = session.getRoomCode();
       if (existing !== roomCode) {
         const prevRoom = existing;
         if (prevRoom && prevRoom !== roomCode) {
@@ -276,7 +251,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
             'Player moved to new room',
           );
         }
-        setCurrentRoomCode(roomCode);
+        session.setRoomCode(roomCode);
         void socket.join(socketRoomId(roomCode));
         log.info(
           {
@@ -340,7 +315,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
           'Player reconnected to room',
         );
       }
-      setCurrentPlayerId(playerId);
+      session.setPlayerId(playerId);
 
       // If a game is already in progress, immediately emit the current game
       // snapshot so late joiners become spectators. They are NOT added to the
@@ -442,11 +417,11 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       'Player left room',
     );
 
-    if (getCurrentPlayerId() === playerId) {
-      clearCurrentPlayerId();
+    if (session.getPlayerId() === playerId) {
+      session.clearPlayerId();
     }
-    if (getCurrentRoomCode() === roomCode) {
-      clearCurrentRoomCode();
+    if (session.getRoomCode() === roomCode) {
+      session.clearRoomCode();
     }
 
     cleanupRoomIfEmpty(roomCode);
@@ -773,7 +748,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       callback({ success: false, error: 'Room not found' });
       return;
     }
-    const playerId = getCurrentPlayerId();
+    const playerId = session.getPlayerId();
     if (!playerId) {
       callback({ success: false, error: 'Player not recognized' });
       return;
@@ -825,11 +800,11 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   socket.on(
     'disconnect',
     withContext(() => {
-      const roomCode = getCurrentRoomCode();
+      const roomCode = session.getRoomCode();
       if (!roomCode) return;
       const room = roomManager.get(roomCode);
       if (!room) return;
-      const playerId = getCurrentPlayerId();
+      const playerId = session.getPlayerId();
       if (!playerId) return; // player never completed join
       // Instead of removing immediately, mark disconnected to allow reconnection window
       if (room.hasPlayer(playerId)) {
@@ -876,11 +851,11 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
         }, DISCONNECT_GRACE_MS); // grace period
       }
 
-      if (getCurrentPlayerId() === playerId) {
-        clearCurrentPlayerId();
+      if (session.getPlayerId() === playerId) {
+        session.clearPlayerId();
       }
-      if (getCurrentRoomCode() === roomCode) {
-        clearCurrentRoomCode();
+      if (session.getRoomCode() === roomCode) {
+        session.clearRoomCode();
       }
     }),
   );
