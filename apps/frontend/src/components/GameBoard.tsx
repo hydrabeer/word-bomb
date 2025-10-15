@@ -143,9 +143,18 @@ export function GameBoard({
     y: number;
     highlighted: JSX.Element | string | null;
   }
+  // Shrink orbit on constrained desktops so bubbles stay in view.
+  const desktopRadius = useMemo(() => {
+    if (!arenaSize.width || !arenaSize.height) return 340;
+    const minDimension = Math.min(arenaSize.width, arenaSize.height);
+    const padded = Math.max(minDimension - 160, 0);
+    const computed = padded / 2;
+    return Math.min(340, Math.max(180, computed));
+  }, [arenaSize.height, arenaSize.width]);
+
   const radius = useMemo(
-    () => (isMobile ? mobileRadius || 150 : 340),
-    [isMobile, mobileRadius],
+    () => (isMobile ? mobileRadius || 150 : desktopRadius),
+    [desktopRadius, isMobile, mobileRadius],
   );
 
   const bombScale = useMemo(() => {
