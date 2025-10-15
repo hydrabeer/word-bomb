@@ -376,6 +376,52 @@ describeRoomHandlers('roomHandlers integration', () => {
     expect(updatedPlayer?.name).toBe('Bravo');
   });
 
+  it('keeps prior name and logs when room update rejects rename', async () => {
+    const ctx = useServer();
+    const code = createRoomCode();
+    ensureRoom(code);
+
+    const watcher = ctx.createClient();
+    const client = ctx.createClient();
+    await Promise.all([waitForConnect(watcher), waitForConnect(client)]);
+    const watcherId = requireId(watcher.id);
+    const playerId = requireId(client.id);
+
+    const initialPlayers = waitForPlayersCount(watcher, 1);
+    await joinRoom(watcher, {
+      roomCode: code,
+      playerId: watcherId,
+      name: 'Spectator',
+    });
+    await initialPlayers;
+
+    const firstJoinUpdate = waitForPlayersCount(watcher, 2);
+    await joinRoom(client, { roomCode: code, playerId, name: 'Alpha' });
+    await firstJoinUpdate;
+
+    const room = roomManager.get(code);
+    if (!room) throw new Error('Expected room to exist');
+    const updateSpy = vi.spyOn(room, 'updatePlayerName').mockReturnValue(false);
+
+    try {
+      const renameEvent = waitForPlayersCount(watcher, 2);
+      const response = await joinRoom(client, {
+        roomCode: code,
+        playerId,
+        name: 'Bravo',
+      });
+      await renameEvent;
+
+      expect(response.success).toBe(true);
+      expect(updateSpy).toHaveBeenCalledWith(playerId, 'Bravo');
+      expect(room.getPlayer(playerId)?.name).toBe('Alpha');
+    } finally {
+      updateSpy.mockRestore();
+      client.disconnect();
+      watcher.disconnect();
+    }
+  });
+
   it('announces only disconnect for already eliminated players', async () => {
     const ctx = useServer();
     const code = createRoomCode();

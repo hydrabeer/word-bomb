@@ -302,8 +302,8 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
         const nameChanged =
           existingPlayer && typeof name === 'string' && previousName !== name;
         if (nameChanged) {
-          try {
-            room.updatePlayerName(playerId, name);
+          const updated = room.updatePlayerName(playerId, name);
+          if (updated) {
             log.info(
               {
                 event: 'player_name_updated_on_reconnect',
@@ -314,14 +314,13 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
               },
               'Player updated display name on reconnect',
             );
-          } catch (err) {
+          } else {
             log.warn(
               {
                 event: 'player_name_update_failed',
                 gameId: roomCode,
                 playerId,
                 attemptedName: name,
-                err,
               },
               'Failed to update player name on reconnect, keeping previous name',
             );
