@@ -4,10 +4,9 @@ import type { GameRoom } from '@game/domain/rooms/GameRoom';
 import type { TypedServer } from '../../socket/typedSocket';
 import type { ServerToClientEvents } from '@word-bomb/types/socket';
 import type { DictionaryPort } from '../../dictionary';
-import { emitPlayers } from './emitPlayers';
 import { RoomBroadcaster } from '../../core/RoomBroadcaster';
 import { socketRoomId } from '../../utils/socketRoomId';
-import { deleteGameEngine } from '../engineRegistry';
+import { GameRoomEventsAdapter } from './GameRoomEventsAdapter';
 
 export function createGameEngine(
   io: TypedServer,
@@ -16,6 +15,7 @@ export function createGameEngine(
   dictionary: DictionaryPort,
 ): GameEngine {
   const broadcaster = new RoomBroadcaster(io);
+  const eventsPort = new GameRoomEventsAdapter(room, broadcaster);
 
   return new GameEngine({
     game,
@@ -31,24 +31,7 @@ export function createGameEngine(
         clearTimeout(token as NodeJS.Timeout);
       },
     },
-    eventsPort: {
-      turnStarted: () => {
-        broadcaster.turnStarted(game);
-      },
-      playerUpdated: (playerId, lives) => {
-        broadcaster.playerUpdated(room.code, playerId, lives);
-      },
-      wordAccepted: (playerId, word) => {
-        broadcaster.wordAccepted(room.code, playerId, word);
-      },
-      gameEnded: (winnerId) => {
-        broadcaster.gameEnded(room.code, winnerId);
-        room.endGame();
-        room.game = undefined;
-        emitPlayers(io, room);
-        deleteGameEngine(room.code);
-      },
-    },
+    eventsPort,
     dictionary,
   });
 }

@@ -5,7 +5,6 @@ import { Game } from '@game/domain/game/Game';
 import { GameRoom } from '@game/domain/rooms/GameRoom';
 import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
 import { RoomBroadcaster } from '../../core/RoomBroadcaster';
-import * as emitPlayersModule from './emitPlayers';
 import { socketRoomId } from '../../utils/socketRoomId';
 import type { DictionaryPort } from '../../dictionary';
 
@@ -72,7 +71,7 @@ describe('createGameEngine wiring', () => {
     // Spy on broadcasting and emitPlayers fanout
     const gameEndedSpy = vi.spyOn(RoomBroadcaster.prototype, 'gameEnded');
     const turnStartedSpy = vi.spyOn(RoomBroadcaster.prototype, 'turnStarted');
-    const emitPlayersSpy = vi.spyOn(emitPlayersModule, 'emitPlayers');
+    const playersSpy = vi.spyOn(RoomBroadcaster.prototype, 'players');
     const endGameSpy = vi.spyOn(room, 'endGame');
 
     const engine = createGameEngine(io, room, game, stubDictionary());
@@ -89,7 +88,8 @@ describe('createGameEngine wiring', () => {
     expect(gameEndedSpy).toHaveBeenCalledTimes(1);
     expect(endGameSpy).toHaveBeenCalled();
     expect(room.game).toBeUndefined();
-    expect(emitPlayersSpy).toHaveBeenCalledWith(io, room);
+    expect(playersSpy).toHaveBeenCalled();
+    expect(playersSpy.mock.calls[0]?.[0]).toBe(room);
 
     // Also ensure low-level emitter was used at least once for legacy event
     expect(emitSpy).toHaveBeenCalled();
@@ -97,7 +97,7 @@ describe('createGameEngine wiring', () => {
     // Cleanup spies
     gameEndedSpy.mockRestore();
     turnStartedSpy.mockRestore();
-    emitPlayersSpy.mockRestore();
+    playersSpy.mockRestore();
     endGameSpy.mockRestore();
   });
 
