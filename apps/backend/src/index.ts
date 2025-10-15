@@ -120,7 +120,7 @@ const io = new Server<
  */
 async function start(port: string | number) {
   const log = getLogger();
-  await loadDictionary();
+  loadDictionary();
   let dictionaryStats: ReturnType<typeof getDictionaryStats> | null = null;
   try {
     dictionaryStats = getDictionaryStats();
