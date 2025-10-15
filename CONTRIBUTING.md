@@ -15,6 +15,7 @@ pnpm --version
 ```
 
 Clone and install:
+
 ```bash
 git clone https://github.com/hydrabeer/word-bomb.git
 cd word-bomb
@@ -56,9 +57,11 @@ Set the frontend’s backend URL via `VITE_BACKEND_URL` if you change ports.
 ### Dictionary (required for gameplay in dev)
 
 Place a word list at:
+
 ```
 apps/backend/src/dictionary/words.txt
 ```
+
 Alternatively, you can configure the backend to fetch on boot via env (see **Environment**).
 
 ---
@@ -68,6 +71,7 @@ Alternatively, you can configure the backend to fetch on boot via env (see **Env
 Create the following files (optional).
 
 **Backend** – `apps/backend/.env`
+
 ```
 PORT=3001
 NODE_ENV=development
@@ -76,6 +80,7 @@ DICTIONARY_URL=
 ```
 
 **Frontend** – `apps/frontend/.env`
+
 ```
 VITE_BACKEND_URL=http://localhost:3001
 ```
@@ -87,6 +92,7 @@ Restart the Vite dev server after changing `VITE_*` variables.
 ## Scripts you’ll use daily
 
 From repo root:
+
 ```bash
 # All workspaces
 pnpm dev            # turbo run dev --parallel
@@ -99,6 +105,7 @@ pnpm build          # turbo run build
 ```
 
 Focus on a workspace with filters:
+
 ```bash
 pnpm -F backend test:coverage
 pnpm -F frontend test:watch
@@ -129,6 +136,7 @@ Optional but encouraged: add diagrams or short design notes under `docs/` when a
 - **Speed:** Prefer pure tests; avoid network or timers when possible (mock/stub).
 
 Common flows:
+
 ```bash
 # Single file in watch mode
 pnpm -F frontend test:watch src/components/GameBoard.test.tsx
@@ -170,6 +178,7 @@ Open PRs early; keep them focused. Before creating one:
 - [ ] Docs or ADR updated if you changed a protocol or design decision
 
 **Review tips**
+
 - Keep files small and single‑purpose. If it’s hard to review, it’s likely two PRs.
 - Avoid “drive‑by” refactors unless trivially mechanical.
 
@@ -205,4 +214,3 @@ Ensure tests and build outputs aren’t mis‑included; keep `dist/` out of `inc
 ---
 
 Thanks again for contributing! Keep PRs tight, tests solid, and UX intuitive.
-
