@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import https from 'https';
 
 import { getLogger } from '../logging/context';
 
@@ -42,10 +41,10 @@ const DEFAULT_WORDS: string[] = [
 ];
 
 /**
- * Loads the dictionary into memory from a local file or a remote source (if in production).
+ * Loads the dictionary into memory from a local file.
  * Also builds the fragment count index for fast lookup.
  */
-export async function loadDictionary(): Promise<void> {
+export function loadDictionary() {
   const isProd = process.env.NODE_ENV === 'production';
   const isTest = process.env.NODE_ENV === 'test';
   const localPath = path.resolve(__dirname, './words.txt');
@@ -68,23 +67,6 @@ export async function loadDictionary(): Promise<void> {
       `Using built-in fallback dictionary with ${dictionary.size.toString()} words (test fast path)`,
     );
     return;
-  }
-
-  if (isProd && process.env.DICTIONARY_URL) {
-    try {
-      await downloadDictionaryFile(process.env.DICTIONARY_URL, prodPath);
-    } catch (err) {
-      log.error(
-        {
-          event: 'dictionary_download_failed',
-          err,
-          url: process.env.DICTIONARY_URL,
-          destination: prodPath,
-        },
-        'Failed to download dictionary',
-      );
-      return;
-    }
   }
 
   try {
@@ -145,33 +127,6 @@ export function createDictionaryPort(): DictionaryPort {
     getRandomFragment: (minWordsPerPrompt: number) =>
       getRandomFragment(minWordsPerPrompt),
   };
-}
-
-/**
- * Downloads a remote dictionary file to the local filesystem.
- */
-function downloadDictionaryFile(url: string, dest: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(dest);
-    https
-      .get(url, (res) => {
-        if (res.statusCode !== 200) {
-          reject(
-            new Error(
-              `Request failed with status ${String(res.statusCode ?? 'unknown')}`,
-            ),
-          );
-        }
-
-        res.pipe(file);
-        file.on('finish', () => {
-          file.close(() => {
-            resolve();
-          });
-        });
-      })
-      .on('error', reject);
-  });
 }
 
 /**
