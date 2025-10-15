@@ -328,7 +328,7 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
           }
         }
         const reconnectSnapshot = room.getPlayer(playerId);
-        const reconnectName = reconnectSnapshot ? reconnectSnapshot.name : name;
+        const reconnectName = reconnectSnapshot ? reconnectSnapshot.name : previousName;
         const wasDisconnected = existingPlayer?.isConnected === false;
         room.setPlayerConnected(playerId, true);
         emitPlayers(io, room);
