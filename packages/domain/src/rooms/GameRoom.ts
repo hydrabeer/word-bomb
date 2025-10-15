@@ -139,12 +139,13 @@ export class GameRoom {
   /**
    * Updates the stored name for a player already in the room.
    */
-  updatePlayerName(playerId: string, name: string): void {
+  updatePlayerName(playerId: string, name: string): boolean {
     const player = this.players.get(playerId);
-    if (!player) return;
-    if (player.name === name) return;
+    if (!player) return false;
+    if (player.name === name) return true;
     const parsedName = PlayerSchema.shape.name.parse(name);
     player.name = parsedName;
+    return true;
   }
 
   /**
