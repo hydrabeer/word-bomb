@@ -311,6 +311,71 @@ describeRoomHandlers('roomHandlers integration', () => {
     expect(hasReconnect).toBe(true);
   });
 
+  it('updates player name when reconnecting with a new display name', async () => {
+    const ctx = useServer();
+    const code = createRoomCode();
+    ensureRoom(code);
+    const observer = ctx.createClient();
+    const first = ctx.createClient();
+    await Promise.all([waitForConnect(observer), waitForConnect(first)]);
+    const observerId = requireId(observer.id);
+    const playerId = requireId(first.id);
+
+    const observerReady = waitForPlayersCount(observer, 1);
+    await joinRoom(observer, {
+      roomCode: code,
+      playerId: observerId,
+      name: 'Spectator',
+    });
+    await observerReady;
+
+    const addedDiff = waitForDiff(observer, (d: PlayersDiffPayload) => {
+      return d.added.some((p) => p.id === playerId && p.name === 'Alpha');
+    });
+    await joinRoom(first, { roomCode: code, playerId, name: 'Alpha' });
+    await addedDiff;
+
+    const disconnectDiff = waitForDiff(observer, (d: PlayersDiffPayload) => {
+      return d.updated.some(
+        (u) => u.id === playerId && u.changes.isConnected === false,
+      );
+    });
+    first.disconnect();
+    await disconnectDiff;
+
+    const renameDiff = waitForDiff(observer, (d: PlayersDiffPayload) => {
+      return d.updated.some(
+        (u) => u.id === playerId && u.changes.name === 'Bravo',
+      );
+    });
+    const playersUpdatedPromise = new Promise<PlayersUpdatedPayload>(
+      (resolve) => {
+        observer.once('playersUpdated', (payload) => {
+          resolve(payload);
+        });
+      },
+    );
+
+    const reconnecting = ctx.createClient();
+    await waitForConnect(reconnecting);
+    await joinRoom(reconnecting, {
+      roomCode: code,
+      playerId,
+      name: 'Bravo',
+    });
+
+    const diffPayload = await renameDiff;
+    expect(
+      diffPayload.updated.some(
+        (u) => u.id === playerId && u.changes.name === 'Bravo',
+      ),
+    ).toBe(true);
+
+    const playersPayload = await playersUpdatedPromise;
+    const updatedPlayer = playersPayload.players.find((p) => p.id === playerId);
+    expect(updatedPlayer?.name).toBe('Bravo');
+  });
+
   it('announces only disconnect for already eliminated players', async () => {
     const ctx = useServer();
     const code = createRoomCode();

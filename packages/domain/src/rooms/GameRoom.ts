@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Player } from '../players/Player';
+import { Player, PlayerSchema } from '../players/Player';
 import { createPlayer } from '../players/createPlayer';
 import { GameRoomRules, GameRulesSchema } from './GameRoomRules';
 import { Game } from '../game/Game';
@@ -134,6 +134,18 @@ export class GameRoom {
     if (player) {
       player.isConnected = isConnected;
     }
+  }
+
+  /**
+   * Updates the stored name for a player already in the room.
+   */
+  updatePlayerName(playerId: string, name: string): boolean {
+    const player = this.players.get(playerId);
+    if (!player) return false;
+    if (player.name === name) return true;
+    const parsedName = PlayerSchema.shape.name.parse(name);
+    player.name = parsedName;
+    return true;
   }
 
   /**

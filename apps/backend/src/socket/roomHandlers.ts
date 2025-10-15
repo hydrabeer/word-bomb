@@ -298,7 +298,38 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
         );
       } else {
         const existingPlayer = room.getPlayer(playerId);
-        const reconnectName = existingPlayer ? existingPlayer.name : name;
+        const previousName = existingPlayer?.name;
+        const nameChanged =
+          existingPlayer && typeof name === 'string' && previousName !== name;
+        if (nameChanged) {
+          try {
+            room.updatePlayerName(playerId, name);
+            log.info(
+              {
+                event: 'player_name_updated_on_reconnect',
+                gameId: roomCode,
+                playerId,
+                previousName,
+                nextName: name,
+              },
+              'Player updated display name on reconnect',
+            );
+          } catch (err) {
+            log.warn(
+              {
+                event: 'player_name_update_failed',
+                gameId: roomCode,
+                playerId,
+                attemptedName: name,
+                err,
+              },
+              'Failed to update player name on reconnect, keeping previous name',
+            );
+          }
+        }
+        const reconnectSnapshot = room.getPlayer(playerId);
+        const reconnectName =
+          reconnectSnapshot?.name ?? previousName ?? 'Someone';
         const wasDisconnected = existingPlayer?.isConnected === false;
         room.setPlayerConnected(playerId, true);
         emitPlayers(io, room);

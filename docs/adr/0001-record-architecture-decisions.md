@@ -3,13 +3,14 @@
 **Date:** 2025‑09‑30  
 **Status:** Accepted  
 **Deciders:** Maintainers  
-**Technical Story:** Establishing a durable design log  
+**Technical Story:** Establishing a durable design log
 
 ---
 
 ## Context
 
 As Word Bomb grows (frontend, backend, shared domain packages), we will make repeated design choices about architecture, technology, and protocols. These decisions:
+
 - Are often subtle and affect multiple workspaces.
 - Might be questioned in the future (“Why Socket.IO vs raw WebSocket?”).
 - Need context preserved beyond commit messages and PRs.
@@ -61,4 +62,3 @@ Without a structured record, rationale is easily lost.
 
 - ADR‑0002 already established: Socket Event Protocol & Versioning.
 - Next likely ADR: dictionary ingestion + fragment indexing strategy.
-
