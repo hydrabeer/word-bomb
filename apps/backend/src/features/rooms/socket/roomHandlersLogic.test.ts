@@ -19,20 +19,20 @@ vi.mock('../app/roomManagerSingleton', () => ({
   },
 }));
 
-vi.mock('../game/orchestration/emitPlayers', () => ({
+vi.mock('../../gameplay/app/emitPlayers', () => ({
   emitPlayers: vi.fn(),
 }));
 
-vi.mock('../game/orchestration/startGameForRoom', () => ({
+vi.mock('../../gameplay/app/startGameForRoom', () => ({
   startGameForRoom: vi.fn(),
 }));
 
-vi.mock('../game/engineRegistry', () => ({
+vi.mock('../../gameplay/engine/engineRegistry', () => ({
   getGameEngine: vi.fn(),
   deleteGameEngine: vi.fn(),
 }));
 
-vi.mock('../game/orchestration/playersDiffCache', () => ({
+vi.mock('../../gameplay/app/playersDiffCache', () => ({
   removePlayersDiffCacheForRoom: vi.fn(),
 }));
 
@@ -43,7 +43,7 @@ vi.mock('@game/domain/chat/ChatMessage', () => ({
 const systemMessageMock = vi.fn();
 const broadcastRulesMock = vi.fn();
 
-vi.mock('../core/RoomBroadcaster', () => ({
+vi.mock('@backend/platform/socket/RoomBroadcaster', () => ({
   RoomBroadcaster: vi.fn().mockImplementation(() => ({
     systemMessage: systemMessageMock,
     rules: broadcastRulesMock,
