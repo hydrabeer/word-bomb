@@ -97,7 +97,9 @@ function createLoggerMock(overrides: Partial<LoggerMock> = {}): LoggerMock {
     debug: overrides.debug ?? vi.fn(),
     child: overrides.child ?? vi.fn(() => createNestedLogger()),
   };
-  vi.doMock('./logging', () => ({ createLogger: vi.fn(() => logger) }));
+  vi.doMock('./platform/logging', () => ({
+    createLogger: vi.fn(() => logger),
+  }));
   return logger;
 }
 
@@ -118,7 +120,7 @@ function createLoggingContextMock(
     ? vi.fn(overrides.runWithContext)
     : vi.fn((_ctx: Record<string, unknown>, cb: () => unknown) => cb());
 
-  vi.doMock('./logging/context', () => ({
+  vi.doMock('./platform/logging/context', () => ({
     initializeLoggerContext: vi.fn(),
     getLogger,
     getLogContext,
@@ -138,7 +140,7 @@ function createDictionaryMock(options: DictionaryMockOptions = {}) {
     ? vi.fn(options.getDictionaryStats)
     : vi.fn(() => ({ wordCount: 4, fragmentCount: 2 }));
 
-  vi.doMock('./dictionary', () => ({
+  vi.doMock('./platform/dictionary', () => ({
     loadDictionary,
     getDictionaryStats,
   }));
@@ -150,7 +152,9 @@ function createEngineRegistryMock(
   options: { shutdownEngines?: ReturnType<typeof vi.fn> } = {},
 ) {
   const shutdownEngines = options.shutdownEngines ?? vi.fn();
-  vi.doMock('./game/engineRegistry', () => ({ shutdownEngines }));
+  vi.doMock('./features/gameplay/engine/engineRegistry', () => ({
+    shutdownEngines,
+  }));
   return { shutdownEngines };
 }
 
@@ -189,7 +193,9 @@ function createSocketMock(options: SocketMockOptions = {}) {
   }
 
   vi.doMock('socket.io', () => ({ Server: FakeServer }));
-  vi.doMock('./socket/roomHandlers', () => ({ registerRoomHandlers }));
+  vi.doMock('./features/rooms/socket/roomHandlers', () => ({
+    registerRoomHandlers,
+  }));
 
   return { adapterHandlers, connectionHandlers, registerRoomHandlers };
 }
