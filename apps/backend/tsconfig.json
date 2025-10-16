@@ -6,7 +6,16 @@
     "types": ["vitest/globals"],
     "rootDir": "src",
     "outDir": "dist",
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@backend/*": ["src/*"],
+      "@platform/*": ["src/platform/*"],
+      "@features/*": ["src/features/*"],
+      "@rooms/*": ["src/features/rooms/*"],
+      "@gameplay/*": ["src/features/gameplay/*"],
+      "@shared/*": ["src/shared/*"]
+    }
   },
   "include": ["src"],
   "exclude": [

@@ -1,7 +1,7 @@
-import { GameRoomManager } from '../src/room/GameRoomManager';
+import { GameRoomManager } from '../src/features/rooms/app/GameRoomManager';
 import { Game } from '@game/domain/game/Game';
 import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
-import { GameEngine } from '../src/game/GameEngine';
+import { GameEngine } from '../src/features/gameplay/engine/GameEngine';
 import type { ServerToClientEvents } from '@word-bomb/types/socket';
 import type { Player } from '@game/domain/players/Player';
 
@@ -64,12 +64,18 @@ export function makeEngine(game: Game): {
   const raw: EmittedEvent[] = [];
   const engine = new GameEngine({
     game,
-    emit: (event, ...args) => {
+    emit: (<K extends keyof ServerToClientEvents>(
+      event: K,
+      ...args: Parameters<ServerToClientEvents[K]>
+    ) => {
       raw.push({ event, payload: args[0] as never });
-    },
+    }) as (
+      event: keyof ServerToClientEvents,
+      ...args: Parameters<ServerToClientEvents[keyof ServerToClientEvents]>
+    ) => void,
     scheduler: {
-      schedule: (delayMs, cb) => setTimeout(cb, delayMs),
-      cancel: (token) => {
+      schedule: (delayMs: number, cb: () => void) => setTimeout(cb, delayMs),
+      cancel: (token: ReturnType<typeof setTimeout>) => {
         clearTimeout(token as NodeJS.Timeout);
       },
     },
@@ -86,6 +92,10 @@ export function makeEngine(game: Game): {
       gameEnded: () => {
         /* noop */
       },
+    },
+    dictionary: {
+      isValid: () => true,
+      getRandomFragment: () => 'aa',
     },
   });
   return { engine, events: raw };

@@ -7,7 +7,7 @@ import type {
   PlayersDiffPayload,
   ActionAckPayload,
 } from '@word-bomb/types/socket';
-import { roomManager } from '../src/room/roomManagerSingleton';
+import { roomManager } from '../src/features/rooms/app/roomManagerSingleton';
 
 export type TestSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 

@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Hoist mock for roomManager before importing the router handlers
-vi.mock('../src/room/roomManagerSingleton', () => ({
+vi.mock('../src/features/rooms/app/roomManagerSingleton', () => ({
   roomManager: {
     create: vi.fn(),
     has: vi.fn(),
@@ -20,26 +20,26 @@ const { roomCodeGeneratorMock, createRoomCodeGeneratorMock } = vi.hoisted(
   },
 );
 
-vi.mock('../src/routes/roomCodeGenerator', () => ({
+vi.mock('../src/features/rooms/http/roomCodeGenerator', () => ({
   createRoomCodeGenerator: createRoomCodeGeneratorMock,
 }));
 
-vi.mock('../src/dictionary', () => ({
+vi.mock('../src/platform/dictionary', () => ({
   getDictionaryStats: vi.fn(() => ({ wordCount: 1000, fragmentCount: 100 })),
   isUsingFallbackDictionary: vi.fn(() => false),
 }));
 
-import { roomManager } from '../src/room/roomManagerSingleton';
+import { roomManager } from '../src/features/rooms/app/roomManagerSingleton';
 import {
   createRoomHandler,
   getRoomHandler,
   resetRoomCodeGenerator,
   setRoomCodeGenerator,
-} from '../src/routes/rooms';
+} from '../src/features/rooms/http/rooms';
 import {
   getDictionaryStats,
   isUsingFallbackDictionary,
-} from '../src/dictionary';
+} from '../src/platform/dictionary';
 
 interface MockResponse<TPayload> {
   statusCode?: number;

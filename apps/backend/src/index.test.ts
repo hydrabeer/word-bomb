@@ -839,23 +839,25 @@ describe('http handlers', () => {
   it('invokes the underlying express handler when nodeHandler is called', async () => {
     setupTestEnvironment();
     const expressHandler = vi.fn();
-    const expressMock = vi.fn(() => {
-      const app = ((req: unknown, res: unknown, next: () => void) => {
-        expressHandler(req, res, next);
-        if (typeof next === 'function') {
-          next();
-        }
-      }) as unknown as express.Application;
-      (app as unknown as { use: () => void }).use = vi.fn();
-      (app as unknown as { get: () => void }).get = vi.fn();
-      return app;
-    });
+    const expressMock = Object.assign(
+      vi.fn(() => {
+        const app = ((req: unknown, res: unknown, next: () => void) => {
+          expressHandler(req, res, next);
+          if (typeof next === 'function') {
+            next();
+          }
+        }) as unknown as express.Application;
+        (app as unknown as { use: () => void }).use = vi.fn();
+        (app as unknown as { get: () => void }).get = vi.fn();
+        return app;
+      }),
+      { json: vi.fn(() => vi.fn()) },
+    );
     const routerMock = vi.fn(() => ({
       use: vi.fn(),
       get: vi.fn(),
       post: vi.fn(),
     }));
-    expressMock.json = vi.fn(() => vi.fn());
     vi.doMock('express', () => ({
       __esModule: true,
       default: Object.assign(expressMock, { Router: routerMock }),

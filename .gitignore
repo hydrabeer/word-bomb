@@ -38,7 +38,7 @@ Thumbs.db
 *.tsbuildinfo
 
 # Don't commit dictionary
-apps/backend/src/dictionary/*.txt
+apps/backend/src/platform/dictionary/*.txt
 
 audit/
 

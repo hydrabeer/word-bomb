@@ -6,12 +6,12 @@ import type {
   ServerToClientEvents,
 } from '@word-bomb/types/socket';
 import { io as Client, Socket } from 'socket.io-client';
-import { registerRoomHandlers } from '../src/socket/roomHandlers';
+import { registerRoomHandlers } from '../src/features/rooms/socket/roomHandlers';
 import {
   createTypedServer,
   type TypedServer,
   type TypedSocket,
-} from '../src/socket/typedSocket';
+} from '../src/platform/socket/typedSocket';
 
 export interface TestContext {
   io: TypedServer;

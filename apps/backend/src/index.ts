@@ -18,21 +18,21 @@ import {
   type RequestListener,
 } from 'http';
 import { randomUUID } from 'node:crypto';
-import { loadDictionary, getDictionaryStats } from './dictionary';
-import { shutdownEngines } from './game/engineRegistry';
-import { createLogger } from './logging';
+import { loadDictionary, getDictionaryStats } from './platform/dictionary';
+import { shutdownEngines } from './features/gameplay/engine/engineRegistry';
+import { createLogger } from './platform/logging';
 import {
   getLogContext,
   getLogger,
   initializeLoggerContext,
   runWithContext,
   withLogContext,
-} from './logging/context';
-import roomsRouter from './routes/rooms';
-import { registerRoomHandlers } from './socket/roomHandlers';
-import type { TypedServer } from './socket/typedSocket';
-import { createTypedServer } from './socket/typedSocket';
-import { SOCKET_ROOM_PREFIX } from './utils/socketRoomId';
+} from './platform/logging/context';
+import roomsRouter from './features/rooms/http/rooms';
+import { registerRoomHandlers } from './features/rooms/socket/roomHandlers';
+import type { TypedServer } from './platform/socket/typedSocket';
+import { createTypedServer } from './platform/socket/typedSocket';
+import { SOCKET_ROOM_PREFIX } from './shared/utils/socketRoomId';
 
 const SHUTDOWN_FORCE_EXIT_TIMEOUT_MS = 5000;
 const DEFAULT_PORT = 3001;
