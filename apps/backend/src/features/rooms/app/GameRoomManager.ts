@@ -1,4 +1,4 @@
-import { GameRoom } from '@game/domain/rooms/GameRoom';
+import { GameRoom, type GameRoomVisibility } from '@game/domain/rooms/GameRoom';
 import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
 import { getLogger } from '@platform/logging/context';
 
@@ -58,12 +58,17 @@ export class GameRoomManager {
    * @returns The newly created {@link GameRoom} instance.
    * @throws {Error} When a room for the given code already exists.
    */
-  create(code: string, rules: GameRoomRules, name?: string): GameRoom {
+  create(
+    code: string,
+    rules: GameRoomRules,
+    name?: string,
+    visibility: GameRoomVisibility = 'private',
+  ): GameRoom {
     if (this.rooms.has(code)) {
       throw new Error(`Room ${code} already exists`);
     }
 
-    const room = new GameRoom({ code }, rules);
+    const room = new GameRoom({ code }, rules, { visibility });
     if (typeof name === 'string') {
       room.name = name;
     }
@@ -84,6 +89,18 @@ export class GameRoomManager {
   getSeatedPlayers(code: string) {
     const room = this.rooms.get(code);
     return room ? room.getAllPlayers().filter((p) => p.isSeated) : [];
+  }
+
+  /**
+   * Returns rooms filtered by their visibility classification.
+   *
+   * @param visibility Visibility state to filter rooms by.
+   * @returns Array of rooms matching the requested visibility.
+   */
+  listRoomsByVisibility(visibility: GameRoomVisibility): GameRoom[] {
+    return Array.from(this.rooms.values()).filter(
+      (room) => room.visibility === visibility,
+    );
   }
 
   /**

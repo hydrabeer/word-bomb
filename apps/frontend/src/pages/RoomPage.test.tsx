@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import RoomPage from './RoomPage';
 import type { PlayerStatsSnapshot } from '../hooks/usePlayerStats';
+import type { RoomVisibility } from '../api/rooms';
 
 // --- Mocks ---
 vi.mock('../hooks/useGameRoom', () => ({ useGameRoom: () => undefined }));
@@ -41,11 +42,17 @@ let chatPropsLog: {
   autoFocus?: boolean;
 }[] = [];
 
-const renderWithRoute = (roomCode = 'ROOM') =>
+const renderWithRoute = (
+  roomCode = 'ROOM',
+  visibility: RoomVisibility = 'private',
+) =>
   render(
     <MemoryRouter initialEntries={[`/${roomCode}`]}>
       <Routes>
-        <Route path="/:roomCode" element={<RoomPage roomName="Test Room" />} />
+        <Route
+          path="/:roomCode"
+          element={<RoomPage roomName="Test Room" visibility={visibility} />}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -119,6 +126,8 @@ vi.mock('react-icons/fa', () => ({
   FaChevronDown: () => null,
   FaLink: () => null,
   FaHome: () => null,
+  FaGlobe: () => null,
+  FaLock: () => null,
 }));
 
 // useGameState mock (flip via shared var + rerender)
@@ -200,7 +209,10 @@ describe('RoomPage (fast)', () => {
   const element = (
     <MemoryRouter initialEntries={['/ROOM']}>
       <Routes>
-        <Route path="/:roomCode" element={<RoomPage roomName="Test Room" />} />
+        <Route
+          path="/:roomCode"
+          element={<RoomPage roomName="Test Room" visibility="private" />}
+        />
       </Routes>
     </MemoryRouter>
   );
@@ -212,7 +224,7 @@ describe('RoomPage (fast)', () => {
           <Route path="/" element={<div>Home screen</div>} />
           <Route
             path="/:roomCode"
-            element={<RoomPage roomName="Test Room" />}
+            element={<RoomPage roomName="Test Room" visibility="private" />}
           />
         </Routes>
       </MemoryRouter>,
@@ -337,7 +349,7 @@ describe('RoomPage (fast)', () => {
         <Routes>
           <Route
             path="/:roomCode"
-            element={<RoomPage roomName="Test Room" />}
+            element={<RoomPage roomName="Test Room" visibility="public" />}
           />
         </Routes>
       </MemoryRouter>
@@ -364,6 +376,24 @@ describe('RoomPage (fast)', () => {
     }
   });
 
+  it('annotates invite buttons with public visibility badge', () => {
+    renderWithRoute('ROOM', 'public');
+    const buttons = screen.getAllByLabelText(/Public room/i);
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const button of buttons) {
+      expect(button).toHaveTextContent(/Public/i);
+    }
+  });
+
+  it('annotates invite buttons with private visibility badge', () => {
+    renderWithRoute('ROOM', 'private');
+    const buttons = screen.getAllByLabelText(/Private room/i);
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const button of buttons) {
+      expect(button).toHaveTextContent(/Private/i);
+    }
+  });
+
   it('renders players list with leader + seated markers', () => {
     mockPlayers = [
       { id: 'p1', name: 'Alice', isSeated: true },
@@ -387,7 +417,7 @@ describe('RoomPage (fast)', () => {
         <Routes>
           <Route
             path="/:roomCode"
-            element={<RoomPage roomName="Test Room" />}
+            element={<RoomPage roomName="Test Room" visibility="private" />}
           />
         </Routes>
       </MemoryRouter>

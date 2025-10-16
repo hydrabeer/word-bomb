@@ -22,7 +22,7 @@ describe('useRoomActions', () => {
       code = await result.current.createNewRoom();
     });
     expect(code).toBe('NEW123');
-    expect(api.createRoom).toHaveBeenCalledTimes(1);
+    expect(api.createRoom).toHaveBeenCalledWith(undefined, 'private');
 
     let res: { exists: boolean } | { exists: false } = { exists: false };
     await act(async () => {
@@ -35,5 +35,15 @@ describe('useRoomActions', () => {
       res = await result.current.validateRoom('NOPE');
     });
     expect(res.exists).toBe(false);
+  });
+
+  it('createNewRoom forwards visibility overrides', async () => {
+    const { result } = renderHook(() => useRoomActions());
+
+    await act(async () => {
+      await result.current.createNewRoom('Lobby', 'public');
+    });
+
+    expect(api.createRoom).toHaveBeenCalledWith('Lobby', 'public');
   });
 });

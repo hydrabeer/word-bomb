@@ -1,11 +1,22 @@
-import { useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import {
+  useEffect,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaGlobe, FaLock } from 'react-icons/fa';
 import {
   getOrCreatePlayerProfile,
   updatePlayerName,
 } from '../utils/playerProfile';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useRoomActions } from '../hooks/useRoomActions';
+import {
+  listPublicRooms,
+  type RoomSummary,
+  type RoomVisibility,
+} from '../api/rooms';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -14,10 +25,37 @@ export default function HomePage() {
   const [editing, setEditing] = useState(false);
   const [roomName, setRoomName] = useState(`${initialName}'s room`);
   const [joinCode, setJoinCode] = useState('');
+  const [visibility, setVisibility] = useState<RoomVisibility>('private');
+  const [publicRooms, setPublicRooms] = useState<RoomSummary[]>([]);
+  const [isLoadingPublicRooms, setIsLoadingPublicRooms] = useState(true);
+  const [publicRoomsError, setPublicRoomsError] = useState(false);
 
   useDocumentTitle('Word Bomb');
 
   const { createNewRoom, validateRoom } = useRoomActions();
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingPublicRooms(true);
+    listPublicRooms()
+      .then((rooms) => {
+        if (cancelled) return;
+        setPublicRooms(rooms.filter((room) => room.visibility === 'public'));
+        setPublicRoomsError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPublicRooms([]);
+        setPublicRoomsError(true);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsLoadingPublicRooms(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSaveName = () => {
     const trimmed = name.trim();
@@ -32,7 +70,7 @@ export default function HomePage() {
 
   const handleCreateRoom = async () => {
     if (!roomName.trim()) return;
-    const code = await createNewRoom(roomName.trim());
+    const code = await createNewRoom(roomName.trim(), visibility);
     void navigate(`/${code}`);
   };
 
@@ -163,6 +201,86 @@ export default function HomePage() {
                     aria-describedby="roomname-constraints"
                   />
                 </div>
+                <fieldset className="space-y-2">
+                  <legend
+                    id="room-visibility-label"
+                    className="text-sm font-medium text-indigo-200"
+                  >
+                    Room visibility
+                  </legend>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label
+                      className={`block rounded-lg border px-4 py-3 transition focus-within:ring-2 focus-within:ring-emerald-400 ${
+                        visibility === 'public'
+                          ? 'border-emerald-400/60 bg-emerald-500/10 shadow-inner'
+                          : 'border-white/10 bg-white/5 hover:border-white/20'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="roomVisibility"
+                        value="public"
+                        checked={visibility === 'public'}
+                        onChange={() => {
+                          setVisibility('public');
+                        }}
+                        className="sr-only"
+                        aria-label="Public room"
+                      />
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20">
+                            <FaGlobe
+                              className="h-4 w-4 text-emerald-300"
+                              aria-hidden
+                            />
+                          </span>
+                          <span className="text-sm font-semibold text-white">
+                            Public
+                          </span>
+                        </div>
+                        <p className="text-xs leading-snug text-indigo-200">
+                          Listed on the home screen for anyone to join.
+                        </p>
+                      </div>
+                    </label>
+                    <label
+                      className={`block rounded-lg border px-4 py-3 transition focus-within:ring-2 focus-within:ring-emerald-400 ${
+                        visibility === 'private'
+                          ? 'border-emerald-400/60 bg-emerald-500/10 shadow-inner'
+                          : 'border-white/10 bg-white/5 hover:border-white/20'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="roomVisibility"
+                        value="private"
+                        checked={visibility === 'private'}
+                        onChange={() => {
+                          setVisibility('private');
+                        }}
+                        className="sr-only"
+                        aria-label="Private room"
+                      />
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20">
+                            <FaLock
+                              className="h-4 w-4 text-purple-200"
+                              aria-hidden
+                            />
+                          </span>
+                          <span className="text-sm font-semibold text-white">
+                            Private
+                          </span>
+                        </div>
+                        <p className="text-xs leading-snug text-indigo-200">
+                          Share the invite link or code to play with friends.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </fieldset>
                 <button
                   type="submit"
                   className="w-full rounded-md bg-emerald-500 px-4 py-3 text-base font-medium text-black shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-400 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
@@ -240,6 +358,90 @@ export default function HomePage() {
           </div>
         </div>
       </main>
+
+      <section
+        className="mt-12 w-full max-w-5xl"
+        aria-labelledby="public-rooms-heading"
+      >
+        <div className="rounded-3xl border border-white/10 bg-indigo-900/30 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-sm">
+          <header className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2
+                id="public-rooms-heading"
+                className="text-2xl font-semibold text-white"
+              >
+                Public Rooms
+              </h2>
+              <p className="text-sm text-indigo-200">
+                Jump into a lobby ready for new challengers.
+              </p>
+            </div>
+          </header>
+
+          {publicRoomsError ? (
+            <p
+              role="alert"
+              className="rounded-lg border border-red-400/50 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+            >
+              Unable to load public rooms right now. Please try again shortly.
+            </p>
+          ) : isLoadingPublicRooms ? (
+            <p
+              role="status"
+              className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-indigo-200"
+            >
+              Loading public rooms...
+            </p>
+          ) : publicRooms.length === 0 ? (
+            <p className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-indigo-200">
+              No public rooms yet. Create one and invite friends to join the
+              fun!
+            </p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {publicRooms.map((room) => {
+                const trimmedName = room.name.trim();
+                const displayName =
+                  trimmedName.length > 0 ? trimmedName : `Room ${room.code}`;
+                const playerLabel = `${room.playerCount} ${
+                  room.playerCount === 1 ? 'player' : 'players'
+                }`;
+                return (
+                  <button
+                    type="button"
+                    key={room.code}
+                    onClick={() => {
+                      void navigate(`/${room.code}`);
+                    }}
+                    className="group flex w-full flex-col justify-between rounded-xl border border-white/10 bg-white/5 p-5 text-left transition hover:border-emerald-400/60 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+                    aria-label={`Join ${displayName}`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">
+                          {displayName}
+                        </h3>
+                        <p className="text-xs uppercase tracking-widest text-indigo-200">
+                          Code:{' '}
+                          <span className="font-mono text-indigo-100">
+                            {room.code}
+                          </span>
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-200">
+                        {playerLabel}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm text-indigo-200">
+                      Click to join instantly.
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="mt-12 text-center text-sm leading-relaxed text-indigo-300">

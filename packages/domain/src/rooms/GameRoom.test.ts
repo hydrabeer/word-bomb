@@ -38,6 +38,14 @@ describe('GameRoom', () => {
   it('creates a new room with code and rules', () => {
     expect(room.code).toBe('ABCD');
     expect(room.getAllPlayers()).toHaveLength(0);
+    expect(room.visibility).toBe('private');
+  });
+
+  it('allows visibility overrides during construction', () => {
+    const publicRoom = new GameRoom({ code: 'PUBA' }, mockRules, {
+      visibility: 'public',
+    });
+    expect(publicRoom.visibility).toBe('public');
   });
 
   it('adds a player and assigns leader if first', () => {

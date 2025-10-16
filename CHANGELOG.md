@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Allow creating public rooms and browsing them from the home screen with visibility indicators on invite links. (Fixes [#59](https://github.com/hydrabeer/word-bomb/issues/59))
 - Show chat stats for every player in the room so the desktop sidebar highlights all competitors instead of only the local user.
 
 ### Fixed

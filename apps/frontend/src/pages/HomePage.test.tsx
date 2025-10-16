@@ -21,6 +21,9 @@ const mockCreateNewRoom = vi.fn().mockResolvedValue('ROOM');
 const mockValidateRoom = vi
   .fn()
   .mockResolvedValue({ exists: true, name: 'Room' });
+const { mockListPublicRooms } = vi.hoisted(() => ({
+  mockListPublicRooms: vi.fn().mockResolvedValue([]),
+}));
 
 vi.mock('../utils/playerProfile', () => ({
   getOrCreatePlayerProfile: () => ({ id: 'u1', name: 'Alice' }),
@@ -34,6 +37,10 @@ vi.mock('../hooks/useRoomActions', () => ({
   }),
 }));
 
+vi.mock('../api/rooms', () => ({
+  listPublicRooms: mockListPublicRooms,
+}));
+
 describe('HomePage', () => {
   beforeEach(() => {
     document.title = 'Initial Title';
@@ -42,24 +49,30 @@ describe('HomePage', () => {
     mockCreateNewRoom.mockResolvedValue('ROOM');
     mockValidateRoom.mockReset();
     mockValidateRoom.mockResolvedValue({ exists: true, name: 'Room' });
+    mockListPublicRooms.mockReset();
+    mockListPublicRooms.mockResolvedValue([]);
   });
 
-  const setup = () =>
+  const setup = async () => {
     render(
       <MemoryRouter>
         <HomePage />
       </MemoryRouter>,
     );
+    await waitFor(() => {
+      expect(mockListPublicRooms).toHaveBeenCalled();
+    });
+  };
 
   it('sets the base document title on mount', async () => {
-    setup();
+    await setup();
     await waitFor(() => {
       expect(document.title).toBe('Word Bomb');
     });
   });
 
-  it('edits and saves name', () => {
-    setup();
+  it('edits and saves name', async () => {
+    await setup();
     fireEvent.click(screen.getByLabelText(/Edit your name/i));
     const input = screen.getByLabelText(/Your display name/i);
     fireEvent.change(input, { target: { value: 'Bob' } });
@@ -68,24 +81,36 @@ describe('HomePage', () => {
   });
 
   it('creates room and navigates', async () => {
-    setup();
+    await setup();
     const createBtn = screen.getByLabelText(/Create a new game room/i);
     fireEvent.click(createBtn);
     await waitFor(() => {
-      expect(mockCreateNewRoom).toHaveBeenCalledWith("Alice's room");
+      expect(mockCreateNewRoom).toHaveBeenCalledWith("Alice's room", 'private');
       expect(mockNavigate).toHaveBeenCalledWith('/ROOM');
     });
   });
 
-  it('sanitizes join code input and enables join', () => {
-    setup();
+  it('allows setting room visibility before creating a room', async () => {
+    await setup();
+    const publicOption = screen.getByRole('radio', { name: /^Public room$/i });
+    fireEvent.click(publicOption);
+    const createBtn = screen.getByLabelText(/Create a new game room/i);
+    fireEvent.click(createBtn);
+
+    await waitFor(() => {
+      expect(mockCreateNewRoom).toHaveBeenCalledWith("Alice's room", 'public');
+    });
+  });
+
+  it('sanitizes join code input and enables join', async () => {
+    await setup();
     const joinInput = screen.getByLabelText(/Room code/i);
     fireEvent.change(joinInput, { target: { value: 'a1b!' } });
     expect((joinInput as HTMLInputElement).value).toBe('AB');
   });
 
   it('navigates to the room when validation succeeds', async () => {
-    setup();
+    await setup();
     const joinInput = screen.getByLabelText(/Room code/i);
     fireEvent.change(joinInput, { target: { value: 'abcd' } });
     const joinButton = screen.getByLabelText(/Join existing room/i);
@@ -102,7 +127,7 @@ describe('HomePage', () => {
       .mockImplementation(() => undefined);
     mockValidateRoom.mockResolvedValueOnce({ exists: false });
 
-    setup();
+    await setup();
     const joinInput = screen.getByLabelText(/Room code/i);
     fireEvent.change(joinInput, { target: { value: 'abcd' } });
     const joinButton = screen.getByLabelText(/Join existing room/i);
@@ -114,5 +139,37 @@ describe('HomePage', () => {
     });
 
     alertSpy.mockRestore();
+  });
+
+  it('displays encouraging message when there are no public rooms', async () => {
+    await setup();
+    expect(await screen.findByText(/No public rooms yet/i)).toBeTruthy();
+  });
+
+  it('renders public rooms and navigates when a card is clicked', async () => {
+    mockListPublicRooms.mockResolvedValueOnce([
+      { code: 'ABCD', name: 'Lobby', playerCount: 3, visibility: 'public' },
+    ]);
+
+    await setup();
+
+    const roomButton = await screen.findByRole('button', {
+      name: /Join Lobby/i,
+    });
+    fireEvent.click(roomButton);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/ABCD');
+    });
+  });
+
+  it('shows an error message when public rooms cannot be loaded', async () => {
+    mockListPublicRooms.mockRejectedValueOnce(new Error('network'));
+
+    await setup();
+
+    expect(
+      await screen.findByText(/Unable to load public rooms right now/i),
+    ).toBeTruthy();
   });
 });

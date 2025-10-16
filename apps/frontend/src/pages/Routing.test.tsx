@@ -74,20 +74,36 @@ describe('Routing / room code handling', () => {
     const deferred: {
       promise: Promise<{
         ok: boolean;
-        json: () => Promise<{ exists: boolean; name?: string }>;
+        json: () => Promise<{
+          exists: boolean;
+          name?: string;
+          visibility?: string;
+        }>;
       }>;
       resolve: (value: {
         ok: boolean;
-        json: () => Promise<{ exists: boolean; name?: string }>;
+        json: () => Promise<{
+          exists: boolean;
+          name?: string;
+          visibility?: string;
+        }>;
       }) => void;
     } = (() => {
       let resolve!: (value: {
         ok: boolean;
-        json: () => Promise<{ exists: boolean; name?: string }>;
+        json: () => Promise<{
+          exists: boolean;
+          name?: string;
+          visibility?: string;
+        }>;
       }) => void;
       const promise = new Promise<{
         ok: boolean;
-        json: () => Promise<{ exists: boolean; name?: string }>;
+        json: () => Promise<{
+          exists: boolean;
+          name?: string;
+          visibility?: string;
+        }>;
       }>((res) => {
         resolve = res;
       });
@@ -107,7 +123,11 @@ describe('Routing / room code handling', () => {
     deferred.resolve({
       ok: true,
       json: () =>
-        Promise.resolve({ exists: true, name: '  Champions Lounge  ' }),
+        Promise.resolve({
+          exists: true,
+          name: '  Champions Lounge  ',
+          visibility: 'public',
+        }),
     });
 
     await waitFor(() => {
@@ -127,12 +147,13 @@ describe('Routing / room code handling', () => {
   it('renders RoomPage when room exists', async () => {
     (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ exists: true }),
+      json: () => Promise.resolve({ exists: true, visibility: 'public' }),
     });
     renderRoute('/WXYZ');
     await waitFor(() => screen.getByText(/Waiting for players/i));
     // Multiple UI elements include the room label; ensure at least one matches
     expect(screen.getAllByText(/Room WXYZ/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText(/Public room/i).length).toBeGreaterThan(0);
   });
 
   it('uses generic loading title when room code missing', () => {
