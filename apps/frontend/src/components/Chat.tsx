@@ -166,7 +166,7 @@ export default function Chat({
           <table className="w-full table-fixed">
             <thead>
               <tr className="text-[11px] uppercase tracking-[0.18em] text-indigo-300">
-                <th className="w-40 py-1 pr-2 text-left font-semibold">
+                <th className="py-1 pr-2 text-left font-semibold">
                   <abbr
                     title="Username"
                     className="cursor-help text-indigo-200 no-underline"
@@ -227,7 +227,7 @@ export default function Chat({
             <tbody>
               {resolvedStats.map((player) => (
                 <tr key={player.playerId} className="text-[13px] text-white">
-                  <td className="w-40 py-1 pr-2 font-medium text-white">
+                  <td className="py-1 pr-2 font-medium text-white">
                     <span className="block truncate" title={player.username}>
                       {player.username}
                     </span>
