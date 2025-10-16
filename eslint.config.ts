@@ -76,7 +76,7 @@ export default defineConfig([
   {
     files: [...TEST_GLOBS],
     languageOptions: {
-      parserOptions: { projectService: false },
+      parserOptions: { projectService: false, tsconfigRootDir },
       globals: vitest.environments.env.globals,
     },
     plugins: { vitest: vitestPlugin },
@@ -96,7 +96,7 @@ export default defineConfig([
       'tools/**/*.ts',
     ],
     languageOptions: {
-      parserOptions: { projectService: false },
+      parserOptions: { projectService: false, tsconfigRootDir },
     },
   },
 

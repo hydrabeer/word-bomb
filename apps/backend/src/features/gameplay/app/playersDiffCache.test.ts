@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { GameRoomManager } from '../../../room/GameRoomManager';
+import { GameRoomManager } from '../../../features/rooms/app/GameRoomManager';
 import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
 import { computePlayersDiff, resetPlayersDiffCache } from './playersDiffCache';
 

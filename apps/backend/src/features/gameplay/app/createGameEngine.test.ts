@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { TypedServer } from '../../../socket/typedSocket';
+import type { TypedServer } from '../../../platform/socket/typedSocket';
 import { createGameEngine } from './createGameEngine';
 import { Game } from '@game/domain/game/Game';
 import { GameRoom } from '@game/domain/rooms/GameRoom';
 import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
-import { RoomBroadcaster } from '../../../core/RoomBroadcaster';
-import { socketRoomId } from '../../../utils/socketRoomId';
+import { RoomBroadcaster } from '../../../platform/socket/RoomBroadcaster';
+import { socketRoomId } from '../../../shared/utils/socketRoomId';
 import type { DictionaryPort } from '../../../platform/dictionary';
 
 const rules: GameRoomRules = {

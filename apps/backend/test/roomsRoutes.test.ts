@@ -114,7 +114,6 @@ describe('rooms router handlers', () => {
     expect(getDictionaryStats).toHaveBeenCalled();
     expect(isUsingFallbackDictionary).toHaveBeenCalled();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const createMock = roomManager.create as ReturnType<typeof vi.fn>;
     expect(createMock).toHaveBeenCalledTimes(1);
     const [code, rules, trimmedName] = createMock.mock.calls[0] as [
@@ -148,12 +147,10 @@ describe('rooms router handlers', () => {
   });
 
   it('createRoomHandler returns 503 when unique code cannot be allocated', () => {
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const createMock = roomManager.create as ReturnType<typeof vi.fn>;
     createMock.mockImplementation(() => {
       throw new Error('Room DUPL already exists');
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     const hasMock = roomManager.has as ReturnType<typeof vi.fn>;
     hasMock.mockReturnValue(false);
     setRoomCodeGenerator(() => 'AAAA');
@@ -249,7 +246,6 @@ describe('rooms router handlers', () => {
 
     getRoomHandler(request, response as unknown as Response);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(roomManager.get).toHaveBeenCalledWith('ABCD');
     expect(statusMock).toHaveBeenCalledWith(200);
     expect(jsonMock).toHaveBeenCalledWith({
@@ -282,7 +278,6 @@ describe('rooms router handlers', () => {
 
     getRoomHandler(request, response as unknown as Response);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(roomManager.get).toHaveBeenCalledWith('WXYZ');
     expect(statusMock).toHaveBeenCalledWith(404);
     expect(jsonMock).toHaveBeenCalledWith({ error: 'Room not found' });

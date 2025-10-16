@@ -5,7 +5,7 @@ import { GameRulesService } from '@game/domain/game/services/GameRulesService';
 import { createPlayer } from '@game/domain/players/createPlayer';
 import { GameEngine } from './GameEngine';
 import type { DictionaryPort } from '../../../platform/dictionary';
-import { buildTurnStartedPayload } from '../../../core/serialization';
+import { buildTurnStartedPayload } from '../../../platform/socket/serialization';
 
 const rules: GameRoomRules = {
   maxLives: 3,
