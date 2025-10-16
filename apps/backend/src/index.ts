@@ -38,7 +38,6 @@ const SHUTDOWN_FORCE_EXIT_TIMEOUT_MS = 5000;
 const DEFAULT_PORT = 3001;
 const FRONTEND_ORIGIN = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 /** Prefix used for Socket.IO rooms that back active games. */
-const GAME_ROOM_PREFIX = SOCKET_ROOM_PREFIX;
 
 type HttpServer = ReturnType<typeof createServer>;
 type IoServer = TypedServer;
@@ -314,7 +313,7 @@ function registerNamespaceLogging(adapter: NamespaceAdapter): void {
  * @param room - Room identifier emitted by the adapter.
  */
 function isGameRoom(room: string): boolean {
-  return room.startsWith(GAME_ROOM_PREFIX);
+  return room.startsWith(SOCKET_ROOM_PREFIX);
 }
 
 // Production: use environment variable; Dev: use 3001
