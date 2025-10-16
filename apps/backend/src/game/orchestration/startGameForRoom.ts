@@ -7,10 +7,20 @@ import { RoomBroadcaster } from '../../core/RoomBroadcaster';
 import { createDictionaryPort } from '../../dictionary';
 import type { DictionaryPort } from '../../dictionary';
 
+/**
+ * Optional dependencies used when starting a game for a room.
+ */
 export interface StartGameForRoomOptions {
   dictionary?: DictionaryPort;
 }
 
+/**
+ * Attempts to create and start a new game for the provided room, wiring up an engine.
+ *
+ * @param io - The typed socket server used for broadcasting lifecycle events.
+ * @param room - The room requesting a new game session.
+ * @param options - Optional overrides for dependencies such as the dictionary.
+ */
 export function startGameForRoom(
   io: TypedServer,
   room: GameRoom,

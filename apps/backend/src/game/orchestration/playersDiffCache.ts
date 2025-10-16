@@ -12,6 +12,13 @@ interface PlayerLite {
 const lastSnapshots = new Map<string, PlayerLite[]>();
 const lastLeaderIds = new Map<string, string | null>();
 
+/**
+ * Computes the minimal player diff payload for the provided room, caching the
+ * latest snapshot to avoid redundant emissions.
+ *
+ * @param room - The room whose players should be compared against the last broadcast.
+ * @returns A diff payload when changes exist, otherwise `null`.
+ */
 export function computePlayersDiff(room: GameRoom): PlayersDiffPayload | null {
   const prev = lastSnapshots.get(room.code) ?? [];
   const current: PlayerLite[] = room.getAllPlayers().map((p) => ({
@@ -76,11 +83,19 @@ export function computePlayersDiff(room: GameRoom): PlayersDiffPayload | null {
   return { added, updated, removed, leaderIdChanged };
 }
 
+/**
+ * Clears all cached player snapshots so that future emissions recompute from scratch.
+ */
 export function resetPlayersDiffCache() {
   lastSnapshots.clear();
   lastLeaderIds.clear();
 }
 
+/**
+ * Removes cached player state for a specific room, forcing a full payload next time.
+ *
+ * @param roomCode - Identifier of the room whose cache should be discarded.
+ */
 export function removePlayersDiffCacheForRoom(roomCode: string) {
   lastSnapshots.delete(roomCode);
   lastLeaderIds.delete(roomCode);

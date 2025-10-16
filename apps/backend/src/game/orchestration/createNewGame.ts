@@ -3,6 +3,13 @@ import { GameRoom } from '@game/domain/rooms/GameRoom';
 import type { DictionaryPort } from '../../dictionary';
 import { getLogger } from '../../logging/context';
 
+/**
+ * Instantiates a fresh {@link Game} for the provided room when enough players are seated.
+ *
+ * @param room - The room attempting to start a new match.
+ * @param dictionary - Minimal dictionary port used to generate the opening fragment.
+ * @returns A configured {@link Game} when the room is eligible, otherwise `null`.
+ */
 export function createNewGame(
   room: GameRoom,
   dictionary: Pick<DictionaryPort, 'getRandomFragment'>,
