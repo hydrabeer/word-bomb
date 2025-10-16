@@ -18,12 +18,6 @@ import {
   type RequestListener,
 } from 'http';
 import { randomUUID } from 'node:crypto';
-import { Server } from 'socket.io';
-import type {
-  ClientToServerEvents,
-  ServerToClientEvents,
-  SocketData,
-} from '@word-bomb/types/socket';
 import { loadDictionary, getDictionaryStats } from './dictionary';
 import { shutdownEngines } from './game/engineRegistry';
 import { createLogger } from './logging';
@@ -36,6 +30,8 @@ import {
 } from './logging/context';
 import roomsRouter from './routes/rooms';
 import { registerRoomHandlers } from './socket/roomHandlers';
+import type { TypedServer } from './socket/typedSocket';
+import { createTypedServer } from './socket/typedSocket';
 
 const SHUTDOWN_FORCE_EXIT_TIMEOUT_MS = 5000;
 const DEFAULT_PORT = 3001;
@@ -44,12 +40,7 @@ const FRONTEND_ORIGIN = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 const GAME_ROOM_PREFIX = 'room:';
 
 type HttpServer = ReturnType<typeof createServer>;
-type IoServer = Server<
-  ClientToServerEvents,
-  ServerToClientEvents,
-  never,
-  SocketData
->;
+type IoServer = TypedServer;
 type NamespaceAdapter = ReturnType<IoServer['of']>['adapter'];
 
 /** Shared helmet configuration to enforce consistent security headers. */
@@ -227,7 +218,7 @@ async function start(port: string | number) {
  * @returns A fully wired Socket.IO server instance.
  */
 function createSocketServer(httpServer: HttpServer): IoServer {
-  const socketServer: IoServer = new Server(httpServer, {
+  const socketServer = createTypedServer(httpServer, {
     cors: {
       origin: FRONTEND_ORIGIN,
       methods: ['GET', 'POST'],

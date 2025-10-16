@@ -2,12 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { roomManager } from '../../room/roomManagerSingleton';
 import { startGameForRoom } from './startGameForRoom';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
-import type { TypedServer } from '../../socket/typedSocket';
-import type {
-  ClientToServerEvents,
-  ServerToClientEvents,
-} from '@word-bomb/types/socket';
+import { createTypedServer, type TypedServer } from '../../socket/typedSocket';
 import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
 import { getGameEngine } from '../engineRegistry';
 import * as createGameEngineModule from './createGameEngine';
@@ -20,10 +15,7 @@ function makeIO(): {
   httpServer: ReturnType<typeof createServer>;
 } {
   const httpServer = createServer();
-  const io: TypedServer = new Server<
-    ClientToServerEvents,
-    ServerToClientEvents
-  >(httpServer, {});
+  const io = createTypedServer(httpServer);
   return { io, httpServer };
 }
 

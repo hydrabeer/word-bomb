@@ -169,6 +169,11 @@ export interface SocketData {
   currentPlayerId?: string;
 }
 
+/**
+ * Socket.IO inter-server event contract kept empty to signal no cross-node events.
+ */
+export type InterServerEvents = Record<string, never>;
+
 // --- Bonus Alphabet in-game player view extensions ---
 export interface BonusProgressView {
   // Remaining counts per letter (length 26), 0 means fulfilled for that letter

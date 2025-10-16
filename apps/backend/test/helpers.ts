@@ -1,15 +1,17 @@
 import { createServer } from 'http';
 import express from 'express';
-import { Server } from 'socket.io';
 import { afterAll, beforeAll } from 'vitest';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
-  SocketData,
 } from '@word-bomb/types/socket';
 import { io as Client, Socket } from 'socket.io-client';
 import { registerRoomHandlers } from '../src/socket/roomHandlers';
-import type { TypedServer, TypedSocket } from '../src/socket/typedSocket';
+import {
+  createTypedServer,
+  type TypedServer,
+  type TypedSocket,
+} from '../src/socket/typedSocket';
 
 export interface TestContext {
   io: TypedServer;
@@ -26,12 +28,7 @@ export async function setupTestServer(): Promise<TestContext> {
   const httpServer = createServer((req, res) => {
     void app(req, res);
   }); // sync creation
-  const io: TypedServer = new Server<
-    ClientToServerEvents,
-    ServerToClientEvents,
-    never,
-    SocketData
-  >(httpServer, {
+  const io = createTypedServer(httpServer, {
     cors: { origin: '*', methods: ['GET', 'POST'] },
   });
 
