@@ -7,6 +7,10 @@ import {
 } from '../../../platform/dictionary';
 import type { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
 import {
+  type GameRoomVisibility,
+  normalizeRoomVisibility,
+} from '@game/domain/rooms/GameRoom';
+import {
   createRoomCodeGenerator,
   type RoomCodeGenerator,
 } from './roomCodeGenerator';
@@ -65,8 +69,11 @@ export function createRoomHandler(req: Request, res: Response): void {
     >;
     const nameRaw = typeof body.name === 'string' ? body.name : '';
     const name = nameRaw.trim().slice(0, 30);
+    const visibilityRaw =
+      typeof body.visibility === 'string' ? body.visibility : '';
+    const visibility = normalizeRoomVisibility(visibilityRaw);
     const rules = buildDefaultRoomRules();
-    const code = createRoomWithUniqueCode(rules, name);
+    const code = createRoomWithUniqueCode(rules, name, visibility);
 
     res.status(201).json({ code });
   } catch (err) {
@@ -97,10 +104,31 @@ export function getRoomHandler(req: Request, res: Response): void {
 
   const name = typeof room.name === 'string' ? room.name.trim() : '';
 
-  res.status(200).json({ exists: true, name });
+  res.status(200).json({
+    exists: true,
+    name,
+    visibility: normalizeRoomVisibility(room.visibility),
+  });
+}
+
+/**
+ * Returns rooms filtered by visibility; defaults to public listings when the query is absent.
+ */
+export function listRoomsHandler(req: Request, res: Response): void {
+  const visibilityParam =
+    typeof req.query.visibility === 'string' ? req.query.visibility : '';
+  const visibility = normalizeRoomVisibility(visibilityParam, 'public');
+  const rooms = roomManager.listRoomsByVisibility(visibility).map((room) => ({
+    code: room.code,
+    name: typeof room.name === 'string' ? room.name.trim() : '',
+    playerCount: room.getAllPlayers().length,
+    visibility: room.visibility,
+  }));
+  res.status(200).json({ rooms });
 }
 
 router.post('/', createRoomHandler);
+router.get('/', listRoomsHandler);
 router.get('/:code', getRoomHandler);
 
 export default router;
@@ -114,7 +142,11 @@ export default router;
  * @returns The unique room code assigned to the created room.
  * @throws {RoomCodeAllocationError} When a unique code cannot be reserved.
  */
-function createRoomWithUniqueCode(rules: GameRoomRules, name: string): string {
+function createRoomWithUniqueCode(
+  rules: GameRoomRules,
+  name: string,
+  visibility: GameRoomVisibility,
+): string {
   const MAX_ATTEMPTS = 100;
   let attempts = 0;
 
@@ -125,7 +157,7 @@ function createRoomWithUniqueCode(rules: GameRoomRules, name: string): string {
       continue;
     }
     try {
-      roomManager.create(code, rules, name);
+      roomManager.create(code, rules, name, visibility);
       return code;
     } catch (error) {
       const err = error as Error;

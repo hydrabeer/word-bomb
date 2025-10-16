@@ -7,6 +7,7 @@ vi.mock('../src/features/rooms/app/roomManagerSingleton', () => ({
     create: vi.fn(),
     has: vi.fn(),
     get: vi.fn(),
+    listRoomsByVisibility: vi.fn(),
   },
 }));
 
@@ -33,6 +34,7 @@ import { roomManager } from '../src/features/rooms/app/roomManagerSingleton';
 import {
   createRoomHandler,
   getRoomHandler,
+  listRoomsHandler,
   resetRoomCodeGenerator,
   setRoomCodeGenerator,
 } from '../src/features/rooms/http/rooms';
@@ -81,10 +83,14 @@ describe('rooms router handlers', () => {
     (roomManager.create as ReturnType<typeof vi.fn>).mockReset();
     (roomManager.has as ReturnType<typeof vi.fn>).mockReset();
     (roomManager.get as ReturnType<typeof vi.fn>).mockReset();
+    (roomManager.listRoomsByVisibility as ReturnType<typeof vi.fn>).mockReset();
     roomCodeGeneratorMock.mockReset();
     roomCodeGeneratorMock.mockReturnValue('AAAA');
     createRoomCodeGeneratorMock.mockReset();
     createRoomCodeGeneratorMock.mockReturnValue(roomCodeGeneratorMock);
+    (
+      roomManager.listRoomsByVisibility as ReturnType<typeof vi.fn>
+    ).mockReturnValue([]);
     (getDictionaryStats as ReturnType<typeof vi.fn>).mockReturnValue({
       wordCount: 1000,
       fragmentCount: 100,
@@ -116,9 +122,10 @@ describe('rooms router handlers', () => {
 
     const createMock = roomManager.create as ReturnType<typeof vi.fn>;
     expect(createMock).toHaveBeenCalledTimes(1);
-    const [code, rules, trimmedName] = createMock.mock.calls[0] as [
+    const [code, rules, trimmedName, visibility] = createMock.mock.calls[0] as [
       string,
       Record<string, unknown>,
+      string,
       string,
     ];
     expect(code).toBe('AAAA');
@@ -129,6 +136,7 @@ describe('rooms router handlers', () => {
       minWordsPerPrompt: 500,
     });
     expect(trimmedName).toBe('Trivia night');
+    expect(visibility).toBe('private');
   });
 
   it('createRoomHandler returns 400 when roomManager.create throws non-duplicate error', () => {
@@ -189,7 +197,12 @@ describe('rooms router handlers', () => {
     );
 
     expect(hasMock).toHaveBeenCalledTimes(2);
-    expect(createMock).toHaveBeenCalledWith('BBBB', expect.any(Object), '');
+    expect(createMock).toHaveBeenCalledWith(
+      'BBBB',
+      expect.any(Object),
+      '',
+      'private',
+    );
   });
 
   it('createRoomHandler handles missing request body gracefully', () => {
@@ -205,9 +218,77 @@ describe('rooms router handlers', () => {
       response as unknown as Response,
     );
 
-    const [, , providedName] = (roomManager.create as ReturnType<typeof vi.fn>)
-      .mock.calls[0] as [string, Record<string, unknown>, string];
+    const [, , providedName, providedVisibility] = (
+      roomManager.create as ReturnType<typeof vi.fn>
+    ).mock.calls[0] as [string, Record<string, unknown>, string, string];
     expect(providedName).toBe('');
+    expect(providedVisibility).toBe('private');
+  });
+
+  it('createRoomHandler forwards public visibility flag', () => {
+    const createMock = roomManager.create as ReturnType<typeof vi.fn>;
+    createMock.mockImplementation(() => ({}));
+    setRoomCodeGenerator(() => 'PUB1');
+    const { response } = createMockResponse<{ code: string }>();
+
+    createRoomHandler(
+      {
+        body: { name: 'Public Room', visibility: 'public' },
+      } as unknown as Request,
+      response as unknown as Response,
+    );
+
+    const [, , , visibility] = createMock.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+      string,
+      string,
+    ];
+    expect(visibility).toBe('public');
+  });
+
+  it('createRoomHandler normalizes visibility casing', () => {
+    const createMock = roomManager.create as ReturnType<typeof vi.fn>;
+    createMock.mockImplementation(() => ({}));
+    setRoomCodeGenerator(() => 'CAS1');
+    const { response } = createMockResponse<{ code: string }>();
+
+    createRoomHandler(
+      {
+        body: { name: 'Caps Room', visibility: 'PUBLIC' },
+      } as unknown as Request,
+      response as unknown as Response,
+    );
+
+    const [, , , visibility] = createMock.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+      string,
+      string,
+    ];
+    expect(visibility).toBe('public');
+  });
+
+  it('createRoomHandler falls back to private for unknown visibility', () => {
+    const createMock = roomManager.create as ReturnType<typeof vi.fn>;
+    createMock.mockImplementation(() => ({}));
+    setRoomCodeGenerator(() => 'FALL');
+    const { response } = createMockResponse<{ code: string }>();
+
+    createRoomHandler(
+      {
+        body: { name: 'Mystery Room', visibility: 'friends' },
+      } as unknown as Request,
+      response as unknown as Response,
+    );
+
+    const [, , , visibility] = createMock.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+      string,
+      string,
+    ];
+    expect(visibility).toBe('private');
   });
 
   it('createRoomHandler lowers minWordsPerPrompt when dictionary fallback is active', () => {
@@ -237,6 +318,7 @@ describe('rooms router handlers', () => {
   it('getRoomHandler returns 200 when room exists', () => {
     (roomManager.get as ReturnType<typeof vi.fn>).mockReturnValue({
       name: '  Trivia night  ',
+      visibility: 'public',
     });
     const { response, statusMock, jsonMock } = createMockResponse<{
       exists: boolean;
@@ -251,11 +333,15 @@ describe('rooms router handlers', () => {
     expect(jsonMock).toHaveBeenCalledWith({
       exists: true,
       name: 'Trivia night',
+      visibility: 'public',
     });
   });
 
   it('getRoomHandler normalizes non-string room names', () => {
-    (roomManager.get as ReturnType<typeof vi.fn>).mockReturnValue({ name: 42 });
+    (roomManager.get as ReturnType<typeof vi.fn>).mockReturnValue({
+      name: 42,
+      visibility: 'public',
+    });
     const { response, jsonMock } = createMockResponse<{
       exists: boolean;
       name: string;
@@ -266,7 +352,11 @@ describe('rooms router handlers', () => {
       response as unknown as Response,
     );
 
-    expect(jsonMock).toHaveBeenCalledWith({ exists: true, name: '' });
+    expect(jsonMock).toHaveBeenCalledWith({
+      exists: true,
+      name: '',
+      visibility: 'public',
+    });
   });
 
   it('getRoomHandler returns 404 when room is missing', () => {
@@ -281,5 +371,81 @@ describe('rooms router handlers', () => {
     expect(roomManager.get).toHaveBeenCalledWith('WXYZ');
     expect(statusMock).toHaveBeenCalledWith(404);
     expect(jsonMock).toHaveBeenCalledWith({ error: 'Room not found' });
+  });
+
+  it('getRoomHandler normalizes unknown visibility to private', () => {
+    (roomManager.get as ReturnType<typeof vi.fn>).mockReturnValue({
+      name: 'Mystery',
+      visibility: 'friends-only',
+    });
+    const { response, jsonMock } = createMockResponse<{
+      exists: boolean;
+      name: string;
+      visibility: string;
+    }>();
+
+    getRoomHandler(
+      { params: { code: 'ROOM' } } as unknown as Request,
+      response as unknown as Response,
+    );
+
+    expect(jsonMock).toHaveBeenCalledWith({
+      exists: true,
+      name: 'Mystery',
+      visibility: 'private',
+    });
+  });
+
+  it('listRoomsHandler returns trimmed rooms filtered by visibility', () => {
+    (
+      roomManager.listRoomsByVisibility as ReturnType<typeof vi.fn>
+    ).mockReturnValue([
+      {
+        code: 'ABCD',
+        name: '  Lobby  ',
+        visibility: 'public',
+        getAllPlayers: () => [{ id: '1' }, { id: '2' }],
+      },
+    ] as unknown as never);
+    const { response, statusMock, jsonMock } = createMockResponse<{
+      rooms: {
+        code: string;
+        name: string;
+        playerCount: number;
+        visibility: string;
+      }[];
+    }>();
+
+    listRoomsHandler(
+      { query: { visibility: 'public' } } as unknown as Request,
+      response as unknown as Response,
+    );
+
+    expect(roomManager.listRoomsByVisibility).toHaveBeenCalledWith('public');
+    expect(statusMock).toHaveBeenCalledWith(200);
+    expect(jsonMock).toHaveBeenCalledWith({
+      rooms: [
+        {
+          code: 'ABCD',
+          name: 'Lobby',
+          playerCount: 2,
+          visibility: 'public',
+        },
+      ],
+    });
+  });
+
+  it('listRoomsHandler defaults to public visibility when query is missing', () => {
+    (
+      roomManager.listRoomsByVisibility as ReturnType<typeof vi.fn>
+    ).mockReturnValue([]);
+    const { response } = createMockResponse<{ rooms: unknown[] }>();
+
+    listRoomsHandler(
+      { query: {} } as unknown as Request,
+      response as unknown as Response,
+    );
+
+    expect(roomManager.listRoomsByVisibility).toHaveBeenCalledWith('public');
   });
 });

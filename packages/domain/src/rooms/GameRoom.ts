@@ -15,12 +15,39 @@ export type GameRoomProps = z.infer<typeof GameRoomSchema>;
  * and play a game of Word Bomb. Manages player state, seating, leadership,
  * game lifecycle, and game start timers.
  */
+/** Visibility classification that determines whether a room is publicly listed. */
+export type GameRoomVisibility = 'public' | 'private';
+
+/**
+ * Normalizes arbitrary visibility values to the supported union while enforcing
+ * the existing default of private rooms.
+ *
+ * @param value - Raw visibility value supplied by callers.
+ * @param fallback - Visibility to use when the value cannot be interpreted.
+ * @returns A canonical {@link GameRoomVisibility} value.
+ */
+export function normalizeRoomVisibility(
+  value: unknown,
+  fallback: GameRoomVisibility = 'private',
+): GameRoomVisibility {
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'public' || normalized === 'private') {
+      return normalized as GameRoomVisibility;
+    }
+  }
+  return fallback;
+}
+
 export class GameRoom {
   /** 4-letter uppercase room code */
   public readonly code: string;
 
   /** Human-friendly room title shown in UI */
   public name = '';
+
+  /** Visibility state used to determine if the room should appear in public listings. */
+  public visibility: GameRoomVisibility;
 
   /** Custom rules for this room */
   public rules: GameRoomRules;
@@ -38,10 +65,15 @@ export class GameRoom {
    * @param props The room's identifying code
    * @param rules The rules that apply to this room
    */
-  constructor(props: GameRoomProps, rules: GameRoomRules) {
+  constructor(
+    props: GameRoomProps,
+    rules: GameRoomRules,
+    options?: { visibility?: GameRoomVisibility },
+  ) {
     const parsed = GameRoomSchema.parse(props);
     this.code = parsed.code;
     this.rules = GameRulesSchema.parse(rules);
+    this.visibility = normalizeRoomVisibility(options?.visibility);
   }
 
   /**

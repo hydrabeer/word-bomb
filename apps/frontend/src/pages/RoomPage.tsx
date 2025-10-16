@@ -7,6 +7,8 @@ import {
   FaChevronDown,
   FaLink,
   FaHome,
+  FaGlobe,
+  FaLock,
 } from 'react-icons/fa';
 import Chat from '../components/Chat';
 import { useGameRoom } from '../hooks/useGameRoom';
@@ -21,8 +23,15 @@ import { formatDurationSeconds } from '../utils/formatTime.ts';
 import { useRoomRules, type LobbyRules } from '../hooks/useRoomRules';
 import { RoomRulesDialog } from '../components/RoomRulesDialog';
 import { usePlayerStats } from '../hooks/usePlayerStats';
+import type { RoomVisibility } from '../api/rooms';
 
-export default function RoomPage({ roomName }: { roomName?: string }) {
+export default function RoomPage({
+  roomName,
+  visibility = 'private',
+}: {
+  roomName?: string;
+  visibility?: RoomVisibility;
+}) {
   const navigate = useNavigate();
   const { roomCode = '' } = useParams<{ roomCode: string }>();
   const isMobile = useIsMobile();
@@ -183,6 +192,15 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
       ? `${activePlayersCount}/${totalPlayersInGame} left`
       : `${seatedCount}/${players.length} ready`;
 
+  const isPublicRoom = visibility === 'public';
+  const visibilityLabel = isPublicRoom ? 'Public' : 'Private';
+  const visibilityBadgeClasses = isPublicRoom
+    ? 'bg-emerald-500/20 text-emerald-100'
+    : 'bg-indigo-500/20 text-indigo-100';
+  const shareInviteAriaLabel = roomName
+    ? `Copy room invite link for ${roomName} (${visibilityLabel} room)`
+    : `Copy room invite link for Room ${roomCode} (${visibilityLabel} room)`;
+
   function JoinGameButtons({ className = '' }: { className?: string } = {}) {
     return (
       <button
@@ -308,16 +326,22 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                   .writeText(window.location.href)
                   .catch(() => undefined);
               }}
-              className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              title="Copy room invite link"
-              aria-label={
-                roomName
-                  ? `Copy room invite link for ${roomName}`
-                  : `Copy room invite link for Room ${roomCode}`
-              }
+              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              title={`Copy room invite link (${visibilityLabel} room)`}
+              aria-label={shareInviteAriaLabel}
             >
-              <FaLink className="h-3.5 w-3.5 text-white/70" />
+              <FaLink className="h-3.5 w-3.5 text-white/70" aria-hidden />
               <span>{inviteCopied ? 'Copied!' : 'Share'}</span>
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${visibilityBadgeClasses}`}
+              >
+                {isPublicRoom ? (
+                  <FaGlobe className="h-3 w-3" aria-hidden />
+                ) : (
+                  <FaLock className="h-3 w-3" aria-hidden />
+                )}
+                {visibilityLabel}
+              </span>
             </button>
 
             <button
@@ -618,16 +642,24 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
                 .writeText(window.location.href)
                 .catch(() => undefined);
             }}
-            className="flex h-9 cursor-copy items-center gap-2 rounded-md bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
-            title="Click to copy room link"
-            aria-label={
-              roomName
-                ? `Copy room invite link for ${roomName}`
-                : `Copy room invite link for Room ${roomCode}`
-            }
+            className="flex h-9 cursor-copy items-center gap-3 rounded-md bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
+            title={`Click to copy room link (${visibilityLabel} room)`}
+            aria-label={shareInviteAriaLabel}
           >
-            <FaLink className="h-4 w-4 text-white/80" />
-            {inviteCopied ? 'Copied!' : `Room ${roomCode}`}
+            <FaLink className="h-4 w-4 text-white/80" aria-hidden />
+            <span className="flex items-center gap-2">
+              <span>{inviteCopied ? 'Copied!' : `Room ${roomCode}`}</span>
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${visibilityBadgeClasses}`}
+              >
+                {isPublicRoom ? (
+                  <FaGlobe className="h-3 w-3" aria-hidden />
+                ) : (
+                  <FaLock className="h-3 w-3" aria-hidden />
+                )}
+                {visibilityLabel}
+              </span>
+            </span>
           </button>
 
           <button

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import RoomPage from './RoomPage';
 import RoomNotFoundPage from './RoomNotFoundPage';
 import NotFoundPage from './NotFoundPage';
-import { checkRoomExists } from '../api/rooms';
+import { checkRoomExists, type RoomVisibility } from '../api/rooms';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 // Status lifecycle:
@@ -17,6 +17,8 @@ export default function RoomRoute() {
   const { roomCode = '' } = useParams<{ roomCode: string }>();
   const [status, setStatus] = useState<Status>('loading');
   const [roomName, setRoomName] = useState<string>('');
+  const [roomVisibility, setRoomVisibility] =
+    useState<RoomVisibility>('private');
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +29,7 @@ export default function RoomRoute() {
     }
     setStatus('loading');
     setRoomName('');
+    setRoomVisibility('private');
     checkRoomExists(roomCode)
       .then((res) => {
         if (cancelled) return;
@@ -35,6 +38,7 @@ export default function RoomRoute() {
           return;
         }
         setRoomName(res.name ?? '');
+        setRoomVisibility(res.visibility ?? 'private');
         setStatus('ready');
       })
       .catch(() => {
@@ -80,5 +84,5 @@ export default function RoomRoute() {
     return <RoomNotFoundPage roomCode={roomCode} />;
   }
 
-  return <RoomPage roomName={roomName} />;
+  return <RoomPage roomName={roomName} visibility={roomVisibility} />;
 }

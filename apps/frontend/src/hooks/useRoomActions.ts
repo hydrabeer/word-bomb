@@ -1,11 +1,14 @@
-import { createRoom, checkRoomExists } from '../api/rooms';
+import { createRoom, checkRoomExists, type RoomVisibility } from '../api/rooms';
 
 /**
  * Handles pure room HTTP operations (does not deal with socket or navigation).
  */
 export function useRoomActions() {
-  async function createNewRoom(name?: string): Promise<string> {
-    const { code } = await createRoom(name);
+  async function createNewRoom(
+    name?: string,
+    visibility: RoomVisibility = 'private',
+  ): Promise<string> {
+    const { code } = await createRoom(name, visibility);
     return code;
   }
 

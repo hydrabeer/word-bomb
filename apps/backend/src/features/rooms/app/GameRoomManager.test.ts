@@ -19,9 +19,10 @@ describe('GameRoomManager', () => {
       startingLives: 2,
       minTurnDuration: 1,
     });
-    const r = mgr.create('ABCD', rules, 'Name');
+    const r = mgr.create('ABCD', rules, 'Name', 'public');
     expect(mgr.has('ABCD')).toBe(true);
     expect(mgr.get('ABCD')).toBe(r);
+    expect(r.visibility).toBe('public');
     // creating same code should throw
     expect(() => mgr.create('ABCD', rules)).toThrow();
     // seated players on empty room
@@ -49,5 +50,14 @@ describe('GameRoomManager', () => {
     expect(() => mgr.create('DUPL', buildRules())).toThrowError(
       'Room DUPL already exists',
     );
+  });
+
+  it('lists rooms by visibility', () => {
+    const mgr = new GameRoomManager();
+    const publicRoom = mgr.create('PUBA', buildRules(), 'Public', 'public');
+    const privateRoom = mgr.create('PRIV', buildRules(), 'Private', 'private');
+
+    expect(mgr.listRoomsByVisibility('public')).toEqual([publicRoom]);
+    expect(mgr.listRoomsByVisibility('private')).toEqual([privateRoom]);
   });
 });
