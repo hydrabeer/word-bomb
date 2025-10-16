@@ -49,13 +49,9 @@ describe('GameRoom', () => {
   });
 
   it('normalizes unexpected casing during construction', () => {
-    const loudRoom = new GameRoom(
-      { code: 'LOUD' },
-      mockRules,
-      {
-        visibility: 'PUBLIC' as unknown as 'public',
-      },
-    );
+    const loudRoom = new GameRoom({ code: 'LOUD' }, mockRules, {
+      visibility: 'PUBLIC' as unknown as 'public',
+    });
 
     expect(loudRoom.visibility).toBe('public');
   });

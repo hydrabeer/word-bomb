@@ -104,13 +104,11 @@ export function getRoomHandler(req: Request, res: Response): void {
 
   const name = typeof room.name === 'string' ? room.name.trim() : '';
 
-  res
-    .status(200)
-    .json({
-      exists: true,
-      name,
-      visibility: normalizeRoomVisibility(room.visibility),
-    });
+  res.status(200).json({
+    exists: true,
+    name,
+    visibility: normalizeRoomVisibility(room.visibility),
+  });
 }
 
 /**
@@ -195,4 +193,3 @@ function buildDefaultRoomRules(): GameRoomRules {
     minWordsPerPrompt,
   };
 }
-
