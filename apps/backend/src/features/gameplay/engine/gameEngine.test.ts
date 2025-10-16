@@ -4,8 +4,8 @@ import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
 import { GameRulesService } from '@game/domain/game/services/GameRulesService';
 import { createPlayer } from '@game/domain/players/createPlayer';
 import { GameEngine } from './GameEngine';
+import type { GameEventsPort } from './GameEngine';
 import type { DictionaryPort } from '../../../platform/dictionary';
-import { buildTurnStartedPayload } from '../../../platform/socket/serialization';
 
 const rules: GameRoomRules = {
   maxLives: 3,
@@ -41,6 +41,37 @@ function makePlayers() {
   ];
 }
 
+type RecordedEvent =
+  | { type: 'turnStarted'; currentPlayerId: string | null }
+  | { type: 'playerUpdated'; playerId: string; lives: number }
+  | { type: 'wordAccepted'; playerId: string; word: string }
+  | { type: 'gameEnded'; winnerId: string };
+
+function createEventsRecorder() {
+  const events: RecordedEvent[] = [];
+  const port: GameEventsPort = {
+    turnStarted: (game) => {
+      let currentPlayerId: string | null = null;
+      try {
+        currentPlayerId = game.getCurrentPlayer().id;
+      } catch {
+        currentPlayerId = null;
+      }
+      events.push({ type: 'turnStarted', currentPlayerId });
+    },
+    playerUpdated: (playerId, lives) => {
+      events.push({ type: 'playerUpdated', playerId, lives });
+    },
+    wordAccepted: (playerId, word) => {
+      events.push({ type: 'wordAccepted', playerId, word });
+    },
+    gameEnded: (winnerId) => {
+      events.push({ type: 'gameEnded', winnerId });
+    },
+  };
+  return { events, port };
+}
+
 function makeGame() {
   const players = makePlayers();
   return new Game({
@@ -62,61 +93,36 @@ describe('GameEngine extra coverage', () => {
     const game = makeGame();
     // Force consistent bomb duration
     game.__setBombDurationForTest(1);
-    interface Emitted {
-      e: string;
-      payload: unknown;
-    }
-    const emitted: Emitted[] = [];
+    const { events, port } = createEventsRecorder();
     const engine = new GameEngine({
       game,
-      emit: <
-        K extends keyof import('@word-bomb/types/socket').ServerToClientEvents,
-      >(
-        event: K,
-        ...args: Parameters<
-          import('@word-bomb/types/socket').ServerToClientEvents[K]
-        >
-      ) => {
-        emitted.push({ e: String(event), payload: args[0] });
-      },
       scheduler: {
         schedule: (delayMs, cb) => setTimeout(cb, delayMs),
         cancel: (token) => {
           clearTimeout(token as any);
         },
       },
-      eventsPort: {
-        turnStarted: () => {
-          /* noop */
-        },
-        playerUpdated: () => {
-          /* noop */
-        },
-        wordAccepted: () => {
-          /* noop */
-        },
-        gameEnded: () => {
-          /* noop */
-        },
-      },
+      eventsPort: port,
       dictionary: stubDictionary(),
     });
     engine.beginGame();
-    expect(emitted.find((ev) => ev.e === 'turnStarted')?.payload).toEqual(
-      buildTurnStartedPayload(game),
-    );
+    expect(events.find((event) => event.type === 'turnStarted')).toEqual({
+      type: 'turnStarted',
+      currentPlayerId: 'A',
+    });
     vi.advanceTimersByTime(1100);
     // after timeout playerUpdated should be emitted
-    expect(emitted.some((ev) => ev.e === 'playerUpdated')).toBe(true);
+    expect(events).toContainEqual({
+      type: 'playerUpdated',
+      playerId: 'A',
+      lives: 2,
+    });
   });
 
   it('validateSubmission paths return errors', () => {
     const game = makeGame();
     const engine = new GameEngine({
       game,
-      emit: function emit() {
-        /* noop */
-      },
       scheduler: {
         schedule: (delayMs, cb) => setTimeout(cb, delayMs),
         cancel: (token) => {
@@ -155,9 +161,6 @@ describe('GameEngine extra coverage', () => {
     game.__setBombDurationForTest(1);
     const engine = new GameEngine({
       game,
-      emit: function emit() {
-        /* noop */
-      },
       scheduler: {
         schedule: (delayMs, cb) => setTimeout(cb, delayMs),
         cancel: (token) => {
@@ -189,9 +192,6 @@ describe('GameEngine extra coverage', () => {
     const onTurnTimeout = vi.fn();
     const engine = new GameEngine({
       game,
-      emit: function emit() {
-        /* noop */
-      },
       scheduler: {
         schedule: (delayMs, cb) => setTimeout(cb, delayMs),
         cancel: (token) => {
@@ -255,86 +255,54 @@ describe('GameEngine extra coverage', () => {
       state: 'active',
       rules,
     });
-    const emitted: { e: string; payload: unknown }[] = [];
+    const { events, port } = createEventsRecorder();
     const engine = new GameEngine({
       game,
-      emit: <
-        K extends keyof import('@word-bomb/types/socket').ServerToClientEvents,
-      >(
-        event: K,
-        ...args: Parameters<
-          import('@word-bomb/types/socket').ServerToClientEvents[K]
-        >
-      ) => {
-        emitted.push({ e: String(event), payload: args[0] });
-      },
       scheduler: {
         schedule: (delayMs, cb) => setTimeout(cb, delayMs),
         cancel: (token) => {
           clearTimeout(token as any);
         },
       },
-      eventsPort: {
-        turnStarted: () => {
-          /* noop */
-        },
-        playerUpdated: () => {
-          /* noop */
-        },
-        wordAccepted: () => {
-          /* noop */
-        },
-        gameEnded: () => {
-          /* noop */
-        },
-      },
+      eventsPort: port,
       dictionary: stubDictionary(),
     });
 
     engine.beginGame();
-    emitted.length = 0; // reset to observe forfeit emissions only
+    events.length = 0; // reset to observe forfeit emissions only
 
     engine.forfeitPlayer('A');
 
     expect(players[0].isEliminated).toBe(true);
     expect(players[0].lives).toBe(0);
 
-    const updateEvent = emitted.find((ev) => ev.e === 'playerUpdated');
-    expect(updateEvent).toBeDefined();
+    expect(events).toContainEqual({
+      type: 'playerUpdated',
+      playerId: 'A',
+      lives: 0,
+    });
 
-    const nextTurn = emitted.findLast?.((ev) => ev.e === 'turnStarted');
-    const payload = (nextTurn ?? emitted.find((ev) => ev.e === 'turnStarted'))
-      ?.payload as ReturnType<typeof buildTurnStartedPayload> | undefined;
-    expect(payload?.playerId).toBe('B');
+    const nextTurnEvent = [...events]
+      .reverse()
+      .find((event) => event.type === 'turnStarted');
+    expect(nextTurnEvent).toEqual({
+      type: 'turnStarted',
+      currentPlayerId: 'B',
+    });
   });
 
   it('forfeitPlayer tolerates errors retrieving the current player', () => {
     const game = makeGame();
+    const { port } = createEventsRecorder();
     const engine = new GameEngine({
       game,
-      emit: () => {
-        /* noop */
-      },
       scheduler: {
         schedule: (delayMs, cb) => setTimeout(cb, delayMs),
         cancel: (token) => {
           clearTimeout(token as any);
         },
       },
-      eventsPort: {
-        turnStarted: () => {
-          /* noop */
-        },
-        playerUpdated: () => {
-          /* noop */
-        },
-        wordAccepted: () => {
-          /* noop */
-        },
-        gameEnded: () => {
-          /* noop */
-        },
-      },
+      eventsPort: port,
       dictionary: stubDictionary(),
     });
     const advanceSpy = vi
@@ -395,31 +363,16 @@ describe('GameEngine extra coverage', () => {
       state: 'active',
       rules,
     });
+    const { port } = createEventsRecorder();
     const engine = new GameEngine({
       game,
-      emit: () => {
-        /* noop */
-      },
       scheduler: {
         schedule: (delayMs, cb) => setTimeout(cb, delayMs),
         cancel: (token) => {
           clearTimeout(token as any);
         },
       },
-      eventsPort: {
-        turnStarted: () => {
-          /* noop */
-        },
-        playerUpdated: () => {
-          /* noop */
-        },
-        wordAccepted: () => {
-          /* noop */
-        },
-        gameEnded: () => {
-          /* noop */
-        },
-      },
+      eventsPort: port,
       dictionary: stubDictionary(),
     });
     const advanceSpy = vi
@@ -444,31 +397,16 @@ describe('GameEngine extra coverage', () => {
 
   it('forfeitPlayer ignores unknown and already eliminated players', () => {
     const game = makeGame();
+    const { port } = createEventsRecorder();
     const engine = new GameEngine({
       game,
-      emit: () => {
-        /* noop */
-      },
       scheduler: {
         schedule: (delayMs, cb) => setTimeout(cb, delayMs),
         cancel: (token) => {
           clearTimeout(token as any);
         },
       },
-      eventsPort: {
-        turnStarted: () => {
-          /* noop */
-        },
-        playerUpdated: () => {
-          /* noop */
-        },
-        wordAccepted: () => {
-          /* noop */
-        },
-        gameEnded: () => {
-          /* noop */
-        },
-      },
+      eventsPort: port,
       dictionary: stubDictionary(),
     });
     const advanceSpy = vi

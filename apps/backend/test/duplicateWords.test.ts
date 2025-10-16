@@ -8,7 +8,6 @@ import type {
   GameEventsPort,
 } from '../src/features/gameplay/engine/GameEngine';
 import type { DictionaryPort } from '../src/platform/dictionary';
-import type { ServerToClientEvents } from '@word-bomb/types/socket';
 
 const rules: GameRoomRules = {
   maxLives: 3,
@@ -52,13 +51,6 @@ describe('duplicate words are rejected within a game', () => {
   };
 
   it('rejects a word that has already been used and resets next game', () => {
-    type EmitFn = <K extends keyof ServerToClientEvents>(
-      event: K,
-      ...args: Parameters<ServerToClientEvents[K]>
-    ) => void;
-
-    const emit: EmitFn = vi.fn();
-
     const scheduler: TurnScheduler = {
       schedule: vi.fn<(d: number, cb: () => void) => object | number>(
         (d, cb) => {
@@ -81,7 +73,6 @@ describe('duplicate words are rejected within a game', () => {
     const game = makeGame('aa');
     const engine = new GameEngine({
       game,
-      emit,
       scheduler,
       eventsPort,
       dictionary,
@@ -105,7 +96,6 @@ describe('duplicate words are rejected within a game', () => {
     const game2 = makeGame('aa');
     const engine2 = new GameEngine({
       game: game2,
-      emit,
       scheduler,
       eventsPort,
       dictionary,
