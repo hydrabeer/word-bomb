@@ -247,6 +247,28 @@ describe('rooms router handlers', () => {
     expect(visibility).toBe('public');
   });
 
+  it('createRoomHandler normalizes visibility casing', () => {
+    const createMock = roomManager.create as ReturnType<typeof vi.fn>;
+    createMock.mockImplementation(() => ({}));
+    setRoomCodeGenerator(() => 'CAS1');
+    const { response } = createMockResponse<{ code: string }>();
+
+    createRoomHandler(
+      {
+        body: { name: 'Caps Room', visibility: 'PUBLIC' },
+      } as unknown as Request,
+      response as unknown as Response,
+    );
+
+    const [, , , visibility] = createMock.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+      string,
+      string,
+    ];
+    expect(visibility).toBe('public');
+  });
+
   it('createRoomHandler falls back to private for unknown visibility', () => {
     const createMock = roomManager.create as ReturnType<typeof vi.fn>;
     createMock.mockImplementation(() => ({}));

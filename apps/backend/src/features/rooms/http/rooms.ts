@@ -193,5 +193,11 @@ function parseVisibility(
   raw: unknown,
   fallback: GameRoomVisibility = 'private',
 ): GameRoomVisibility {
-  return raw === 'public' || raw === 'private' ? raw : fallback;
+  if (typeof raw === 'string') {
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === 'public' || normalized === 'private') {
+      return normalized;
+    }
+  }
+  return fallback;
 }
