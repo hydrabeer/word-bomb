@@ -5,7 +5,7 @@ import type { RoomHandlerContext } from './roomHandlerContext';
 import type { SocketSession } from '../../../platform/socket/socketSession';
 import { emitPlayers } from '../../gameplay/app/emitPlayers';
 
-vi.mock('../../game/orchestration/emitPlayers', () => ({
+vi.mock('../../gameplay/app/emitPlayers', () => ({
   emitPlayers: vi.fn(),
 }));
 
