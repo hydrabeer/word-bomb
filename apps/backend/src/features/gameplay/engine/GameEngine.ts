@@ -2,8 +2,6 @@ import type { DictionaryPort } from '../../../platform/dictionary';
 import { Game } from '@game/domain/game/Game';
 import { GameRulesService } from '@game/domain/game/services/GameRulesService';
 import { Player } from '@game/domain/players/Player';
-import type { ServerToClientEvents } from '@word-bomb/types/socket';
-import { buildTurnStartedPayload } from '../../../platform/socket/serialization';
 
 /**
  * Abstraction over timer management used to drive turn timeouts.
@@ -57,21 +55,12 @@ export interface GameEventsPort {
   gameEnded(winnerId: string): void;
 }
 
-type EmitFn = <K extends keyof ServerToClientEvents>(
-  event: K,
-  ...args: Parameters<ServerToClientEvents[K]>
-) => void;
-
 /**
  * Internal configuration bundle for {@link GameEngine} construction.
  */
 interface GameEngineOptions {
   /** Game instance whose lifecycle is orchestrated by the engine. */
   game: Game;
-  /**
-   * Transport-specific emitter used for legacy direct socket events while ports evolve.
-   */
-  emit: EmitFn;
   /** Timer implementation that drives turn transitions. */
   scheduler: TurnScheduler;
   /** Domain events sink kept in sync with the active room. */
@@ -90,7 +79,6 @@ export class GameEngine {
   private game: Game;
   private rules: GameRulesService;
   private timeoutToken: object | number | null = null;
-  private readonly emit: EmitFn;
   private readonly onTurnTimeout: ((player: Player) => void) | undefined;
   private readonly scheduler: TurnScheduler;
   private readonly eventsPort: GameEventsPort;
@@ -106,7 +94,6 @@ export class GameEngine {
       { isValid: (w: string) => opts.dictionary.isValid(w) },
       { nextFragment: (min: number) => opts.dictionary.getRandomFragment(min) },
     );
-    this.emit = opts.emit;
     this.onTurnTimeout = opts.onTurnTimeout;
     this.scheduler = opts.scheduler;
     this.eventsPort = opts.eventsPort;
@@ -128,7 +115,6 @@ export class GameEngine {
     });
 
     this.eventsPort.turnStarted(this.game);
-    this.emit('turnStarted', buildTurnStartedPayload(this.game));
   }
 
   private advanceTurn(): void {
@@ -174,15 +160,10 @@ export class GameEngine {
   }
 
   private notifyPlayerUpdated(player: Player): void {
-    this.emit('playerUpdated', {
-      playerId: player.id,
-      lives: player.lives,
-    });
     this.eventsPort.playerUpdated(player.id, player.lives);
   }
 
   private notifyWordAccepted(playerId: string, word: string): void {
-    this.emit('wordAccepted', { playerId, word });
     this.eventsPort.wordAccepted(playerId, word);
   }
 

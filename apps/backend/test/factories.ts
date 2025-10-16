@@ -2,8 +2,10 @@ import { GameRoomManager } from '../src/features/rooms/app/GameRoomManager';
 import { Game } from '@game/domain/game/Game';
 import { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
 import { GameEngine } from '../src/features/gameplay/engine/GameEngine';
+import type { GameEventsPort } from '../src/features/gameplay/engine/GameEngine';
 import type { ServerToClientEvents } from '@word-bomb/types/socket';
 import type { Player } from '@game/domain/players/Player';
+import { buildTurnStartedPayload } from '../src/platform/socket/serialization';
 
 export const defaultRules: GameRoomRules = {
   maxLives: 3,
@@ -62,37 +64,29 @@ export function makeEngine(game: Game): {
   events: EmittedEvent[];
 } {
   const raw: EmittedEvent[] = [];
+  const eventsPort: GameEventsPort = {
+    turnStarted: (g) => {
+      raw.push({ event: 'turnStarted', payload: buildTurnStartedPayload(g) });
+    },
+    playerUpdated: (playerId, lives) => {
+      raw.push({ event: 'playerUpdated', payload: { playerId, lives } });
+    },
+    wordAccepted: (playerId, word) => {
+      raw.push({ event: 'wordAccepted', payload: { playerId, word } });
+    },
+    gameEnded: (winnerId) => {
+      raw.push({ event: 'gameEnded', payload: { winnerId } });
+    },
+  };
   const engine = new GameEngine({
     game,
-    emit: (<K extends keyof ServerToClientEvents>(
-      event: K,
-      ...args: Parameters<ServerToClientEvents[K]>
-    ) => {
-      raw.push({ event, payload: args[0] as never });
-    }) as (
-      event: keyof ServerToClientEvents,
-      ...args: Parameters<ServerToClientEvents[keyof ServerToClientEvents]>
-    ) => void,
     scheduler: {
       schedule: (delayMs: number, cb: () => void) => setTimeout(cb, delayMs),
       cancel: (token: ReturnType<typeof setTimeout>) => {
         clearTimeout(token as NodeJS.Timeout);
       },
     },
-    eventsPort: {
-      turnStarted: () => {
-        /* noop */
-      },
-      playerUpdated: () => {
-        /* noop */
-      },
-      wordAccepted: () => {
-        /* noop */
-      },
-      gameEnded: () => {
-        /* noop */
-      },
-    },
+    eventsPort,
     dictionary: {
       isValid: () => true,
       getRandomFragment: () => 'aa',
