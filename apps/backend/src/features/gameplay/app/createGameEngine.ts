@@ -2,10 +2,8 @@ import { GameEngine } from '../engine/GameEngine';
 import type { Game } from '@game/domain/game/Game';
 import type { GameRoom } from '@game/domain/rooms/GameRoom';
 import type { TypedServer } from '../../../platform/socket/typedSocket';
-import type { ServerToClientEvents } from '@word-bomb/types/socket';
 import type { DictionaryPort } from '../../../platform/dictionary';
 import { RoomBroadcaster } from '../../../platform/socket/RoomBroadcaster';
-import { socketRoomId } from '../../../shared/utils/socketRoomId';
 import { GameRoomEventsAdapter } from './GameRoomEventsAdapter';
 
 /**
@@ -28,12 +26,6 @@ export function createGameEngine(
 
   return new GameEngine({
     game,
-    emit: <K extends keyof ServerToClientEvents>(
-      event: K,
-      ...args: Parameters<ServerToClientEvents[K]>
-    ) => {
-      io.to(socketRoomId(room.code)).emit(event, ...args);
-    },
     scheduler: {
       schedule: (delayMs, cb) => setTimeout(cb, delayMs),
       cancel: (token) => {

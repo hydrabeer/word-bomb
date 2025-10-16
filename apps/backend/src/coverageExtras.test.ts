@@ -86,14 +86,9 @@ describeCoverage('coverage extras', () => {
     }
 
     it('handles submitWord failure paths', () => {
-      const emits: { event: string; payload: unknown }[] = [];
       const { game, dictionary } = makeRoomWithGame();
-      type EmitTest = (event: string, payload?: unknown) => void;
       const engine = new GameEngine({
         game,
-        emit: ((e: unknown, payload: unknown) => {
-          emits.push({ event: e as string, payload });
-        }) as EmitTest,
         scheduler: {
           // Wrap cb in a function to satisfy no-implied-eval linters
           schedule: (d: number, cb: () => void) => {
@@ -138,18 +133,14 @@ describeCoverage('coverage extras', () => {
     });
 
     it('advances turn and emits acceptance on valid word (mock validity)', () => {
-      const emits: string[] = [];
+      const events: string[] = [];
       const dictionary = {
         isValid: () => true,
         getRandomFragment: () => 'aa',
       };
       const { game } = makeRoomWithGame(dictionary);
-      type EmitTest = (event: string, payload?: unknown) => void;
       const engine = new GameEngine({
         game,
-        emit: ((e: unknown) => {
-          emits.push(e as string);
-        }) as EmitTest,
         scheduler: {
           // Wrap cb in a function to satisfy no-implied-eval linters
           schedule: (d: number, cb: () => void) => {
@@ -169,7 +160,7 @@ describeCoverage('coverage extras', () => {
             /* noop */
           },
           wordAccepted: () => {
-            /* noop */
+            events.push('wordAccepted');
           },
           gameEnded: () => {
             /* noop */
@@ -180,7 +171,7 @@ describeCoverage('coverage extras', () => {
       const current = game.getCurrentPlayer();
       const res = engine.submitWord(current.id, 'aab');
       expect(res.success).toBe(true);
-      expect(emits).toContain('wordAccepted');
+      expect(events).toContain('wordAccepted');
     });
   });
 
