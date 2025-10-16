@@ -32,12 +32,13 @@ import roomsRouter from './routes/rooms';
 import { registerRoomHandlers } from './socket/roomHandlers';
 import type { TypedServer } from './socket/typedSocket';
 import { createTypedServer } from './socket/typedSocket';
+import { SOCKET_ROOM_PREFIX } from './utils/socketRoomId';
 
 const SHUTDOWN_FORCE_EXIT_TIMEOUT_MS = 5000;
 const DEFAULT_PORT = 3001;
 const FRONTEND_ORIGIN = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 /** Prefix used for Socket.IO rooms that back active games. */
-const GAME_ROOM_PREFIX = 'room:';
+const GAME_ROOM_PREFIX = SOCKET_ROOM_PREFIX;
 
 type HttpServer = ReturnType<typeof createServer>;
 type IoServer = TypedServer;

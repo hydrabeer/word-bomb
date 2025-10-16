@@ -61,6 +61,31 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   const isObject = (v: unknown): v is Record<string, unknown> =>
     !!v && typeof v === 'object';
 
+  interface RoomContext {
+    roomCode: string;
+    data: Record<string, unknown>;
+  }
+
+  interface RoomPlayerContext extends RoomContext {
+    playerId: string;
+  }
+
+  const parseRoomContext = (raw: unknown): RoomContext | null => {
+    if (!isObject(raw)) return null;
+    const data = raw;
+    const { roomCode } = data;
+    if (typeof roomCode !== 'string') return null;
+    return { roomCode, data };
+  };
+
+  const parseRoomAndPlayer = (raw: unknown): RoomPlayerContext | null => {
+    const base = parseRoomContext(raw);
+    if (!base) return null;
+    const { playerId } = base.data;
+    if (typeof playerId !== 'string') return null;
+    return { ...base, playerId };
+  };
+
   /**
    * Normalized representation of validated join room payloads.
    */
@@ -122,11 +147,14 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
    * @returns Normalized join data or `null` if validation fails.
    */
   const parseJoinRoom = (raw: unknown): JoinRoomParsed | null => {
-    if (!isObject(raw)) return null;
-    const { roomCode, playerId, name } = raw;
-    if (typeof roomCode !== 'string' || typeof playerId !== 'string')
-      return null;
-    return { roomCode, playerId, name: typeof name === 'string' ? name : '' };
+    const parsed = parseRoomAndPlayer(raw);
+    if (!parsed) return null;
+    const { data } = parsed;
+    return {
+      roomCode: parsed.roomCode,
+      playerId: parsed.playerId,
+      name: typeof data.name === 'string' ? data.name : '',
+    };
   };
   /**
    * Validates the payload supplied to `leaveRoom`.
@@ -135,11 +163,10 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
    * @returns Normalized leave data or `null` if validation fails.
    */
   const parseLeaveRoom = (raw: unknown): LeaveRoomParsed | null => {
-    if (!isObject(raw)) return null;
-    const { roomCode, playerId } = raw;
-    if (typeof roomCode !== 'string' || typeof playerId !== 'string')
-      return null;
-    return { roomCode, playerId };
+    const parsed = parseRoomAndPlayer(raw);
+    return parsed
+      ? { roomCode: parsed.roomCode, playerId: parsed.playerId }
+      : null;
   };
   /**
    * Validates the payload supplied to `setPlayerSeated`.
@@ -148,11 +175,13 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
    * @returns Normalized seating data or `null` if validation fails.
    */
   const parseSetPlayerSeated = (raw: unknown): SetPlayerSeatedParsed | null => {
-    if (!isObject(raw)) return null;
-    const { roomCode, playerId, seated } = raw;
-    if (typeof roomCode !== 'string' || typeof playerId !== 'string')
-      return null;
-    return { roomCode, playerId, seated: Boolean(seated) };
+    const parsed = parseRoomAndPlayer(raw);
+    if (!parsed) return null;
+    return {
+      roomCode: parsed.roomCode,
+      playerId: parsed.playerId,
+      seated: Boolean(parsed.data.seated),
+    };
   };
   /**
    * Validates the payload supplied to `startGame`.
@@ -161,10 +190,9 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
    * @returns Normalized start data or `null` if validation fails.
    */
   const parseStartGame = (raw: unknown): StartGameParsed | null => {
-    if (!isObject(raw)) return null;
-    const { roomCode } = raw;
-    if (typeof roomCode !== 'string') return null;
-    return { roomCode };
+    const parsed = parseRoomContext(raw);
+    if (!parsed) return null;
+    return { roomCode: parsed.roomCode };
   };
   /**
    * Validates the payload supplied to `playerTyping`.
@@ -173,13 +201,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
    * @returns Normalized typing data or `null` if validation fails.
    */
   const parsePlayerTyping = (raw: unknown): PlayerTypingParsed | null => {
-    if (!isObject(raw)) return null;
-    const { roomCode, playerId, input } = raw;
-    if (typeof roomCode !== 'string' || typeof playerId !== 'string')
-      return null;
+    const parsed = parseRoomAndPlayer(raw);
+    if (!parsed) return null;
+    const input = parsed.data.input;
     return {
-      roomCode,
-      playerId,
+      roomCode: parsed.roomCode,
+      playerId: parsed.playerId,
       input: typeof input === 'string' ? input : '',
     };
   };
@@ -190,17 +217,14 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
    * @returns Normalized submission data or `null` if validation fails.
    */
   const parseSubmitWord = (raw: unknown): SubmitWordParsed | null => {
-    if (!isObject(raw)) return null;
-    const { roomCode, playerId, word, clientActionId } = raw;
-    if (
-      typeof roomCode !== 'string' ||
-      typeof playerId !== 'string' ||
-      typeof word !== 'string'
-    )
-      return null;
+    const parsed = parseRoomAndPlayer(raw);
+    if (!parsed) return null;
+    const { data } = parsed;
+    const { word, clientActionId } = data;
+    if (typeof word !== 'string') return null;
     return {
-      roomCode,
-      playerId,
+      roomCode: parsed.roomCode,
+      playerId: parsed.playerId,
       word,
       clientActionId:
         typeof clientActionId === 'string' ? clientActionId : undefined,
@@ -213,10 +237,9 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
    * @returns Normalized rules data or `null` if validation fails.
    */
   const parseUpdateRoomRules = (raw: unknown): UpdateRoomRulesParsed | null => {
-    if (!isObject(raw)) return null;
-    const { roomCode, rules } = raw;
-    if (typeof roomCode !== 'string') return null;
-    return { roomCode, rules };
+    const parsed = parseRoomContext(raw);
+    if (!parsed) return null;
+    return { roomCode: parsed.roomCode, rules: parsed.data.rules };
   };
   const broadcaster = new RoomBroadcaster(io);
   const session = new SocketSession(socket);
