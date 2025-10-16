@@ -5,6 +5,9 @@ import pino, {
   type SerializerFn,
 } from 'pino';
 
+/**
+ * Pino redact path expressions that ensure sensitive values do not reach log sinks.
+ */
 const redactPaths = [
   'req.headers.authorization',
   'req.headers.cookie',
@@ -14,9 +17,20 @@ const redactPaths = [
   'user.email',
 ] as const;
 
+/**
+ * Produces the timestamp fragment appended to each log line.
+ *
+ * @returns A JSON fragment containing an ISO-8601 timestamp.
+ */
 const timestamp = () => `,"ts":"${new Date().toISOString()}"`;
 
 // Keep the implementation strongly typed to avoid returning `any`.
+/**
+ * Converts thrown values into serializable objects compatible with Pino's error serializer.
+ *
+ * @param err - Value provided to the logger under the `err` key.
+ * @returns A plain object describing the error, or the original value if it is not an `Error`.
+ */
 const serializeError = (err: unknown): unknown => {
   if (!(err instanceof Error)) return err;
   return {
@@ -26,14 +40,29 @@ const serializeError = (err: unknown): unknown => {
   };
 };
 
+/**
+ * Determines the application version reported in log records.
+ *
+ * @returns The version derived from environment metadata or a safe fallback.
+ */
 const resolveVersion = () =>
   process.env.npm_package_version ?? process.env.APP_VERSION ?? '0.0.0';
 
+/**
+ * Options that control how {@link createLogger} sets up the root logger instance.
+ */
 export interface CreateLoggerOptions {
   service?: string;
   destination?: DestinationStream;
 }
 
+/**
+ * Creates a configured Pino logger that standardizes metadata, redaction, and timestamp behavior.
+ *
+ * @param serviceOrOptions - Service name string or options bag including `service` and `destination`.
+ * @param maybeDestination - Destination stream used when the first argument is a service name.
+ * @returns A Pino logger ready for application-wide use.
+ */
 export function createLogger(
   serviceOrOptions?: string | CreateLoggerOptions,
   maybeDestination?: DestinationStream,
