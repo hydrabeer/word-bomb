@@ -246,4 +246,3 @@ Aim for high coverage; prefer pure tests in `packages/domain` for business rules
 - Domain rules/engine: `packages/domain`
 
 If anything here diverges from code, update this README in the same PR that changes behavior.
-
