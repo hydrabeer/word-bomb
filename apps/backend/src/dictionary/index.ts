@@ -3,8 +3,26 @@ import path from 'path';
 
 import { getLogger } from '../logging/context';
 
+/**
+ * Contract for dictionary lookups and prompt generation used by the game loop.
+ *
+ * @public
+ */
 export interface DictionaryPort {
+  /**
+   * Tests whether the provided word exists in the active dictionary.
+   *
+   * @param word - Candidate word submitted by a player.
+   * @returns `true` if the normalized word is part of the dictionary; otherwise `false`.
+   */
   isValid(word: string): boolean;
+
+  /**
+   * Produces a fragment that yields at least the desired number of dictionary matches.
+   *
+   * @param minWordsPerPrompt - Desired lower bound for matching dictionary entries.
+   * @returns A fragment that satisfies the constraint, potentially using a fallback when necessary.
+   */
   getRandomFragment(minWordsPerPrompt: number): string;
 }
 
@@ -41,8 +59,13 @@ const DEFAULT_WORDS: string[] = [
 ];
 
 /**
- * Loads the dictionary into memory from a local file.
- * Also builds the fragment count index for fast lookup.
+ * Loads the primary dictionary into process memory and prepares supporting indexes.
+ *
+ * @remarks
+ * Chooses a dictionary source based on `NODE_ENV`, defaulting to `/tmp/words.txt` in production
+ * and `./words.txt` during development. When running tests without `DICTIONARY_TEST_MODE=full`
+ * the lightweight fallback dictionary keeps CI deterministic. Fallback behavior is also invoked
+ * when file loading fails outside of production.
  */
 export function loadDictionary() {
   const isProd = process.env.NODE_ENV === 'production';
@@ -121,6 +144,11 @@ export function loadDictionary() {
   }
 }
 
+/**
+ * Builds a `DictionaryPort` backed by module-level state and helpers.
+ *
+ * @returns A `DictionaryPort` instance that proxies to the local dictionary utilities.
+ */
 export function createDictionaryPort(): DictionaryPort {
   return {
     isValid: (word: string) => isValidWord(word),
@@ -130,7 +158,11 @@ export function createDictionaryPort(): DictionaryPort {
 }
 
 /**
- * Builds the fragment count index from the provided list of words.
+ * Populates the fragment frequency index used to support prompt generation heuristics.
+ *
+ * @param words - Word list from which to derive fragments.
+ * @param minLength - Minimum fragment length to index, inclusive.
+ * @param maxLength - Maximum fragment length to index, inclusive.
  */
 function buildFragmentIndex(
   words: string[],
@@ -161,15 +193,21 @@ function buildFragmentIndex(
 }
 
 /**
- * Checks if a word is valid.
+ * Determines whether the provided word appears in the active dictionary.
+ *
+ * @param word - Word to validate; casing is normalized internally.
+ * @returns `true` if the word is recognized; otherwise `false`.
  */
 export function isValidWord(word: string): boolean {
   return dictionary.has(word.toLowerCase());
 }
 
 /**
- * Generates a random word fragment from the precomputed fragmentCounts map
- * that has at least `minWordsPerPrompt` matches in the dictionary.
+ * Generates a random fragment that reaches the desired match count within the dictionary.
+ *
+ * @param minWordsPerPrompt - Required minimum number of words that contain the fragment.
+ * @returns A fragment satisfying the constraint, or a deterministic fallback during tests.
+ * @throws When no qualifying fragment or fallback can be determined (non-test environments only).
  */
 export function getRandomFragment(minWordsPerPrompt: number): string {
   const candidates = Array.from(fragmentCounts.entries())
@@ -208,7 +246,9 @@ export function getRandomFragment(minWordsPerPrompt: number): string {
 }
 
 /**
- * Exposes basic dictionary statistics for health/readiness endpoints.
+ * Reports dictionary sizing information for health and readiness checks.
+ *
+ * @returns Current counts for distinct words and indexed fragments.
  */
 export function getDictionaryStats(): {
   wordCount: number;
@@ -220,6 +260,11 @@ export function getDictionaryStats(): {
   };
 }
 
+/**
+ * Indicates whether the in-memory dictionary originates from the lightweight fallback list.
+ *
+ * @returns `true` when fallback words are active; otherwise `false`.
+ */
 export function isUsingFallbackDictionary(): boolean {
   return usingFallbackDictionary;
 }
