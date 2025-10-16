@@ -115,6 +115,7 @@ vi.mock('react-icons/fa', () => ({
   FaChevronUp: () => null,
   FaChevronDown: () => null,
   FaLink: () => null,
+  FaHome: () => null,
 }));
 
 // useGameState mock (flip via shared var + rerender)
@@ -197,6 +198,21 @@ describe('RoomPage (fast)', () => {
       </Routes>
     </MemoryRouter>
   );
+
+  it('navigates home when clicking the home button', () => {
+    render(
+      <MemoryRouter initialEntries={['/ROOM']}>
+        <Routes>
+          <Route path="/" element={<div>Home screen</div>} />
+          <Route path="/:roomCode" element={<RoomPage roomName="Test Room" />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /home/i }));
+
+    expect(screen.getByText('Home screen')).toBeInTheDocument();
+  });
 
   it('renders lobby when not playing', () => {
     render(element);
