@@ -59,7 +59,7 @@ Set the frontend’s backend URL via `VITE_BACKEND_URL` if you change ports.
 Place a word list at:
 
 ```
-apps/backend/src/dictionary/words.txt
+apps/backend/src/platform/dictionary/words.txt
 ```
 
 Alternatively, you can configure the backend to fetch on boot via env (see **Environment**).
@@ -206,7 +206,7 @@ Open PRs early; keep them focused. Before creating one:
 Check `VITE_BACKEND_URL` and backend `FRONTEND_URL`; defaults are `http://localhost:3001` and `http://localhost:5173` respectively.
 
 **Q: Gameplay in dev has no words.**  
-Provide `apps/backend/src/dictionary/words.txt` or set `DICTIONARY_URL`.
+Provide `apps/backend/src/platform/dictionary/words.txt` or set `DICTIONARY_URL`.
 
 **Q: TypeScript project service can’t find files.**  
 Ensure tests and build outputs aren’t mis‑included; keep `dist/` out of `include`.

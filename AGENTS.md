@@ -128,7 +128,7 @@ A PR is acceptable **only if** ALL are true:
 ## Troubleshooting
 
 - **Frontend can’t reach backend:** check `VITE_BACKEND_URL` and backend `FRONTEND_URL`.
-- **No words in dev:** add `apps/backend/src/dictionary/words.txt` or set `DICTIONARY_URL`.
+- **No words in dev:** add `apps/backend/src/platform/dictionary/words.txt` or set `DICTIONARY_URL`.
 - **Vitest sees `dist/`:** verify `tsconfig.json` excludes `dist/` and the Vitest config includes `src/**`.
 - **Unexpected Turborepo runs:** config file changes are cache inputs by design (see `turbo.json`).
 

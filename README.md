@@ -29,7 +29,7 @@ When you start the dev server, it'll give you a link to the frontend, `http://lo
 
 ### Dictionary setup
 
-To actually play in dev, you'll need to download a word list and put it at `apps/backend/src/dictionary/words.txt`.
+To actually play in dev, you'll need to download a word list and put it at `apps/backend/src/platform/dictionary/words.txt`.
 
 ---
 
@@ -87,7 +87,7 @@ Coverage goal is **100%** – iterate until green.
 - **Domain‑first**: put new game rules and computations in `packages/domain` with exhaustive tests; import into backend/frontend.
 - **Typed sockets**: shared event names and payloads live in `packages/types`. Add/modify there first, then wire in backend/ frontend.
 - **Mobile UX**: ensure keyboard‑safe layouts and readable timers; test on small viewports early.
-- **Logging**: backend logging utilities live under `apps/backend/src/logging`. Use structured logs; do not commit code with `console.log` in it.
+- **Logging**: backend logging utilities live under `apps/backend/src/platform/logging`. Use structured logs; do not commit code with `console.log` in it.
 
 ---
 
