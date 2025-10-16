@@ -283,7 +283,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
             <button
               type="button"
               onClick={() => {
-                navigate('/');
+                void navigate('/');
               }}
               className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
               title="Return to home"
@@ -633,7 +633,7 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
           <button
             type="button"
             onClick={() => {
-              navigate('/');
+              void navigate('/');
             }}
             className="flex h-9 items-center gap-2 rounded-md bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
             title="Return to home"
