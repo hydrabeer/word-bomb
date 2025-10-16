@@ -8,9 +8,9 @@ export function useWordSubmission(roomCode: string, playerId: string) {
   const [rejected, setRejected] = useState(false);
 
   // Track pending optimistic actions along with the submitted word
-  const [pendingSubmissions, setPendingSubmissions] = useState<Map<string, string>>(
-    () => new Map(),
-  );
+  const [pendingSubmissions, setPendingSubmissions] = useState<
+    Map<string, string>
+  >(() => new Map());
 
   useEffect(() => {
     function handleAck(raw: unknown) {
