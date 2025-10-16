@@ -14,3 +14,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Prevent duplicate socket broadcasts so player accuracy streak increments correctly instead of skipping values. (Fixes [#50](https://github.com/hydrabeer/word-bomb/issues/50))
+- Reset player accuracy streak when they lose a life so streaks can't persist through mistakes. (Fixes [#54](https://github.com/hydrabeer/word-bomb/issues/54))

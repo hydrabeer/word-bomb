@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { usePlayerStats } from './usePlayerStats';
 import type {
   GameStartedParsed,
+  PlayerUpdatedParsed,
   TurnStartedParsed,
   WordAcceptedParsed,
 } from '../socket/parsers';
@@ -35,6 +36,8 @@ const parserMocks = vi.hoisted(() => {
       vi.fn<(payload: unknown) => TurnStartedParsed | null>(),
     parseWordAcceptedMock:
       vi.fn<(payload: unknown) => WordAcceptedParsed | null>(),
+    parsePlayerUpdatedMock:
+      vi.fn<(payload: unknown) => PlayerUpdatedParsed | null>(),
   };
 });
 
@@ -46,6 +49,7 @@ vi.mock('../socket/parsers', () => ({
   parseGameStarted: parserMocks.parseGameStartedMock,
   parseTurnStarted: parserMocks.parseTurnStartedMock,
   parseWordAccepted: parserMocks.parseWordAcceptedMock,
+  parsePlayerUpdated: parserMocks.parsePlayerUpdatedMock,
 }));
 
 describe('usePlayerStats', () => {
@@ -55,6 +59,7 @@ describe('usePlayerStats', () => {
     parserMocks.parseGameStartedMock.mockReset();
     parserMocks.parseTurnStartedMock.mockReset();
     parserMocks.parseWordAcceptedMock.mockReset();
+    parserMocks.parsePlayerUpdatedMock.mockReset();
     Object.keys(socketState.handlers).forEach((key) => {
       socketState.handlers[key] = [];
     });
@@ -343,6 +348,68 @@ describe('usePlayerStats', () => {
     });
 
     expect(statsFor('p1')?.accuracyStreak).toBe(0);
+  });
+
+  it('resets accuracy streak when a player loses a life', () => {
+    const { result } = renderHook(() => usePlayerStats('ROOM', 'p1', 'Alice'));
+
+    const statsFor = (id: string) =>
+      result.current.stats.find((entry) => entry.playerId === id);
+
+    parserMocks.parseTurnStartedMock.mockReturnValue({
+      playerId: 'p1',
+      fragment: 'ab',
+      bombDuration: 10,
+      players: [
+        {
+          id: 'p1',
+          name: 'Alice',
+          isEliminated: false,
+          lives: 3,
+          isConnected: true,
+        },
+      ],
+    } satisfies TurnStartedParsed);
+
+    act(() => {
+      emitServer('turnStarted', { raw: true });
+    });
+
+    parserMocks.parseWordAcceptedMock.mockReturnValue({
+      playerId: 'p1',
+      word: 'hello',
+    } satisfies WordAcceptedParsed);
+
+    act(() => {
+      emitServer('wordAccepted', {});
+    });
+
+    expect(statsFor('p1')?.accuracyStreak).toBe(1);
+
+    parserMocks.parsePlayerUpdatedMock.mockReturnValue({
+      playerId: 'p1',
+      lives: 2,
+    } satisfies PlayerUpdatedParsed);
+
+    act(() => {
+      emitServer('playerUpdated', {});
+    });
+
+    expect(statsFor('p1')?.accuracyStreak).toBe(0);
+
+    parserMocks.parsePlayerUpdatedMock.mockReturnValue({
+      playerId: 'p2',
+      lives: 1,
+    } satisfies PlayerUpdatedParsed);
+
+    act(() => {
+      emitServer('playerUpdated', {});
+    });
+
+    expect(statsFor('p2')).toMatchObject({
+      accuracyStreak: 0,
+      username: 'Unknown',
+    });
   });
 
   it('ignores malformed payloads but records valid stats', () => {
