@@ -38,8 +38,8 @@ export default function HomePage() {
 
   const handleJoinRoom = async () => {
     if (joinCode.length !== 4) return;
-    const exists = await validateRoom(joinCode);
-    if (!exists) {
+    const validation = await validateRoom(joinCode);
+    if (!validation.exists) {
       alert(`Room not found: ${joinCode}`);
       return;
     }
