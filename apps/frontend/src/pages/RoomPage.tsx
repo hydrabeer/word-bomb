@@ -19,6 +19,7 @@ import { useIsMobile } from '../hooks/useIsMobile.ts';
 import { formatDurationSeconds } from '../utils/formatTime.ts';
 import { useRoomRules, type LobbyRules } from '../hooks/useRoomRules';
 import { RoomRulesDialog } from '../components/RoomRulesDialog';
+import { usePlayerStats } from '../hooks/usePlayerStats';
 
 export default function RoomPage({ roomName }: { roomName?: string }) {
   const navigate = useNavigate();
@@ -51,8 +52,21 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
     updateLiveInput,
   } = useGameState(roomCode);
 
-  const { players, leaderId, playerId, me, toggleSeated, startGame } =
-    usePlayerManagement(roomCode);
+  const {
+    players,
+    leaderId,
+    playerId,
+    playerName,
+    me,
+    toggleSeated,
+    startGame,
+  } = usePlayerManagement(roomCode);
+
+  const { stats: playerStats, registerRejection } = usePlayerStats(
+    roomCode,
+    playerId,
+    me?.name ?? playerName,
+  );
 
   const gameState = useMemo(() => {
     if (!socketGameState) return socketGameState;
@@ -101,6 +115,11 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
 
   const { inputWord, setInputWord, rejected, handleSubmitWord } =
     useWordSubmission(roomCode, playerId);
+
+  useEffect(() => {
+    if (!rejected) return;
+    registerRejection();
+  }, [rejected, registerRejection]);
 
   useEffect(() => {
     setInputWord('');
@@ -823,6 +842,8 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
           roomName={roomName}
           headingId="desktop-chat-heading"
           autoFocus={isChatOpen}
+          stats={playerStats}
+          showStats
           /* Avoid nested complementary landmarks inside the aside */
           regionRole="region"
         />
