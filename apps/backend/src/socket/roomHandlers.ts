@@ -1,5 +1,3 @@
-// apps/backend/src/socket/roomHandlers.ts
-
 import { roomManager } from '../room/roomManagerSingleton';
 import { toAuthoritativeChatMessage } from '@game/domain/chat/ChatMessage';
 import { GameRulesSchema } from '@game/domain/rooms/GameRoomRules';
@@ -23,13 +21,26 @@ import type { TypedServer, TypedSocket } from './typedSocket';
 import { SocketSession } from './socketSession';
 import { getLogContext, getLogger, runWithContext } from '../logging/context';
 
-// Configurable grace period (ms) before removing a disconnected player.
-// Tests may adjust via setDisconnectGrace().
+/**
+ * Configurable grace period (ms) before removing a disconnected player.
+ *
+ * Tests may adjust this via {@link setDisconnectGrace} to shorten timers.
+ */
 export let DISCONNECT_GRACE_MS = 10000;
+/**
+ * Overrides the disconnection grace period used when scheduling player cleanup.
+ *
+ * @param ms - New timeout in milliseconds before a disconnected player is removed.
+ */
 export function setDisconnectGrace(ms: number) {
   DISCONNECT_GRACE_MS = ms;
 }
-
+/**
+ * Registers all room-related Socket.IO handlers for a newly connected client.
+ *
+ * @param io - Shared typed server instance.
+ * @param socket - The socket representing the connected client.
+ */
 export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   const connectionContext = getLogContext();
   const withContext =
@@ -40,44 +51,76 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       });
     };
 
-  // Simple runtime validators to avoid unsafe member access complaints.
-  // Generic helpers / parsers (avoid any).
+  // Simple runtime validators to avoid unsafe member access and keep payload parsing local.
+  /**
+   * Narrows unknown values to plain objects.
+   *
+   * @param v - Value supplied by the client payload.
+   * @returns True when the value is a non-null object.
+   */
   const isObject = (v: unknown): v is Record<string, unknown> =>
     !!v && typeof v === 'object';
 
+  /**
+   * Normalized representation of validated join room payloads.
+   */
   interface JoinRoomParsed {
     roomCode: string;
     playerId: string;
     name: string;
   }
+  /**
+   * Normalized representation of validated leave room payloads.
+   */
   interface LeaveRoomParsed {
     roomCode: string;
     playerId: string;
   }
+  /**
+   * Normalized representation of validated player seating payloads.
+   */
   interface SetPlayerSeatedParsed {
     roomCode: string;
     playerId: string;
     seated: boolean;
   }
+  /**
+   * Normalized representation of validated start game payloads.
+   */
   interface StartGameParsed {
     roomCode: string;
   }
+  /**
+   * Normalized representation of validated typing status payloads.
+   */
   interface PlayerTypingParsed {
     roomCode: string;
     playerId: string;
     input: string;
   }
+  /**
+   * Normalized representation of validated submitted word payloads.
+   */
   interface SubmitWordParsed {
     roomCode: string;
     playerId: string;
     word: string;
     clientActionId?: string;
   }
+  /**
+   * Normalized representation of validated rules update payloads.
+   */
   interface UpdateRoomRulesParsed {
     roomCode: string;
     rules: unknown;
   }
 
+  /**
+   * Validates the payload supplied to `joinRoom`.
+   *
+   * @param raw - Incoming client payload.
+   * @returns Normalized join data or `null` if validation fails.
+   */
   const parseJoinRoom = (raw: unknown): JoinRoomParsed | null => {
     if (!isObject(raw)) return null;
     const { roomCode, playerId, name } = raw;
@@ -85,6 +128,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return null;
     return { roomCode, playerId, name: typeof name === 'string' ? name : '' };
   };
+  /**
+   * Validates the payload supplied to `leaveRoom`.
+   *
+   * @param raw - Incoming client payload.
+   * @returns Normalized leave data or `null` if validation fails.
+   */
   const parseLeaveRoom = (raw: unknown): LeaveRoomParsed | null => {
     if (!isObject(raw)) return null;
     const { roomCode, playerId } = raw;
@@ -92,6 +141,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return null;
     return { roomCode, playerId };
   };
+  /**
+   * Validates the payload supplied to `setPlayerSeated`.
+   *
+   * @param raw - Incoming client payload.
+   * @returns Normalized seating data or `null` if validation fails.
+   */
   const parseSetPlayerSeated = (raw: unknown): SetPlayerSeatedParsed | null => {
     if (!isObject(raw)) return null;
     const { roomCode, playerId, seated } = raw;
@@ -99,12 +154,24 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       return null;
     return { roomCode, playerId, seated: Boolean(seated) };
   };
+  /**
+   * Validates the payload supplied to `startGame`.
+   *
+   * @param raw - Incoming client payload.
+   * @returns Normalized start data or `null` if validation fails.
+   */
   const parseStartGame = (raw: unknown): StartGameParsed | null => {
     if (!isObject(raw)) return null;
     const { roomCode } = raw;
     if (typeof roomCode !== 'string') return null;
     return { roomCode };
   };
+  /**
+   * Validates the payload supplied to `playerTyping`.
+   *
+   * @param raw - Incoming client payload.
+   * @returns Normalized typing data or `null` if validation fails.
+   */
   const parsePlayerTyping = (raw: unknown): PlayerTypingParsed | null => {
     if (!isObject(raw)) return null;
     const { roomCode, playerId, input } = raw;
@@ -116,6 +183,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       input: typeof input === 'string' ? input : '',
     };
   };
+  /**
+   * Validates the payload supplied to `submitWord`.
+   *
+   * @param raw - Incoming client payload.
+   * @returns Normalized submission data or `null` if validation fails.
+   */
   const parseSubmitWord = (raw: unknown): SubmitWordParsed | null => {
     if (!isObject(raw)) return null;
     const { roomCode, playerId, word, clientActionId } = raw;
@@ -133,6 +206,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
         typeof clientActionId === 'string' ? clientActionId : undefined,
     };
   };
+  /**
+   * Validates the payload supplied to `updateRoomRules`.
+   *
+   * @param raw - Incoming client payload.
+   * @returns Normalized rules data or `null` if validation fails.
+   */
   const parseUpdateRoomRules = (raw: unknown): UpdateRoomRulesParsed | null => {
     if (!isObject(raw)) return null;
     const { roomCode, rules } = raw;
@@ -142,16 +221,34 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   const broadcaster = new RoomBroadcaster(io);
   const session = new SocketSession(socket);
 
+  /**
+   * Safely coerces optional acknowledgement callbacks supplied by Socket.IO.
+   *
+   * @param cb - Possibly undefined acknowledgement callback.
+   * @returns A callable function that defaults to {@link noop}.
+   */
   function normalizeCb(cb: unknown): (res: BasicResponse) => void {
     return typeof cb === 'function'
       ? (cb as (res: BasicResponse) => void)
       : noop;
   }
 
+  /**
+   * Emits a system chat message to all players in a room.
+   *
+   * @param roomCode - Target room identifier.
+   * @param message - Human-readable message body.
+   */
   function system(roomCode: string, message: string) {
     broadcaster.systemMessage(roomCode, message);
   }
 
+  /**
+   * Tears down all state for a room once it no longer holds players.
+   *
+   * @param code - Identifier of the room being disposed.
+   * @param roomInstance - In-memory room representation slated for cleanup.
+   */
   const disposeRoom = (code: string, roomInstance: GameRoom): void => {
     try {
       roomInstance.cancelGameStartTimer();
@@ -171,6 +268,11 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     );
   };
 
+  /**
+   * Removes a room from memory when no players remain connected.
+   *
+   * @param code - Identifier of the room to check.
+   */
   const cleanupRoomIfEmpty = (code: string): void => {
     const maybeRoom = roomManager.get(code);
     if (!maybeRoom) return;
@@ -178,6 +280,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     disposeRoom(code, maybeRoom);
   };
 
+  /**
+   * Handles a client's attempt to join a room and synchronizes state.
+   *
+   * @param raw - Untrusted payload emitted by the client.
+   * @param cb - Optional acknowledgement callback from Socket.IO.
+   */
   function handleJoinRoom(raw: unknown, cb?: (res: BasicResponse) => void) {
     const callback = normalizeCb(cb);
     const parsed = parseJoinRoom(raw);
@@ -362,7 +470,11 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   }
   socket.on('joinRoom', withContext(handleJoinRoom));
 
-  // leaveRoom event
+  /**
+   * Handles explicit leave notifications so the roster and session detach cleanly.
+   *
+   * @param raw - Untrusted payload emitted by the client.
+   */
   function handleLeaveRoom(raw: unknown) {
     const parsed = parseLeaveRoom(raw);
     if (!parsed) return;
@@ -428,7 +540,9 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   }
   socket.on('leaveRoom', withContext(handleLeaveRoom));
 
-  // chatMessage event
+  /**
+   * Forwards chat messages to all players in the originating room.
+   */
   socket.on(
     'chatMessage',
     withContext((raw: unknown) => {
@@ -447,7 +561,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
     }),
   );
 
-  // setPlayerSeated event
+  /**
+   * Updates a player's seating status and manages the automatic start countdown.
+   *
+   * @param raw - Untrusted payload emitted by the client.
+   * @param cb - Optional acknowledgement callback from Socket.IO.
+   */
   function handleSetPlayerSeated(
     raw: unknown,
     cb?: (res: BasicResponse) => void,
@@ -530,7 +649,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   }
   socket.on('setPlayerSeated', withContext(handleSetPlayerSeated));
 
-  // startGame event
+  /**
+   * Initiates a game for the specified room when the prerequisites are met.
+   *
+   * @param raw - Untrusted payload emitted by the client.
+   * @param cb - Optional acknowledgement callback from Socket.IO.
+   */
   function handleStartGame(raw: unknown, cb?: (res: BasicResponse) => void) {
     const callback = normalizeCb(cb);
     const parsed = parseStartGame(raw);
@@ -602,6 +726,11 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   }
   socket.on('startGame', withContext(handleStartGame));
 
+  /**
+   * Broadcasts typing previews for the active player during their turn.
+   *
+   * @param raw - Untrusted payload emitted by the client.
+   */
   function handlePlayerTyping(raw: unknown) {
     const parsed = parsePlayerTyping(raw);
     if (!parsed) return;
@@ -621,7 +750,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   }
   socket.on('playerTyping', withContext(handlePlayerTyping));
 
-  // submitWord event
+  /**
+   * Forwards submitted words to the game engine for validation and scoring.
+   *
+   * @param raw - Untrusted payload emitted by the client.
+   * @param cb - Optional acknowledgement callback from Socket.IO.
+   */
   function handleSubmitWord(raw: unknown, cb?: (res: BasicResponse) => void) {
     const callback = normalizeCb(cb);
     const parsed = parseSubmitWord(raw);
@@ -714,6 +848,12 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   }
   socket.on('submitWord', withContext(handleSubmitWord));
 
+  /**
+   * Persists leader-issued room rule changes and notifies subscribers.
+   *
+   * @param raw - Untrusted payload emitted by the client.
+   * @param cb - Optional acknowledgement callback from Socket.IO.
+   */
   function handleUpdateRoomRules(
     raw: unknown,
     cb?: (res: BasicResponse) => void,
@@ -796,7 +936,9 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
   }
   socket.on('updateRoomRules', withContext(handleUpdateRoomRules));
 
-  // disconnect event
+  /**
+   * Marks players as disconnected and schedules cleanup when their socket closes.
+   */
   socket.on(
     'disconnect',
     withContext(() => {
@@ -859,7 +1001,4 @@ export function registerRoomHandlers(io: TypedServer, socket: TypedSocket) {
       }
     }),
   );
-
-  // Enhance joinRoom to treat existing disconnected player as reconnect
-  // (Patch inserted near top of handler inside existing joinRoom listener)
 }
