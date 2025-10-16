@@ -12,15 +12,28 @@ const router: Router = Router();
 
 let roomCodeGenerator: RoomCodeGenerator = createRoomCodeGenerator();
 
+/**
+ * Overrides the global room code generator, primarily for deterministic testing.
+ *
+ * @param generator Replacement room code generator.
+ */
 export function setRoomCodeGenerator(generator: RoomCodeGenerator): void {
   roomCodeGenerator = generator;
 }
 
+/**
+ * Restores the default randomised room code generator implementation.
+ */
 export function resetRoomCodeGenerator(): void {
   roomCodeGenerator = createRoomCodeGenerator();
 }
 
 class RoomCodeAllocationError extends Error {
+  /**
+   * Creates a new allocation error with a descriptive message.
+   *
+   * @param message Explanation for why a room code could not be allocated.
+   */
   constructor(message: string) {
     super(message);
     this.name = 'RoomCodeAllocationError';
@@ -28,6 +41,15 @@ class RoomCodeAllocationError extends Error {
 }
 
 // POST /api/rooms
+/**
+ * Handles room creation requests issued via the REST API.
+ *
+ * Validates optional metadata, generates a unique room code, and persists
+ * the resulting room in the shared {@link roomManager}.
+ *
+ * @param req Express request containing JSON body with optional `name`.
+ * @param res Express response used to return the outcome.
+ */
 export function createRoomHandler(req: Request, res: Response): void {
   try {
     // Optional name provided by client
@@ -51,6 +73,12 @@ export function createRoomHandler(req: Request, res: Response): void {
 }
 
 // GET /api/rooms/:code
+/**
+ * Retrieves metadata about a room, responding with `404` when absent.
+ *
+ * @param req Express request containing the room `code` parameter.
+ * @param res Express response used to return the outcome.
+ */
 export function getRoomHandler(req: Request, res: Response): void {
   const { code } = req.params;
 
@@ -72,6 +100,14 @@ router.get('/:code', getRoomHandler);
 export default router;
 
 // Generate a room code (e.g. 4 uppercase letters)
+/**
+ * Ensures a unique room is created using the configured code generator.
+ *
+ * @param rules Default game rules applied to the new room.
+ * @param name Optional room name supplied by the client.
+ * @returns The unique room code assigned to the created room.
+ * @throws {RoomCodeAllocationError} When a unique code cannot be reserved.
+ */
 function createRoomWithUniqueCode(rules: GameRoomRules, name: string): string {
   const MAX_ATTEMPTS = 100;
   let attempts = 0;
@@ -100,6 +136,11 @@ function createRoomWithUniqueCode(rules: GameRoomRules, name: string): string {
   );
 }
 
+/**
+ * Produces the default game room rules payload supplied during creation.
+ *
+ * @returns Default {@link GameRoomRules} tuned for casual gameplay.
+ */
 function buildDefaultRoomRules(): GameRoomRules {
   const stats = getDictionaryStats();
   const fallback = isUsingFallbackDictionary();
