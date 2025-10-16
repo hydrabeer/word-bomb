@@ -97,7 +97,9 @@ describe('HomePage', () => {
   });
 
   it('alerts when the room does not exist', async () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const alertSpy = vi
+      .spyOn(window, 'alert')
+      .mockImplementation(() => undefined);
     mockValidateRoom.mockResolvedValueOnce({ exists: false });
 
     setup();
