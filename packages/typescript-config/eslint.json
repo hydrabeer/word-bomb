@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["../../eslint.config.ts", "../../apps/**/eslint.config.ts"]
+}

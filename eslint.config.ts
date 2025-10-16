@@ -1,31 +1,43 @@
-// @ts-check
-
+import { defineConfig } from 'eslint/config';
 import eslint from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
+import importX from 'eslint-plugin-import-x';
+import { createRequire } from 'node:module';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import tseslint from 'typescript-eslint';
 import vitest from '@vitest/eslint-plugin';
-import importX from 'eslint-plugin-import-x';
 
-/** Single source of truth for test globs */
+const require = createRequire(import.meta.url);
+const tsconfigPath = require.resolve(
+  '@word-bomb/typescript-config/eslint.json',
+);
+process.env.ESLINT_TSCONFIG ??= tsconfigPath;
+
 const TEST_GLOBS = [
   '**/*.{test,spec}.ts',
   '**/*.{test,spec}.tsx',
   'apps/backend/test/**/*.ts',
-];
+] as const;
 
-export default tseslint.config(
+const tsconfigRootDir = dirname(fileURLToPath(import.meta.url));
+
+const importXPlugin = importX as any;
+const vitestPlugin = vitest as any;
+
+export default defineConfig([
   // 1) Base JS rules
   eslint.configs.recommended,
 
   // 2) TypeScript strict presets (type-aware)
-  tseslint.configs.strictTypeChecked,
-  tseslint.configs.stylisticTypeChecked,
+  ...tseslint.configs.strictTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
 
   // 3) Source files: type-aware + monorepo import hygiene
   {
     files: ['**/*.ts', '**/*.tsx'],
     ignores: [
-      ...TEST_GLOBS, // tests handled below
+      ...TEST_GLOBS,
       '**/vitest.config.*',
       '**/vite.config.*',
       '**/eslint.config.*',
@@ -33,8 +45,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: true,
-        // allowDefaultProject defaults to false with projectService=true
-        tsconfigRootDir: import.meta.dirname,
+        tsconfigRootDir,
         project: [
           './apps/backend/tsconfig.json',
           './apps/frontend/tsconfig.json',
@@ -43,9 +54,8 @@ export default tseslint.config(
         ],
       },
     },
-    plugins: { 'import-x': importX },
+    plugins: { 'import-x': importXPlugin },
     rules: {
-      // Monorepo/module rules (not provided by TS/ESLint packs)
       'import-x/no-self-import': 'error',
       'import-x/no-relative-packages': 'error',
       'import-x/no-cycle': ['error', { maxDepth: 6 }],
@@ -66,22 +76,16 @@ export default tseslint.config(
 
   // 4) Tests: non type-aware + Vitest rules/globals
   {
-    files: TEST_GLOBS,
+    files: [...TEST_GLOBS],
     languageOptions: {
       parserOptions: { projectService: false },
       globals: vitest.environments.env.globals,
     },
-    plugins: { vitest },
+    plugins: { vitest: vitestPlugin },
     rules: {
-      // Drop all type-aware rules and their noise in tests
       ...tseslint.configs.disableTypeChecked.rules,
-
-      // Vitest recommendations
       ...vitest.configs.recommended.rules,
-
-      // Practical loosening in tests
       '@typescript-eslint/no-explicit-any': 'off',
-      // (unsafe-* are already off via disableTypeChecked)
     },
   },
 
@@ -100,4 +104,4 @@ export default tseslint.config(
 
   // 6) Prettier last to disable stylistic conflicts
   eslintConfigPrettier,
-);
+]);

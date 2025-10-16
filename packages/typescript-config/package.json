@@ -10,6 +10,7 @@
     "./base.json": "./base.json",
     "./node-lib.json": "./node-lib.json",
     "./node-app.json": "./node-app.json",
-    "./react-app.json": "./react-app.json"
+    "./react-app.json": "./react-app.json",
+    "./eslint.json": "./eslint.json"
   }
 }
