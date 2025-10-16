@@ -116,23 +116,67 @@ describe('Chat component', () => {
       <Chat
         roomCode="ABCD"
         showStats
-        stats={{
-          username: 'Alice',
-          totalWords: 5,
-          averageWpm: 150.4,
-          averageReactionSeconds: 1.234,
-          longWords: 1,
-          accuracyStreak: 3,
-          hyphenatedWords: 2,
-        }}
+        stats={[
+          {
+            playerId: 'p1',
+            username: 'Alice',
+            totalWords: 5,
+            averageWpm: 150.4,
+            averageReactionSeconds: 1.234,
+            longWords: 1,
+            accuracyStreak: 3,
+            hyphenatedWords: 2,
+          },
+          {
+            playerId: 'p2',
+            username: 'Bob',
+            totalWords: 2,
+            averageWpm: 90.12,
+            averageReactionSeconds: 2,
+            longWords: 0,
+            accuracyStreak: 1,
+            hyphenatedWords: 0,
+          },
+        ]}
       />,
     );
 
     expect(screen.getByText('Usr')).toBeInTheDocument();
     expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText('Bob')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getByText('150')).toBeInTheDocument();
     expect(screen.getByText('1.23 s')).toBeInTheDocument();
+    expect(screen.getByText('90.1')).toBeInTheDocument();
+  });
+
+  it('falls back to Unknown when usernames are blank', () => {
+    render(
+      <Chat
+        roomCode="ABCD"
+        showStats
+        stats={[
+          {
+            playerId: 'p1',
+            username: '   ',
+            totalWords: 2,
+            averageWpm: 110,
+            averageReactionSeconds: 1.2,
+            longWords: 0,
+            accuracyStreak: 2,
+            hyphenatedWords: 0,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Unknown')).toBeInTheDocument();
+  });
+
+  it('omits stats table when list is empty', () => {
+    render(<Chat roomCode="ABCD" showStats stats={[]} />);
+
+    expect(screen.queryByText('Usr')).not.toBeInTheDocument();
   });
 
   it('hides stats table when disabled', () => {
@@ -140,15 +184,18 @@ describe('Chat component', () => {
       <Chat
         roomCode="ABCD"
         showStats={false}
-        stats={{
-          username: 'Alice',
-          totalWords: 5,
-          averageWpm: 80,
-          averageReactionSeconds: 1.5,
-          longWords: 2,
-          accuracyStreak: 1,
-          hyphenatedWords: 0,
-        }}
+        stats={[
+          {
+            playerId: 'p1',
+            username: 'Alice',
+            totalWords: 5,
+            averageWpm: 80,
+            averageReactionSeconds: 1.5,
+            longWords: 2,
+            accuracyStreak: 1,
+            hyphenatedWords: 0,
+          },
+        ]}
       />,
     );
 
@@ -160,15 +207,18 @@ describe('Chat component', () => {
       <Chat
         roomCode="ABCD"
         showStats
-        stats={{
-          username: 'Alice',
-          totalWords: 0,
-          averageWpm: null,
-          averageReactionSeconds: null,
-          longWords: 0,
-          accuracyStreak: 0,
-          hyphenatedWords: 0,
-        }}
+        stats={[
+          {
+            playerId: 'p1',
+            username: 'Alice',
+            totalWords: 0,
+            averageWpm: null,
+            averageReactionSeconds: null,
+            longWords: 0,
+            accuracyStreak: 0,
+            hyphenatedWords: 0,
+          },
+        ]}
       />,
     );
 
@@ -184,15 +234,18 @@ describe('Chat component', () => {
       <Chat
         roomCode="ABCD"
         showStats
-        stats={{
-          username: 'Alice',
-          totalWords: 4,
-          averageWpm: 75.28,
-          averageReactionSeconds: 0.5,
-          longWords: Number.NaN,
-          accuracyStreak: 2,
-          hyphenatedWords: 1,
-        }}
+        stats={[
+          {
+            playerId: 'p1',
+            username: 'Alice',
+            totalWords: 4,
+            averageWpm: 75.28,
+            averageReactionSeconds: 0.5,
+            longWords: Number.NaN,
+            accuracyStreak: 2,
+            hyphenatedWords: 1,
+          },
+        ]}
       />,
     );
 

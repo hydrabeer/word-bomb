@@ -18,15 +18,18 @@ let mockPlayerId = 'p1';
 const mockMe = { id: 'p1', name: 'Alice', isSeated: false };
 let mockRejected = false;
 const setInputWordMock = vi.fn();
-let mockPlayerStats: PlayerStatsSnapshot = {
-  username: 'Alice',
-  totalWords: 0,
-  averageWpm: null,
-  averageReactionSeconds: null,
-  longWords: 0,
-  accuracyStreak: 0,
-  hyphenatedWords: 0,
-};
+let mockPlayerStats: PlayerStatsSnapshot[] = [
+  {
+    playerId: 'p1',
+    username: 'Alice',
+    totalWords: 0,
+    averageWpm: null,
+    averageReactionSeconds: null,
+    longWords: 0,
+    accuracyStreak: 0,
+    hyphenatedWords: 0,
+  },
+];
 const toggleSeatedMock = vi.fn();
 const startGameMock = vi.fn();
 const registerRejectionMock = vi.fn();
@@ -171,15 +174,18 @@ describe('RoomPage (fast)', () => {
     mockLeaderId = null;
     mockPlayerId = 'p1';
     mockRejected = false;
-    mockPlayerStats = {
-      username: 'Alice',
-      totalWords: 0,
-      averageWpm: null,
-      averageReactionSeconds: null,
-      longWords: 0,
-      accuracyStreak: 0,
-      hyphenatedWords: 0,
-    };
+    mockPlayerStats = [
+      {
+        playerId: 'p1',
+        username: 'Alice',
+        totalWords: 0,
+        averageWpm: null,
+        averageReactionSeconds: null,
+        longWords: 0,
+        accuracyStreak: 0,
+        hyphenatedWords: 0,
+      },
+    ];
     mockUseGameStateReturn = baseState;
     lastGameBoardProps = null;
     registerRejectionMock.mockReset();
@@ -283,15 +289,18 @@ describe('RoomPage (fast)', () => {
   });
 
   it('passes stats into the desktop chat with showStats enabled', () => {
-    mockPlayerStats = {
-      username: 'Alice',
-      totalWords: 5,
-      averageWpm: 120,
-      averageReactionSeconds: 1,
-      longWords: 2,
-      accuracyStreak: 3,
-      hyphenatedWords: 1,
-    };
+    mockPlayerStats = [
+      {
+        playerId: 'p1',
+        username: 'Alice',
+        totalWords: 5,
+        averageWpm: 120,
+        averageReactionSeconds: 1,
+        longWords: 2,
+        accuracyStreak: 3,
+        hyphenatedWords: 1,
+      },
+    ];
 
     renderWithRoute();
 

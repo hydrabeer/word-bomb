@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Show chat stats for every player in the room so the desktop sidebar highlights all competitors instead of only the local user.
+
 ### Fixed
 
 - Prevent duplicate socket broadcasts so player accuracy streak increments correctly instead of skipping values. (Fixes [#50](https://github.com/hydrabeer/word-bomb/issues/50))

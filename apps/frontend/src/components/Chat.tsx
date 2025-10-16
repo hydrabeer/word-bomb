@@ -24,7 +24,7 @@ interface ChatProps {
   headingId?: string; // used to link region to heading for a11y
   autoFocus?: boolean; // when true, focus textarea
   regionRole?: 'complementary' | 'region'; // default complementary
-  stats?: PlayerStatsSnapshot | null;
+  stats?: PlayerStatsSnapshot[] | null;
   showStats?: boolean;
 }
 
@@ -50,17 +50,12 @@ export default function Chat({
   );
 
   const resolvedStats = useMemo(() => {
-    if (!showStats || !stats) return null;
-    return {
-      username: stats.username || currentUsername,
-      totalWords: stats.totalWords,
-      averageWpm: stats.averageWpm,
-      averageReactionSeconds: stats.averageReactionSeconds,
-      longWords: stats.longWords,
-      accuracyStreak: stats.accuracyStreak,
-      hyphenatedWords: stats.hyphenatedWords,
-    };
-  }, [showStats, stats, currentUsername]);
+    if (!showStats || !stats || stats.length === 0) return [];
+    return stats.map((entry) => ({
+      ...entry,
+      username: entry.username?.trim() ? entry.username : 'Unknown',
+    }));
+  }, [showStats, stats]);
 
   const formatCount = useCallback((value: number | undefined | null) => {
     if (typeof value !== 'number' || Number.isNaN(value)) return '0';
@@ -166,7 +161,7 @@ export default function Chat({
         </h3>
       </div>
 
-      {resolvedStats && (
+      {resolvedStats.length > 0 && (
         <div className="hidden border-b border-white/10 bg-white/5 px-4 py-3 text-sm text-indigo-100 backdrop-blur-sm md:block">
           <table className="w-full table-fixed">
             <thead>
@@ -230,29 +225,31 @@ export default function Chat({
               </tr>
             </thead>
             <tbody>
-              <tr className="text-[13px] text-white">
-                <td className="py-1 pr-2 font-medium text-white">
-                  {resolvedStats.username}
-                </td>
-                <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
-                  {formatCount(resolvedStats.totalWords)}
-                </td>
-                <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
-                  {formatWpm(resolvedStats.averageWpm)}
-                </td>
-                <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
-                  {formatReaction(resolvedStats.averageReactionSeconds)}
-                </td>
-                <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
-                  {formatCount(resolvedStats.longWords)}
-                </td>
-                <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
-                  {formatCount(resolvedStats.accuracyStreak)}
-                </td>
-                <td className="py-1 text-right font-semibold text-indigo-50">
-                  {formatCount(resolvedStats.hyphenatedWords)}
-                </td>
-              </tr>
+              {resolvedStats.map((player) => (
+                <tr key={player.playerId} className="text-[13px] text-white">
+                  <td className="py-1 pr-2 font-medium text-white">
+                    {player.username}
+                  </td>
+                  <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
+                    {formatCount(player.totalWords)}
+                  </td>
+                  <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
+                    {formatWpm(player.averageWpm)}
+                  </td>
+                  <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
+                    {formatReaction(player.averageReactionSeconds)}
+                  </td>
+                  <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
+                    {formatCount(player.longWords)}
+                  </td>
+                  <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
+                    {formatCount(player.accuracyStreak)}
+                  </td>
+                  <td className="py-1 text-right font-semibold text-indigo-50">
+                    {formatCount(player.hyphenatedWords)}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
