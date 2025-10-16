@@ -48,7 +48,7 @@ describe('useWordSubmission', () => {
     vi.useFakeTimers();
   });
 
-  it('emits submitWord with optimistic clear and handles rejection ack', () => {
+  it('emits submitWord with optimistic clear and restores input on rejection', () => {
     const { result } = renderHook(() => useWordSubmission('ROOM', 'p1'));
 
     act(() => {
@@ -72,10 +72,34 @@ describe('useWordSubmission', () => {
       vi.advanceTimersByTime(10);
     });
     expect(result.current.rejected).toBe(true);
+    expect(result.current.inputWord).toBe('apple');
 
     act(() => {
       vi.advanceTimersByTime(400);
     });
     expect(result.current.rejected).toBe(false);
+  });
+
+  it('keeps input cleared when submission succeeds', () => {
+    const { result } = renderHook(() => useWordSubmission('ROOM', 'p1'));
+
+    act(() => {
+      result.current.setInputWord('banana');
+    });
+    act(() => {
+      result.current.handleSubmitWord();
+    });
+
+    const emitted = __getEmitted();
+    const payload = emitted[emitted.length - 1][1];
+
+    act(() => {
+      __emitServer('actionAck', {
+        clientActionId: payload.clientActionId,
+        success: true,
+      });
+    });
+
+    expect(result.current.inputWord).toBe('');
   });
 });

@@ -7,21 +7,25 @@ export function useWordSubmission(roomCode: string, playerId: string) {
   const [inputWord, setInputWord] = useState('');
   const [rejected, setRejected] = useState(false);
 
-  // Track pending optimistic actions
-  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  // Track pending optimistic actions along with the submitted word
+  const [pendingSubmissions, setPendingSubmissions] = useState<
+    Map<string, string>
+  >(() => new Map());
 
   useEffect(() => {
     function handleAck(raw: unknown) {
       const parsed = parseActionAck(raw);
       if (!parsed) return;
       const { clientActionId, success } = parsed;
-      if (!pendingIds.has(clientActionId)) return;
-      setPendingIds((prev) => {
-        const next = new Set(prev);
+      const submittedWord = pendingSubmissions.get(clientActionId);
+      if (!submittedWord) return;
+      setPendingSubmissions((prev) => {
+        const next = new Map(prev);
         next.delete(clientActionId);
         return next;
       });
       if (!success) {
+        setInputWord((prev) => (prev ? prev : submittedWord));
         setRejected(true);
         setTimeout(() => {
           setRejected(false);
@@ -32,12 +36,17 @@ export function useWordSubmission(roomCode: string, playerId: string) {
     return () => {
       socket.off('actionAck', handleAck);
     };
-  }, [pendingIds]);
+  }, [pendingSubmissions]);
 
   const handleSubmitWord = useCallback(() => {
     if (!inputWord.trim()) return;
     const clientActionId = `submit-${String(Date.now())}-${Math.random().toString(36).slice(2)}`;
-    setPendingIds((prev) => new Set(prev).add(clientActionId));
+    const submittedWord = inputWord;
+    setPendingSubmissions((prev) => {
+      const next = new Map(prev);
+      next.set(clientActionId, submittedWord);
+      return next;
+    });
     // Optimistic clear
     setInputWord('');
     socket.emit('submitWord', {
@@ -52,7 +61,7 @@ export function useWordSubmission(roomCode: string, playerId: string) {
     inputWord,
     setInputWord,
     rejected,
-    isPending: pendingIds.size > 0,
+    isPending: pendingSubmissions.size > 0,
     handleSubmitWord,
   };
 }
