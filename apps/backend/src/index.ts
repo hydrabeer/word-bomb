@@ -1,8 +1,16 @@
+/**
+ * @packageDocumentation
+ * Entrypoint for the backend service that wires together Express HTTP routes,
+ * Socket.IO realtime communication, and graceful shutdown handling.
+ */
+
 import express, {
   type Application,
   type Request,
   type Response,
 } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
 import {
   createServer,
   type IncomingMessage,
@@ -11,16 +19,13 @@ import {
 } from 'http';
 import { randomUUID } from 'node:crypto';
 import { Server } from 'socket.io';
-import cors from 'cors';
-import helmet from 'helmet';
-import roomsRouter from './routes/rooms';
-import { registerRoomHandlers } from './socket/roomHandlers';
-import { loadDictionary, getDictionaryStats } from './dictionary';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
   SocketData,
 } from '@word-bomb/types/socket';
+import { loadDictionary, getDictionaryStats } from './dictionary';
+import { shutdownEngines } from './game/engineRegistry';
 import { createLogger } from './logging';
 import {
   getLogContext,
@@ -29,60 +34,97 @@ import {
   runWithContext,
   withLogContext,
 } from './logging/context';
+import roomsRouter from './routes/rooms';
+import { registerRoomHandlers } from './socket/roomHandlers';
+
+const SHUTDOWN_FORCE_EXIT_TIMEOUT_MS = 5000;
+const DEFAULT_PORT = 3001;
+const FRONTEND_ORIGIN = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+/** Prefix used for Socket.IO rooms that back active games. */
+const GAME_ROOM_PREFIX = 'room:';
+
+type HttpServer = ReturnType<typeof createServer>;
+type IoServer = Server<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  never,
+  SocketData
+>;
+type NamespaceAdapter = ReturnType<IoServer['of']>['adapter'];
+
+/** Shared helmet configuration to enforce consistent security headers. */
+const helmetOptions: Parameters<typeof helmet>[0] = {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", FRONTEND_ORIGIN],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+  crossOriginOpenerPolicy: { policy: 'same-origin' },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  frameguard: { action: 'deny' },
+};
 
 const rootLogger = createLogger('backend');
 initializeLoggerContext(rootLogger);
 
-const FRONTEND_ORIGIN = process.env.FRONTEND_URL ?? 'http://localhost:5173';
-const SHUTDOWN_FORCE_EXIT_TIMEOUT_MS = 5000;
-const DEFAULT_PORT = 3001;
-
-const app: Application = express();
-// Use helmet to set security headers
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        connectSrc: ["'self'", FRONTEND_ORIGIN],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        objectSrc: ["'none'"],
-        baseUri: ["'self'"],
-        frameAncestors: ["'none'"],
-      },
-    },
-    crossOriginOpenerPolicy: { policy: 'same-origin' },
-    hsts: {
-      maxAge: 31536000, // 1 year
-      includeSubDomains: true,
-      preload: true,
-    },
-    frameguard: { action: 'deny' }, // X-Frame-Options: DENY
-  }),
-);
-app.use(cors());
-
-// Sets up an API endpoint for creating and joining rooms
-app.use(express.json());
-app.use('/api/rooms', roomsRouter);
-
-// Lightweight health and readiness endpoints
+/**
+ * Express handler that reports basic service health for Kubernetes-style probes.
+ *
+ * @param _req - Incoming HTTP request (ignored).
+ * @param res - HTTP response used to send the `200 OK` signal.
+ */
 export const healthHandler = (_req: Request, res: Response) => {
   res.status(200).send('ok');
 };
 
+/**
+ * Express handler that surfaces dictionary readiness information for load balancers.
+ *
+ * @param _req - Incoming HTTP request (ignored).
+ * @param res - HTTP response that receives readiness metadata.
+ */
 export const readyHandler = (_req: Request, res: Response) => {
   const stats = getDictionaryStats();
   const ready = stats.wordCount > 0 && stats.fragmentCount > 0;
   res.status(ready ? 200 : 503).json({ ready, ...stats });
 };
 
-app.get('/healthz', healthHandler);
-app.get('/readyz', readyHandler);
+/**
+ * Builds and configures the Express application with security headers and HTTP routes.
+ *
+ * @returns A fully configured Express application instance.
+ */
+function createApp(): Application {
+  const expressApp = express();
+  expressApp.use(helmet(helmetOptions));
+  expressApp.use(cors());
+  expressApp.use(express.json());
+  expressApp.use('/api/rooms', roomsRouter);
+  expressApp.get('/healthz', healthHandler);
+  expressApp.get('/readyz', readyHandler);
+  return expressApp;
+}
+
+const app: Application = createApp();
 
 // Adapter: Express app signature is (req, res, next). Node's createServer expects (req, res).
 // Provide a no-op next function so the handler satisfies both signatures.
+/**
+ * Bridges the Express application into Node's bare HTTP server by providing a `RequestListener`.
+ *
+ * @param req - Incoming HTTP request emitted by Node's HTTP server.
+ * @param res - HTTP response object that Express will write to.
+ */
 export const nodeHandler: RequestListener = (
   req: IncomingMessage,
   res: ServerResponse,
@@ -100,23 +142,13 @@ export const nodeHandler: RequestListener = (
 };
 const server = createServer(nodeHandler);
 
-// Sets up the Socket.IO server. CORS (Cross-Origin Resource Sharing) just
-// lets our backend and our frontend talk to each other from different domains
-const io = new Server<
-  ClientToServerEvents,
-  ServerToClientEvents,
-  never,
-  SocketData
->(server, {
-  cors: {
-    origin: FRONTEND_ORIGIN,
-    methods: ['GET', 'POST'],
-  },
-});
+createSocketServer(server);
 
 /**
- * Loads the dictionary for validating word submissions and make the server
- * listen on the given port.
+ * Loads the dictionary assets, binds the HTTP server, and announces readiness via logging.
+ *
+ * @param port - Desired port number or string representation supplied via configuration.
+ * @returns A promise that resolves when the HTTP server finishes binding its port.
  */
 async function start(port: string | number) {
   const log = getLogger();
@@ -188,6 +220,111 @@ async function start(port: string | number) {
   });
 }
 
+/**
+ * Creates and configures the Socket.IO server atop the existing HTTP transport.
+ *
+ * @param httpServer - Node HTTP server that will upgrade connections for Socket.IO.
+ * @returns A fully wired Socket.IO server instance.
+ */
+function createSocketServer(httpServer: HttpServer): IoServer {
+  const socketServer: IoServer = new Server(httpServer, {
+    cors: {
+      origin: FRONTEND_ORIGIN,
+      methods: ['GET', 'POST'],
+    },
+  });
+
+  registerSocketConnectionHandlers(socketServer);
+  registerNamespaceLogging(socketServer.of('/').adapter);
+
+  return socketServer;
+}
+
+/**
+ * Wires connection lifecycle logging and room handlers for new Socket.IO clients.
+ *
+ * @param socketServer - Socket.IO server used to listen for connections.
+ */
+function registerSocketConnectionHandlers(socketServer: IoServer): void {
+  socketServer.on('connection', (socket) => {
+    const connId = randomUUID();
+    withLogContext({ connId }, () => {
+      const connectionContext = getLogContext();
+      const connectionLogger = getLogger();
+      connectionLogger.info(
+        {
+          event: 'socket_connected',
+          socketId: socket.id,
+          namespace: socket.nsp.name,
+          transport: socket.conn.transport.name,
+          address: socket.handshake.address,
+        },
+        'Socket connected',
+      );
+
+      registerRoomHandlers(socketServer, socket);
+
+      socket.once('disconnect', (reason) => {
+        runWithContext(connectionContext, () => {
+          const log = getLogger();
+          log.info(
+            { event: 'socket_disconnected', socketId: socket.id, reason },
+            'Socket disconnected',
+          );
+        });
+      });
+    });
+  });
+}
+
+/**
+ * Adds adapter-level logging so server operators can observe room churn.
+ *
+ * @param adapter - Namespace adapter that exposes room lifecycle events.
+ */
+function registerNamespaceLogging(adapter: NamespaceAdapter): void {
+  adapter.on('create-room', (room: string) => {
+    if (!isGameRoom(room)) return;
+    getLogger().debug(
+      { event: 'adapter_room_created', room, namespace: '/' },
+      'Socket.IO room created',
+    );
+  });
+
+  adapter.on('delete-room', (room: string) => {
+    if (!isGameRoom(room)) return;
+    getLogger().debug(
+      { event: 'adapter_room_deleted', room, namespace: '/' },
+      'Socket.IO room deleted',
+    );
+  });
+
+  adapter.on('join-room', (room: string, id: string) => {
+    if (!isGameRoom(room)) return;
+    getLogger().debug(
+      { event: 'adapter_room_joined', room, socketId: id, namespace: '/' },
+      'Socket joined room',
+    );
+  });
+
+  adapter.on('leave-room', (room: string, id: string) => {
+    if (!isGameRoom(room)) return;
+    getLogger().debug(
+      { event: 'adapter_room_left', room, socketId: id, namespace: '/' },
+      'Socket left room',
+    );
+  });
+}
+
+/**
+ * Determines whether a Socket.IO room name belongs to the game namespace.
+ *
+ * @param room - Room identifier emitted by the adapter.
+ */
+function isGameRoom(room: string): boolean {
+  return room.startsWith(GAME_ROOM_PREFIX);
+}
+
 // Production: use environment variable; Dev: use 3001
 const PORT = process.env.PORT ?? DEFAULT_PORT;
 const portNumber = typeof PORT === 'string' ? Number(PORT) : PORT;
@@ -211,75 +348,11 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
-// When a client connects
-io.on('connection', (socket) => {
-  const connId = randomUUID();
-  withLogContext({ connId }, () => {
-    const connectionContext = getLogContext();
-    const connectionLogger = getLogger();
-    connectionLogger.info(
-      {
-        event: 'socket_connected',
-        socketId: socket.id,
-        namespace: socket.nsp.name,
-        transport: socket.conn.transport.name,
-        address: socket.handshake.address,
-      },
-      'Socket connected',
-    );
-
-    registerRoomHandlers(io, socket);
-
-    socket.once('disconnect', (reason) => {
-      runWithContext(connectionContext, () => {
-        const log = getLogger();
-        log.info(
-          { event: 'socket_disconnected', socketId: socket.id, reason },
-          'Socket disconnected',
-        );
-      });
-    });
-  });
-});
-
-// Log basic socket events in the main namespace
-const defaultNamespaceAdapter = io.of('/').adapter;
-
-defaultNamespaceAdapter.on('create-room', (room: string) => {
-  if (!room.startsWith('room:')) return;
-  getLogger().debug(
-    { event: 'adapter_room_created', room, namespace: '/' },
-    'Socket.IO room created',
-  );
-});
-
-defaultNamespaceAdapter.on('delete-room', (room: string) => {
-  if (!room.startsWith('room:')) return;
-  getLogger().debug(
-    { event: 'adapter_room_deleted', room, namespace: '/' },
-    'Socket.IO room deleted',
-  );
-});
-
-defaultNamespaceAdapter.on('join-room', (room: string, id: string) => {
-  if (!room.startsWith('room:')) return;
-  getLogger().debug(
-    { event: 'adapter_room_joined', room, socketId: id, namespace: '/' },
-    'Socket joined room',
-  );
-});
-
-defaultNamespaceAdapter.on('leave-room', (room: string, id: string) => {
-  if (!room.startsWith('room:')) return;
-  getLogger().debug(
-    { event: 'adapter_room_left', room, socketId: id, namespace: '/' },
-    'Socket left room',
-  );
-});
-
-// Graceful shutdown: close server and clear game engine timers so process exits fast
-import { shutdownEngines } from './game/engineRegistry';
-
+/**
+ * Handles operating system shutdown signals and coordinates a graceful server stop.
+ *
+ * @param signal - The POSIX signal that triggered the shutdown workflow.
+ */
 function shutdown(signal: NodeJS.Signals) {
   const log = getLogger();
   log.warn({ event: 'shutdown_signal', signal }, 'Received shutdown signal');
