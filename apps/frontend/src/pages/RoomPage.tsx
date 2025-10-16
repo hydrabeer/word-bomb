@@ -6,6 +6,7 @@ import {
   FaChevronUp,
   FaChevronDown,
   FaLink,
+  FaHome,
 } from 'react-icons/fa';
 import Chat from '../components/Chat';
 import { useGameRoom } from '../hooks/useGameRoom';
@@ -169,6 +170,10 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
     [updateRoomRules],
   );
 
+  const handleNavigateHome = useCallback(() => {
+    navigate('/');
+  }, [navigate]);
+
   const formattedElapsed = formatDurationSeconds(elapsedGameTime);
   const localGamePlayer =
     gameState?.players.find((player) => player.id === playerId) ?? null;
@@ -279,6 +284,16 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleNavigateHome}
+              className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              title="Go to home"
+              aria-label="Go to home"
+            >
+              <FaChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Home</span>
+            </button>
             <button
               onClick={() => {
                 setInviteCopied(true);
@@ -589,6 +604,16 @@ export default function RoomPage({ roomName }: { roomName?: string }) {
 
         {/* Copy invite link */}
         <div className="flex translate-y-1 items-center gap-3">
+          <button
+            type="button"
+            onClick={handleNavigateHome}
+            className="flex h-9 items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
+            aria-label="Go to home"
+            title="Go to home"
+          >
+            <FaHome className="h-4 w-4 text-white/80" aria-hidden="true" />
+            Home
+          </button>
           <button
             onClick={() => {
               setInviteCopied(true);
