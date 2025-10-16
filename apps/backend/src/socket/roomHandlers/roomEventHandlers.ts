@@ -32,6 +32,9 @@ function normalizeAck(cb: unknown): (res: BasicResponse) => void {
   return typeof cb === 'function' ? (cb as (res: BasicResponse) => void) : noop;
 }
 
+/**
+ * Contract for every room-scoped Socket.IO handler bound to an individual client.
+ */
 export interface RoomEventHandlers {
   readonly joinRoom: (raw: unknown, cb?: (res: BasicResponse) => void) => void;
   readonly leaveRoom: (raw: unknown) => void;

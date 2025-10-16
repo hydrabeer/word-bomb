@@ -27,44 +27,68 @@ const parseRoomAndPlayer = (raw: unknown): RoomPlayerContext | null => {
 };
 
 export interface JoinRoomParsed {
+  /** Lobby identifier supplied by the client. */
   roomCode: string;
+  /** Unique player identifier scoped to the room. */
   playerId: string;
+  /** Display name requested by the player. */
   name: string;
 }
 
 export interface LeaveRoomParsed {
+  /** Lobby identifier supplied by the client. */
   roomCode: string;
+  /** Unique player identifier scoped to the room. */
   playerId: string;
 }
 
 export interface SetPlayerSeatedParsed {
+  /** Lobby identifier supplied by the client. */
   roomCode: string;
+  /** Unique player identifier scoped to the room. */
   playerId: string;
+  /** Whether the player intends to participate in the next game. */
   seated: boolean;
 }
 
 export interface StartGameParsed {
+  /** Lobby identifier supplied by the client. */
   roomCode: string;
 }
 
 export interface PlayerTypingParsed {
+  /** Lobby identifier supplied by the client. */
   roomCode: string;
+  /** Unique player identifier scoped to the room. */
   playerId: string;
+  /** Current input contents provided by the player. */
   input: string;
 }
 
 export interface SubmitWordParsed {
+  /** Lobby identifier supplied by the client. */
   roomCode: string;
+  /** Unique player identifier scoped to the room. */
   playerId: string;
+  /** Word submitted for validation. */
   word: string;
+  /** Optional identifier used by the client to correlate the acknowledgement. */
   clientActionId?: string;
 }
 
 export interface UpdateRoomRulesParsed {
+  /** Lobby identifier supplied by the client. */
   roomCode: string;
+  /** Arbitrary rule payload provided by the caller. */
   rules: unknown;
 }
 
+/**
+ * Parses the payload for a `joinRoom` event emitted by the client.
+ *
+ * @param raw - Untrusted event payload supplied by Socket.IO.
+ * @returns Structured join payload or `null` when invalid.
+ */
 export const parseJoinRoom = (raw: unknown): JoinRoomParsed | null => {
   const parsed = parseRoomAndPlayer(raw);
   if (!parsed) return null;
@@ -76,6 +100,12 @@ export const parseJoinRoom = (raw: unknown): JoinRoomParsed | null => {
   };
 };
 
+/**
+ * Parses the payload for a `leaveRoom` event emitted by the client.
+ *
+ * @param raw - Untrusted event payload supplied by Socket.IO.
+ * @returns Structured leave payload or `null` when invalid.
+ */
 export const parseLeaveRoom = (raw: unknown): LeaveRoomParsed | null => {
   const parsed = parseRoomAndPlayer(raw);
   return parsed
@@ -83,6 +113,12 @@ export const parseLeaveRoom = (raw: unknown): LeaveRoomParsed | null => {
     : null;
 };
 
+/**
+ * Parses the payload for a `setPlayerSeated` event emitted by the client.
+ *
+ * @param raw - Untrusted event payload supplied by Socket.IO.
+ * @returns Structured seating payload or `null` when invalid.
+ */
 export const parseSetPlayerSeated = (
   raw: unknown,
 ): SetPlayerSeatedParsed | null => {
@@ -95,12 +131,24 @@ export const parseSetPlayerSeated = (
   };
 };
 
+/**
+ * Parses the payload for a `startGame` event emitted by the client.
+ *
+ * @param raw - Untrusted event payload supplied by Socket.IO.
+ * @returns Structured start-game payload or `null` when invalid.
+ */
 export const parseStartGame = (raw: unknown): StartGameParsed | null => {
   const parsed = parseRoomContext(raw);
   if (!parsed) return null;
   return { roomCode: parsed.roomCode };
 };
 
+/**
+ * Parses the payload for a `playerTyping` event emitted by the client.
+ *
+ * @param raw - Untrusted event payload supplied by Socket.IO.
+ * @returns Structured typing payload or `null` when invalid.
+ */
 export const parsePlayerTyping = (raw: unknown): PlayerTypingParsed | null => {
   const parsed = parseRoomAndPlayer(raw);
   if (!parsed) return null;
@@ -112,6 +160,12 @@ export const parsePlayerTyping = (raw: unknown): PlayerTypingParsed | null => {
   };
 };
 
+/**
+ * Parses the payload for a `submitWord` event emitted by the client.
+ *
+ * @param raw - Untrusted event payload supplied by Socket.IO.
+ * @returns Structured word submission payload or `null` when invalid.
+ */
 export const parseSubmitWord = (raw: unknown): SubmitWordParsed | null => {
   const parsed = parseRoomAndPlayer(raw);
   if (!parsed) return null;
@@ -127,6 +181,12 @@ export const parseSubmitWord = (raw: unknown): SubmitWordParsed | null => {
   };
 };
 
+/**
+ * Parses the payload for an `updateRoomRules` event emitted by the client.
+ *
+ * @param raw - Untrusted event payload supplied by Socket.IO.
+ * @returns Structured room rule payload or `null` when invalid.
+ */
 export const parseUpdateRoomRules = (
   raw: unknown,
 ): UpdateRoomRulesParsed | null => {
