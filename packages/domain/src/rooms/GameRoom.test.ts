@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { GameRoom } from './GameRoom';
+import { GameRoom, normalizeRoomVisibility } from './GameRoom';
 import type { GameRoomRules } from './GameRoomRules';
 import { randomUUID } from 'crypto';
 import { PlayerProps, PlayerSchema } from '../players/Player';
@@ -46,6 +46,18 @@ describe('GameRoom', () => {
       visibility: 'public',
     });
     expect(publicRoom.visibility).toBe('public');
+  });
+
+  it('normalizes unexpected casing during construction', () => {
+    const loudRoom = new GameRoom(
+      { code: 'LOUD' },
+      mockRules,
+      {
+        visibility: 'PUBLIC' as unknown as 'public',
+      },
+    );
+
+    expect(loudRoom.visibility).toBe('public');
   });
 
   it('adds a player and assigns leader if first', () => {
@@ -269,5 +281,23 @@ describe('GameRoom', () => {
     expect(callback).not.toHaveBeenCalled();
 
     vi.useRealTimers();
+  });
+});
+
+describe('normalizeRoomVisibility', () => {
+  it('returns fallback for non-string values', () => {
+    expect(normalizeRoomVisibility(undefined)).toBe('private');
+    expect(normalizeRoomVisibility(42, 'public')).toBe('public');
+  });
+
+  it('honours valid visibility values regardless of casing or whitespace', () => {
+    expect(normalizeRoomVisibility(' PUBLIC ')).toBe('public');
+    expect(normalizeRoomVisibility('private')).toBe('private');
+    expect(normalizeRoomVisibility('PriVaTe')).toBe('private');
+  });
+
+  it('falls back when visibility is unknown', () => {
+    expect(normalizeRoomVisibility('friends-only')).toBe('private');
+    expect(normalizeRoomVisibility('friends-only', 'public')).toBe('public');
   });
 });

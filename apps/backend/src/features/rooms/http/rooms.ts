@@ -6,7 +6,10 @@ import {
   isUsingFallbackDictionary,
 } from '../../../platform/dictionary';
 import type { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
-import type { GameRoomVisibility } from '@game/domain/rooms/GameRoom';
+import {
+  type GameRoomVisibility,
+  normalizeRoomVisibility,
+} from '@game/domain/rooms/GameRoom';
 import {
   createRoomCodeGenerator,
   type RoomCodeGenerator,
@@ -68,7 +71,7 @@ export function createRoomHandler(req: Request, res: Response): void {
     const name = nameRaw.trim().slice(0, 30);
     const visibilityRaw =
       typeof body.visibility === 'string' ? body.visibility : '';
-    const visibility = parseVisibility(visibilityRaw);
+    const visibility = normalizeRoomVisibility(visibilityRaw);
     const rules = buildDefaultRoomRules();
     const code = createRoomWithUniqueCode(rules, name, visibility);
 
@@ -103,7 +106,11 @@ export function getRoomHandler(req: Request, res: Response): void {
 
   res
     .status(200)
-    .json({ exists: true, name, visibility: parseVisibility(room.visibility) });
+    .json({
+      exists: true,
+      name,
+      visibility: normalizeRoomVisibility(room.visibility),
+    });
 }
 
 /**
@@ -112,7 +119,7 @@ export function getRoomHandler(req: Request, res: Response): void {
 export function listRoomsHandler(req: Request, res: Response): void {
   const visibilityParam =
     typeof req.query.visibility === 'string' ? req.query.visibility : '';
-  const visibility = parseVisibility(visibilityParam, 'public');
+  const visibility = normalizeRoomVisibility(visibilityParam, 'public');
   const rooms = roomManager.listRoomsByVisibility(visibility).map((room) => ({
     code: room.code,
     name: typeof room.name === 'string' ? room.name.trim() : '',
@@ -189,15 +196,3 @@ function buildDefaultRoomRules(): GameRoomRules {
   };
 }
 
-function parseVisibility(
-  raw: unknown,
-  fallback: GameRoomVisibility = 'private',
-): GameRoomVisibility {
-  if (typeof raw === 'string') {
-    const normalized = raw.trim().toLowerCase();
-    if (normalized === 'public' || normalized === 'private') {
-      return normalized;
-    }
-  }
-  return fallback;
-}
