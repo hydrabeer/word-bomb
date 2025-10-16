@@ -150,6 +150,35 @@ describe('Chat component', () => {
     expect(screen.getByText('90.1')).toBeInTheDocument();
   });
 
+  it('falls back to Unknown when usernames are blank', () => {
+    render(
+      <Chat
+        roomCode="ABCD"
+        showStats
+        stats={[
+          {
+            playerId: 'p1',
+            username: '   ',
+            totalWords: 2,
+            averageWpm: 110,
+            averageReactionSeconds: 1.2,
+            longWords: 0,
+            accuracyStreak: 2,
+            hyphenatedWords: 0,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Unknown')).toBeInTheDocument();
+  });
+
+  it('omits stats table when list is empty', () => {
+    render(<Chat roomCode="ABCD" showStats stats={[]} />);
+
+    expect(screen.queryByText('Usr')).not.toBeInTheDocument();
+  });
+
   it('hides stats table when disabled', () => {
     render(
       <Chat

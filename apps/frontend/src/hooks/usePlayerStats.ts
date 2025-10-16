@@ -185,12 +185,10 @@ export function usePlayerStats(
     usernameRef.current = username;
     const activeId = playerIdRef.current;
     if (!activeId) return;
-    const record = statsRef.current.get(activeId);
-    if (record) {
-      record.username = username?.trim() ? username : UNKNOWN_PLAYER_NAME;
-      updateSnapshots();
-    }
-  }, [username, updateSnapshots]);
+    const record = ensurePlayer(activeId, username);
+    record.username = username?.trim() ? username : UNKNOWN_PLAYER_NAME;
+    updateSnapshots();
+  }, [username, ensurePlayer, updateSnapshots]);
 
   useEffect(() => {
     if (playerIdRef.current !== playerId) {
@@ -286,11 +284,10 @@ export function usePlayerStats(
   const registerRejection = useCallback(() => {
     const activeId = playerIdRef.current;
     if (!activeId) return;
-    const record = statsRef.current.get(activeId);
-    if (!record) return;
+    const record = ensurePlayer(activeId, usernameRef.current);
     record.accuracyStreak = 0;
     updateSnapshots();
-  }, [updateSnapshots]);
+  }, [ensurePlayer, updateSnapshots]);
 
   return useMemo(
     () => ({
