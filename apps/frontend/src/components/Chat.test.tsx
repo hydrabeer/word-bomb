@@ -128,7 +128,7 @@ describe('Chat component', () => {
       />,
     );
 
-    expect(screen.getByText('User')).toBeInTheDocument();
+    expect(screen.getByText('Usr')).toBeInTheDocument();
     expect(screen.getByText('Alice')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getByText('150')).toBeInTheDocument();
@@ -152,7 +152,7 @@ describe('Chat component', () => {
       />,
     );
 
-    expect(screen.queryByText('User')).not.toBeInTheDocument();
+    expect(screen.queryByText('Usr')).not.toBeInTheDocument();
   });
 
   it('formats empty stats gracefully', () => {

@@ -176,7 +176,7 @@ export default function Chat({
                     title="Username"
                     className="cursor-help text-indigo-200 no-underline"
                   >
-                    User
+                    Usr
                   </abbr>
                 </th>
                 <th className="py-1 pr-2 text-right font-semibold">
@@ -184,7 +184,7 @@ export default function Chat({
                     title="Total words submitted"
                     className="cursor-help text-indigo-200 no-underline"
                   >
-                    Words
+                    Wds
                   </abbr>
                 </th>
                 <th className="py-1 pr-2 text-right font-semibold">
@@ -200,7 +200,7 @@ export default function Chat({
                     title="Average reaction time to submit"
                     className="cursor-help text-indigo-200 no-underline"
                   >
-                    React
+                    Rt
                   </abbr>
                 </th>
                 <th className="py-1 pr-2 text-right font-semibold">
@@ -208,7 +208,7 @@ export default function Chat({
                     title="Words with 20 or more characters"
                     className="cursor-help text-indigo-200 no-underline"
                   >
-                    Long
+                    Lng
                   </abbr>
                 </th>
                 <th className="py-1 pr-2 text-right font-semibold">
@@ -216,7 +216,7 @@ export default function Chat({
                     title="Current accuracy streak"
                     className="cursor-help text-indigo-200 no-underline"
                   >
-                    Streak
+                    Strk
                   </abbr>
                 </th>
                 <th className="py-1 text-right font-semibold">
@@ -224,7 +224,7 @@ export default function Chat({
                     title="Hyphenated words"
                     className="cursor-help text-indigo-200 no-underline"
                   >
-                    Hyphen
+                    Hyph
                   </abbr>
                 </th>
               </tr>
