@@ -258,6 +258,39 @@ describe('Chat component', () => {
     expect(within(row).queryByText('NaN')).toBeNull();
   });
 
+  it('truncates overflowing usernames but preserves the full value in the title', () => {
+    render(
+      <Chat
+        roomCode="ABCD"
+        showStats
+        stats={[
+          {
+            playerId: 'p1',
+            username: 'SupercalifragilisticexpialidociousChampion',
+            totalWords: 8,
+            averageWpm: 120,
+            averageReactionSeconds: 1,
+            longWords: 2,
+            accuracyStreak: 4,
+            hyphenatedWords: 1,
+          },
+        ]}
+      />,
+    );
+
+    const usernameCell = screen
+      .getByText('SupercalifragilisticexpialidociousChampion')
+      .closest('td');
+    expect(usernameCell).not.toBeNull();
+    const span = usernameCell!.querySelector('span');
+    expect(span).not.toBeNull();
+    expect(span).toHaveClass('truncate');
+    expect(span).toHaveAttribute(
+      'title',
+      'SupercalifragilisticexpialidociousChampion',
+    );
+  });
+
   it('caps input at 300 chars and emits truncated message (no alert)', async () => {
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(vi.fn());
 

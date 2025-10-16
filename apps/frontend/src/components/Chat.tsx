@@ -228,7 +228,9 @@ export default function Chat({
               {resolvedStats.map((player) => (
                 <tr key={player.playerId} className="text-[13px] text-white">
                   <td className="py-1 pr-2 font-medium text-white">
-                    {player.username}
+                    <span className="block truncate" title={player.username}>
+                      {player.username}
+                    </span>
                   </td>
                   <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
                     {formatCount(player.totalWords)}
