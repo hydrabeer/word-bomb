@@ -204,7 +204,10 @@ describe('RoomPage (fast)', () => {
       <MemoryRouter initialEntries={['/ROOM']}>
         <Routes>
           <Route path="/" element={<div>Home screen</div>} />
-          <Route path="/:roomCode" element={<RoomPage roomName="Test Room" />} />
+          <Route
+            path="/:roomCode"
+            element={<RoomPage roomName="Test Room" />}
+          />
         </Routes>
       </MemoryRouter>,
     );
