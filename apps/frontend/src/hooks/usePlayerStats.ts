@@ -6,6 +6,7 @@ import {
   parseGameStarted,
   parseTurnStarted,
   parseWordAccepted,
+  parsePlayerUpdated,
 } from '../socket/parsers';
 
 export interface PlayerStatsSnapshot {
@@ -28,6 +29,7 @@ interface MutablePlayerStats {
   accuracyStreak: number;
   hyphenatedWords: number;
   lastTurnStart: number | null;
+  lastKnownLives: number | null;
 }
 
 const UNKNOWN_PLAYER_NAME = 'Unknown';
@@ -41,6 +43,7 @@ const createMutableStats = (username: string): MutablePlayerStats => ({
   accuracyStreak: 0,
   hyphenatedWords: 0,
   lastTurnStart: null,
+  lastKnownLives: null,
 });
 
 const resetMutableStats = (target: MutablePlayerStats, username?: string) => {
@@ -144,12 +147,11 @@ export function usePlayerStats(
       if (players && players.length > 0) {
         for (const entry of players) {
           playerOrderRef.current.push(entry.id);
-          statsRef.current.set(
-            entry.id,
-            createMutableStats(
-              entry.name?.trim() ? entry.name : UNKNOWN_PLAYER_NAME,
-            ),
+          const record = createMutableStats(
+            entry.name?.trim() ? entry.name : UNKNOWN_PLAYER_NAME,
           );
+          record.lastKnownLives = entry.lives;
+          statsRef.current.set(entry.id, record);
         }
       }
 
@@ -216,6 +218,7 @@ export function usePlayerStats(
         playerOrderRef.current = parsed.players.map((player) => player.id);
         for (const player of parsed.players) {
           const record = ensurePlayer(player.id, player.name);
+          record.lastKnownLives = player.lives;
           if (parsed.playerId && player.id === parsed.playerId) {
             record.lastTurnStart = Date.now();
           } else {
@@ -280,6 +283,29 @@ export function usePlayerStats(
       socket.off('wordAccepted', handleWordAccepted);
     };
   }, [ensurePlayer, resetAll, updateSnapshots]);
+
+  useEffect(() => {
+    const handlePlayerUpdated = (raw: unknown) => {
+      const parsed = parsePlayerUpdated(raw);
+      if (!parsed) return;
+      const record = ensurePlayer(parsed.playerId);
+      const previousLives = record.lastKnownLives;
+      record.lastKnownLives = parsed.lives;
+      if (previousLives != null && parsed.lives < previousLives) {
+        record.accuracyStreak = 0;
+        updateSnapshots();
+        return;
+      }
+      if (previousLives == null) {
+        updateSnapshots();
+      }
+    };
+
+    socket.on('playerUpdated', handlePlayerUpdated);
+    return () => {
+      socket.off('playerUpdated', handlePlayerUpdated);
+    };
+  }, [ensurePlayer, updateSnapshots]);
 
   const registerRejection = useCallback(() => {
     const activeId = playerIdRef.current;
