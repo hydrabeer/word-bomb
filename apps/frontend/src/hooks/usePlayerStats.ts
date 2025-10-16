@@ -44,7 +44,7 @@ const createMutableStats = (username: string): MutablePlayerStats => ({
 });
 
 const resetMutableStats = (target: MutablePlayerStats, username?: string) => {
-  if (username && username.trim()) {
+  if (username?.trim()) {
     target.username = username;
   }
   target.totalWords = 0;
@@ -120,7 +120,7 @@ export function usePlayerStats(
 
   const ensurePlayer = useCallback(
     (id: string, name?: string): MutablePlayerStats => {
-      const nextName = name && name.trim() ? name : UNKNOWN_PLAYER_NAME;
+      const nextName = name?.trim() ? name : UNKNOWN_PLAYER_NAME;
       let record = statsRef.current.get(id);
       if (!record) {
         record = createMutableStats(nextName);
@@ -128,7 +128,7 @@ export function usePlayerStats(
         if (!playerOrderRef.current.includes(id)) {
           playerOrderRef.current = [...playerOrderRef.current, id];
         }
-      } else if (name && name.trim() && record.username !== name) {
+      } else if (name?.trim() && record.username !== name) {
         record.username = name;
       }
       return record;
@@ -165,9 +165,7 @@ export function usePlayerStats(
           statsRef.current.set(
             activePlayerId,
             createMutableStats(
-              activeUsername && activeUsername.trim()
-                ? activeUsername
-                : UNKNOWN_PLAYER_NAME,
+              activeUsername?.trim() ? activeUsername : UNKNOWN_PLAYER_NAME,
             ),
           );
         }
@@ -189,8 +187,7 @@ export function usePlayerStats(
     if (!activeId) return;
     const record = statsRef.current.get(activeId);
     if (record) {
-      record.username =
-        username && username.trim() ? username : UNKNOWN_PLAYER_NAME;
+      record.username = username?.trim() ? username : UNKNOWN_PLAYER_NAME;
       updateSnapshots();
     }
   }, [username, updateSnapshots]);
