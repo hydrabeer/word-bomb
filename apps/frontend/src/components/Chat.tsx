@@ -15,6 +15,7 @@ import type {
   ChatMessageDraft,
 } from '@word-bomb/types/socket';
 import { FaPaperPlane } from 'react-icons/fa';
+import type { PlayerStatsSnapshot } from '../hooks/usePlayerStats';
 
 interface ChatProps {
   roomCode: string;
@@ -23,6 +24,8 @@ interface ChatProps {
   headingId?: string; // used to link region to heading for a11y
   autoFocus?: boolean; // when true, focus textarea
   regionRole?: 'complementary' | 'region'; // default complementary
+  stats?: PlayerStatsSnapshot | null;
+  showStats?: boolean;
 }
 
 export default function Chat({
@@ -32,6 +35,8 @@ export default function Chat({
   headingId,
   autoFocus = false,
   regionRole = 'complementary',
+  stats,
+  showStats = false,
 }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessagePayload[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -43,6 +48,35 @@ export default function Chat({
     () => getOrCreatePlayerProfile(),
     [],
   );
+
+  const resolvedStats = useMemo(() => {
+    if (!showStats || !stats) return null;
+    return {
+      username: stats.username || currentUsername,
+      totalWords: stats.totalWords,
+      averageWpm: stats.averageWpm,
+      averageReactionSeconds: stats.averageReactionSeconds,
+      longWords: stats.longWords,
+      accuracyStreak: stats.accuracyStreak,
+      hyphenatedWords: stats.hyphenatedWords,
+    };
+  }, [showStats, stats, currentUsername]);
+
+  const formatCount = useCallback((value: number | undefined | null) => {
+    if (typeof value !== 'number' || Number.isNaN(value)) return '0';
+    return value.toString();
+  }, []);
+
+  const formatWpm = useCallback((value: number | null) => {
+    if (value == null || !Number.isFinite(value)) return '—';
+    if (value >= 100) return Math.round(value).toString();
+    return value.toFixed(1);
+  }, []);
+
+  const formatReaction = useCallback((value: number | null) => {
+    if (value == null || !Number.isFinite(value)) return '—';
+    return `${value.toFixed(2)} s`;
+  }, []);
 
   // Auto-resize function
   const adjustTextareaHeight = useCallback(() => {
@@ -131,6 +165,98 @@ export default function Chat({
           {roomName ? <>{roomName} — Chat</> : <>Chat — Room {roomCode}</>}
         </h3>
       </div>
+
+      {resolvedStats && (
+        <div className="hidden border-b border-white/10 bg-white/5 px-4 py-3 text-sm text-indigo-100 backdrop-blur-sm md:block">
+          <table className="w-full table-fixed">
+            <thead>
+              <tr className="text-[11px] uppercase tracking-[0.18em] text-indigo-300">
+                <th className="py-1 pr-2 text-left font-semibold">
+                  <abbr
+                    title="Username"
+                    className="cursor-help text-indigo-200 no-underline"
+                  >
+                    Usr
+                  </abbr>
+                </th>
+                <th className="py-1 pr-2 text-right font-semibold">
+                  <abbr
+                    title="Total words submitted"
+                    className="cursor-help text-indigo-200 no-underline"
+                  >
+                    Wds
+                  </abbr>
+                </th>
+                <th className="py-1 pr-2 text-right font-semibold">
+                  <abbr
+                    title="Average typing speed (words per minute)"
+                    className="cursor-help text-indigo-200 no-underline"
+                  >
+                    WPM
+                  </abbr>
+                </th>
+                <th className="py-1 pr-2 text-right font-semibold">
+                  <abbr
+                    title="Average reaction time to submit"
+                    className="cursor-help text-indigo-200 no-underline"
+                  >
+                    Rt
+                  </abbr>
+                </th>
+                <th className="py-1 pr-2 text-right font-semibold">
+                  <abbr
+                    title="Words with 20 or more characters"
+                    className="cursor-help text-indigo-200 no-underline"
+                  >
+                    Lng
+                  </abbr>
+                </th>
+                <th className="py-1 pr-2 text-right font-semibold">
+                  <abbr
+                    title="Current accuracy streak"
+                    className="cursor-help text-indigo-200 no-underline"
+                  >
+                    Strk
+                  </abbr>
+                </th>
+                <th className="py-1 text-right font-semibold">
+                  <abbr
+                    title="Hyphenated words"
+                    className="cursor-help text-indigo-200 no-underline"
+                  >
+                    Hyph
+                  </abbr>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="text-[13px] text-white">
+                <td className="py-1 pr-2 font-medium text-white">
+                  {resolvedStats.username}
+                </td>
+                <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
+                  {formatCount(resolvedStats.totalWords)}
+                </td>
+                <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
+                  {formatWpm(resolvedStats.averageWpm)}
+                </td>
+                <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
+                  {formatReaction(resolvedStats.averageReactionSeconds)}
+                </td>
+                <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
+                  {formatCount(resolvedStats.longWords)}
+                </td>
+                <td className="py-1 pr-2 text-right font-semibold text-indigo-50">
+                  {formatCount(resolvedStats.accuracyStreak)}
+                </td>
+                <td className="py-1 text-right font-semibold text-indigo-50">
+                  {formatCount(resolvedStats.hyphenatedWords)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Message List */}
       <div

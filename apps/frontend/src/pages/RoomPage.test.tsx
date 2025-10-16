@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import RoomPage from './RoomPage';
+import type { PlayerStatsSnapshot } from '../hooks/usePlayerStats';
 
 // --- Mocks ---
 vi.mock('../hooks/useGameRoom', () => ({ useGameRoom: () => undefined }));
@@ -15,8 +16,27 @@ let mockPlayers: {
 let mockLeaderId: string | null = null;
 let mockPlayerId = 'p1';
 const mockMe = { id: 'p1', name: 'Alice', isSeated: false };
+let mockRejected = false;
+const setInputWordMock = vi.fn();
+let mockPlayerStats: PlayerStatsSnapshot = {
+  username: 'Alice',
+  totalWords: 0,
+  averageWpm: null,
+  averageReactionSeconds: null,
+  longWords: 0,
+  accuracyStreak: 0,
+  hyphenatedWords: 0,
+};
 const toggleSeatedMock = vi.fn();
 const startGameMock = vi.fn();
+const registerRejectionMock = vi.fn();
+let mockIsMobile = false;
+let chatPropsLog: {
+  headingId?: string;
+  showStats?: boolean;
+  stats?: unknown;
+  autoFocus?: boolean;
+}[] = [];
 
 const renderWithRoute = (roomCode = 'ROOM') =>
   render(
@@ -27,32 +47,56 @@ const renderWithRoute = (roomCode = 'ROOM') =>
     </MemoryRouter>,
   );
 
+vi.mock('../hooks/useIsMobile.ts', () => ({
+  useIsMobile: () => mockIsMobile,
+}));
+
 vi.mock('../hooks/usePlayerManagement', () => ({
   usePlayerManagement: () => ({
     players: mockPlayers,
     leaderId: mockLeaderId,
     playerId: mockPlayerId,
+    playerName: mockMe.name,
     me: mockMe,
     toggleSeated: toggleSeatedMock,
     startGame: startGameMock,
   }),
 }));
 
+vi.mock('../hooks/usePlayerStats', () => ({
+  usePlayerStats: () => ({
+    stats: mockPlayerStats,
+    registerRejection: registerRejectionMock,
+  }),
+}));
+
 vi.mock('../hooks/useWordSubmission', () => ({
   useWordSubmission: () => ({
     inputWord: '',
-    setInputWord: vi.fn(),
-    rejected: false,
+    setInputWord: setInputWordMock,
+    rejected: mockRejected,
     handleSubmitWord: vi.fn(),
   }),
 }));
 
 vi.mock('../components/Chat', () => ({
-  default: (props: { headingId?: string }) => (
-    <div data-testid="Chat" aria-labelledby={props.headingId}>
-      Chat
-    </div>
-  ),
+  default: (props: {
+    headingId?: string;
+    showStats?: boolean;
+    stats?: unknown;
+    autoFocus?: boolean;
+  }) => {
+    chatPropsLog.push(props);
+    return (
+      <div
+        data-testid="Chat"
+        data-heading={props.headingId}
+        aria-labelledby={props.headingId}
+      >
+        Chat
+      </div>
+    );
+  },
 }));
 let lastGameBoardProps: {
   gameState?: { fragment?: string; players?: unknown[] } | null;
@@ -125,8 +169,22 @@ describe('RoomPage (fast)', () => {
     mockPlayers = [];
     mockLeaderId = null;
     mockPlayerId = 'p1';
+    mockRejected = false;
+    mockPlayerStats = {
+      username: 'Alice',
+      totalWords: 0,
+      averageWpm: null,
+      averageReactionSeconds: null,
+      longWords: 0,
+      accuracyStreak: 0,
+      hyphenatedWords: 0,
+    };
     mockUseGameStateReturn = baseState;
     lastGameBoardProps = null;
+    registerRejectionMock.mockReset();
+    setInputWordMock.mockReset();
+    mockIsMobile = false;
+    chatPropsLog = [];
   });
   afterEach(() => {
     vi.clearAllMocks();
@@ -144,7 +202,6 @@ describe('RoomPage (fast)', () => {
     render(element);
     expect(screen.getByText(/Waiting for players/i)).toBeInTheDocument();
   });
-
   it('renders GameBoard when playing', () => {
     mockUseGameStateReturn = {
       ...baseState,
@@ -204,6 +261,45 @@ describe('RoomPage (fast)', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('passes stats into the desktop chat with showStats enabled', () => {
+    mockPlayerStats = {
+      username: 'Alice',
+      totalWords: 5,
+      averageWpm: 120,
+      averageReactionSeconds: 1,
+      longWords: 2,
+      accuracyStreak: 3,
+      hyphenatedWords: 1,
+    };
+
+    renderWithRoute();
+
+    const desktopProps = chatPropsLog.find(
+      (entry) => entry.headingId === 'desktop-chat-heading',
+    );
+
+    expect(desktopProps?.showStats).toBe(true);
+    expect(desktopProps?.stats).toBe(mockPlayerStats);
+  });
+
+  it('resets stats streak when submission rejected', () => {
+    mockRejected = true;
+    render(element);
+    expect(registerRejectionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not pass stats to the mobile chat instance', () => {
+    mockIsMobile = true;
+    render(element);
+
+    const mobileProps = chatPropsLog.find(
+      (entry) => entry.headingId === 'mobile-chat-heading',
+    );
+
+    expect(mobileProps?.showStats).toBeUndefined();
+    expect(mobileProps?.stats).toBeUndefined();
   });
 
   it('copies invite link and shows ephemeral feedback', () => {
