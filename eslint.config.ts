@@ -2,15 +2,13 @@ import { defineConfig } from 'eslint/config';
 import eslint from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import importX from 'eslint-plugin-import-x';
-import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import tseslint from 'typescript-eslint';
 import vitest from '@vitest/eslint-plugin';
 
-const require = createRequire(import.meta.url);
-const tsconfigPath = require.resolve(
-  '@word-bomb/typescript-config/eslint.json',
+const tsconfigPath = fileURLToPath(
+  new URL('./packages/typescript-config/eslint.json', import.meta.url),
 );
 process.env.ESLINT_TSCONFIG ??= tsconfigPath;
 
