@@ -62,8 +62,6 @@ Place a word list at:
 apps/backend/src/platform/dictionary/words.txt
 ```
 
-Alternatively, you can configure the backend to fetch on boot via env (see **Environment**).
-
 ---
 
 ## Environment
@@ -75,8 +73,6 @@ Create the following files (optional).
 ```
 PORT=3001
 NODE_ENV=development
-# Optional: remote dictionary to download at startup
-DICTIONARY_URL=
 ```
 
 **Frontend** – `apps/frontend/.env`
@@ -206,7 +202,7 @@ Open PRs early; keep them focused. Before creating one:
 Check `VITE_BACKEND_URL` and backend `FRONTEND_URL`; defaults are `http://localhost:3001` and `http://localhost:5173` respectively.
 
 **Q: Gameplay in dev has no words.**  
-Provide `apps/backend/src/platform/dictionary/words.txt` or set `DICTIONARY_URL`.
+Provide `apps/backend/src/platform/dictionary/words.txt`.
 
 **Q: TypeScript project service can’t find files.**  
 Ensure tests and build outputs aren’t mis‑included; keep `dist/` out of `include`.
