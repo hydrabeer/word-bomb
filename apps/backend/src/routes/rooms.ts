@@ -28,6 +28,9 @@ export function resetRoomCodeGenerator(): void {
   roomCodeGenerator = createRoomCodeGenerator();
 }
 
+/**
+ * Error indicating that the room code generator failed to yield a unique value in time.
+ */
 class RoomCodeAllocationError extends Error {
   /**
    * Creates a new allocation error with a descriptive message.

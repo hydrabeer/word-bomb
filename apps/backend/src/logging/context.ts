@@ -27,6 +27,11 @@ export function initializeLoggerContext(logger: Logger): void {
   storage.enterWith(rootContext);
 }
 
+/**
+ * Retrieves the active async-local logging context or falls back to the root context.
+ *
+ * @returns The current {@link LogContext} scoped to the running execution.
+ */
 function currentContext(): LogContext {
   return storage.getStore() ?? rootContext;
 }
