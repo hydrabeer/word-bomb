@@ -15,6 +15,30 @@ export default defineConfig({
         find: /^@word-bomb\/types\/(.*)$/,
         replacement: path.resolve(__dirname, '../../packages/types/src/$1'),
       },
+      {
+        find: /^@backend\/(.*)$/,
+        replacement: path.resolve(__dirname, 'src/$1'),
+      },
+      {
+        find: /^@platform\/(.*)$/,
+        replacement: path.resolve(__dirname, 'src/platform/$1'),
+      },
+      {
+        find: /^@features\/(.*)$/,
+        replacement: path.resolve(__dirname, 'src/features/$1'),
+      },
+      {
+        find: /^@rooms\/(.*)$/,
+        replacement: path.resolve(__dirname, 'src/features/rooms/$1'),
+      },
+      {
+        find: /^@gameplay\/(.*)$/,
+        replacement: path.resolve(__dirname, 'src/features/gameplay/$1'),
+      },
+      {
+        find: /^@shared\/(.*)$/,
+        replacement: path.resolve(__dirname, 'src/shared/$1'),
+      },
     ],
   },
   test: {
