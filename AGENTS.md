@@ -86,6 +86,7 @@ pnpm -F backend test -t "startGameForRoom emits events in order"
 - **ESLint:** `pnpm lint` (no warnings allowed in CI).
 - **TypeScript:** `pnpm typecheck` (per‑package `tsconfig*`).
 - **Prettier:** `pnpm format` before committing.
+- **TSDoc:** Document exported functions, classes, and modules with TSDoc blocks so typed tooling stays accurate.
 - **No** `// eslint-disable` or `@ts-ignore` without a short justification.
 
 ---
