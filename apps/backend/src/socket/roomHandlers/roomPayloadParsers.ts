@@ -78,7 +78,9 @@ export const parseJoinRoom = (raw: unknown): JoinRoomParsed | null => {
 
 export const parseLeaveRoom = (raw: unknown): LeaveRoomParsed | null => {
   const parsed = parseRoomAndPlayer(raw);
-  return parsed ? { roomCode: parsed.roomCode, playerId: parsed.playerId } : null;
+  return parsed
+    ? { roomCode: parsed.roomCode, playerId: parsed.playerId }
+    : null;
 };
 
 export const parseSetPlayerSeated = (
@@ -99,9 +101,7 @@ export const parseStartGame = (raw: unknown): StartGameParsed | null => {
   return { roomCode: parsed.roomCode };
 };
 
-export const parsePlayerTyping = (
-  raw: unknown,
-): PlayerTypingParsed | null => {
+export const parsePlayerTyping = (raw: unknown): PlayerTypingParsed | null => {
   const parsed = parseRoomAndPlayer(raw);
   if (!parsed) return null;
   const input = parsed.data.input;
@@ -122,7 +122,8 @@ export const parseSubmitWord = (raw: unknown): SubmitWordParsed | null => {
     roomCode: parsed.roomCode,
     playerId: parsed.playerId,
     word,
-    clientActionId: typeof clientActionId === 'string' ? clientActionId : undefined,
+    clientActionId:
+      typeof clientActionId === 'string' ? clientActionId : undefined,
   };
 };
 

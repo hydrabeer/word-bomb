@@ -33,15 +33,24 @@ function normalizeAck(cb: unknown): (res: BasicResponse) => void {
 }
 
 export interface RoomEventHandlers {
-  joinRoom(raw: unknown, cb?: (res: BasicResponse) => void): void;
-  leaveRoom(raw: unknown): void;
-  chatMessage(raw: unknown): void;
-  setPlayerSeated(raw: unknown, cb?: (res: BasicResponse) => void): void;
-  startGame(raw: unknown, cb?: (res: BasicResponse) => void): void;
-  playerTyping(raw: unknown): void;
-  submitWord(raw: unknown, cb?: (res: BasicResponse) => void): void;
-  updateRoomRules(raw: unknown, cb?: (res: BasicResponse) => void): void;
-  disconnect(): void;
+  readonly joinRoom: (raw: unknown, cb?: (res: BasicResponse) => void) => void;
+  readonly leaveRoom: (raw: unknown) => void;
+  readonly chatMessage: (raw: unknown) => void;
+  readonly setPlayerSeated: (
+    raw: unknown,
+    cb?: (res: BasicResponse) => void,
+  ) => void;
+  readonly startGame: (raw: unknown, cb?: (res: BasicResponse) => void) => void;
+  readonly playerTyping: (raw: unknown) => void;
+  readonly submitWord: (
+    raw: unknown,
+    cb?: (res: BasicResponse) => void,
+  ) => void;
+  readonly updateRoomRules: (
+    raw: unknown,
+    cb?: (res: BasicResponse) => void,
+  ) => void;
+  readonly disconnect: () => void;
 }
 
 /**
@@ -53,7 +62,8 @@ export interface RoomEventHandlers {
 export function createRoomEventHandlers(
   context: RoomHandlerContext,
 ): RoomEventHandlers {
-  const { io, socket, session, system, cleanupRoomIfEmpty, broadcaster } = context;
+  const { io, socket, session, system, cleanupRoomIfEmpty, broadcaster } =
+    context;
 
   const handleJoinRoom = (raw: unknown, cb?: (res: BasicResponse) => void) => {
     const callback = normalizeAck(cb);
@@ -183,7 +193,8 @@ export function createRoomEventHandlers(
           }
         }
         const reconnectSnapshot = room.getPlayer(playerId);
-        const reconnectName = reconnectSnapshot?.name ?? previousName ?? 'Someone';
+        const reconnectName =
+          reconnectSnapshot?.name ?? previousName ?? 'Someone';
         const wasDisconnected = existingPlayer?.isConnected === false;
         room.setPlayerConnected(playerId, true);
         emitPlayers(io, room);
@@ -304,7 +315,10 @@ export function createRoomEventHandlers(
   const handleChatMessage = (raw: unknown) => {
     try {
       const chatMessage = toAuthoritativeChatMessage(raw);
-      io.to(socketRoomId(chatMessage.roomCode)).emit('chatMessage', chatMessage);
+      io.to(socketRoomId(chatMessage.roomCode)).emit(
+        'chatMessage',
+        chatMessage,
+      );
     } catch (err) {
       getLogger().warn(
         { event: 'invalid_chat_message', err, socketId: socket.id },
@@ -484,7 +498,10 @@ export function createRoomEventHandlers(
     });
   };
 
-  const handleSubmitWord = (raw: unknown, cb?: (res: BasicResponse) => void) => {
+  const handleSubmitWord = (
+    raw: unknown,
+    cb?: (res: BasicResponse) => void,
+  ) => {
     const callback = normalizeAck(cb);
     const parsed = parseSubmitWord(raw);
     if (!parsed) {

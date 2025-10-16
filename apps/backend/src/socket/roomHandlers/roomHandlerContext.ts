@@ -25,13 +25,13 @@ export interface RoomHandlerContext {
    * @param roomCode - Identifier of the room receiving the message.
    * @param message - Human friendly text describing the event.
    */
-  system(roomCode: string, message: string): void;
+  readonly system: (roomCode: string, message: string) => void;
   /**
    * Removes the room from memory when no players remain connected.
    *
    * @param roomCode - Identifier for the room being checked.
    */
-  cleanupRoomIfEmpty(roomCode: string): void;
+  readonly cleanupRoomIfEmpty: (roomCode: string) => void;
 }
 
 /**

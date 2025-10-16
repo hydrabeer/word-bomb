@@ -3,7 +3,10 @@ import type { TypedServer, TypedSocket } from './typedSocket';
 import { createRoomHandlerContext } from './roomHandlers/roomHandlerContext';
 import { createRoomEventHandlers } from './roomHandlers/roomEventHandlers';
 
-export { DISCONNECT_GRACE_MS, setDisconnectGrace } from './roomHandlers/disconnectGrace';
+export {
+  DISCONNECT_GRACE_MS,
+  setDisconnectGrace,
+} from './roomHandlers/disconnectGrace';
 
 /**
  * Registers all room-related Socket.IO handlers for a newly connected client.
@@ -11,7 +14,10 @@ export { DISCONNECT_GRACE_MS, setDisconnectGrace } from './roomHandlers/disconne
  * @param io - Shared typed server instance.
  * @param socket - The socket representing the connected client.
  */
-export function registerRoomHandlers(io: TypedServer, socket: TypedSocket): void {
+export function registerRoomHandlers(
+  io: TypedServer,
+  socket: TypedSocket,
+): void {
   const connectionContext = getLogContext();
   const withContext =
     <Args extends unknown[]>(handler: (...args: Args) => void) =>
