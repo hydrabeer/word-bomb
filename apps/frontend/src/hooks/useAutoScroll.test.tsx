@@ -51,4 +51,18 @@ describe('useAutoScroll', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(el.scrollTop).toBe(before);
   });
+
+  it('handles missing container ref gracefully', () => {
+    function DetachedComponent({ count }: { count: number }) {
+      useAutoScroll<HTMLDivElement>([count]);
+      return <div data-testid="noop" />;
+    }
+    const { rerender, unmount, getByTestId } = render(
+      <DetachedComponent count={1} />,
+    );
+    expect(getByTestId('noop')).toBeTruthy();
+    rerender(<DetachedComponent count={2} />);
+    expect(getByTestId('noop')).toBeTruthy();
+    unmount();
+  });
 });

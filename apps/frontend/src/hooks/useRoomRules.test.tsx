@@ -84,4 +84,24 @@ describe('useRoomRules', () => {
 
     emitSpy.mockRestore();
   });
+
+  it('uses fallback error when ack payload is missing', async () => {
+    const s = (socketModule as unknown as { socket: MockedSocket }).socket;
+    const emitSpy = vi
+      .spyOn(s, 'emit')
+      .mockImplementation((_, __, ack?: (res: unknown) => void) => {
+        ack?.(undefined);
+      });
+
+    const { result } = renderHook(() => useRoomRules('ROOM'));
+    let response: { success: boolean; error?: string } | undefined;
+    await act(async () => {
+      response = await result.current.updateRules(result.current.rules);
+    });
+    expect(response?.success).toBe(false);
+    expect(response?.error).toBe('No response from server.');
+    expect(result.current.error).toBe('No response from server.');
+
+    emitSpy.mockRestore();
+  });
 });

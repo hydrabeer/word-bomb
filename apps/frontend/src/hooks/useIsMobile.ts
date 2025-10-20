@@ -1,18 +1,43 @@
 import { useEffect, useState } from 'react';
 
+type WindowLike = Pick<
+  Window,
+  'innerWidth' | 'addEventListener' | 'removeEventListener'
+>;
+
 /** Responsive breakpoint detection (SSR-safe). Default breakpoint = 768px. */
-export function useIsMobile(breakpoint = 768) {
+export function useIsMobile(
+  breakpoint = 768,
+  targetWindow: WindowLike | null =
+    typeof window === 'undefined' ? null : window,
+) {
+  const resolvedWindow =
+    targetWindow ?? (typeof window === 'undefined' ? null : window);
+
   const [isMobile, setIsMobile] = useState(() =>
-    typeof window === 'undefined' ? false : window.innerWidth < breakpoint,
+    resolvedWindow ? resolvedWindow.innerWidth < breakpoint : false,
   );
+
   useEffect(() => {
+    const activeWindow =
+      targetWindow ?? (typeof window === 'undefined' ? null : window);
+    if (!activeWindow) {
+      return;
+    }
+    if (
+      typeof activeWindow.addEventListener !== 'function' ||
+      typeof activeWindow.removeEventListener !== 'function'
+    ) {
+      return;
+    }
     const handler = () => {
-      setIsMobile(window.innerWidth < breakpoint);
+      setIsMobile(activeWindow.innerWidth < breakpoint);
     };
-    window.addEventListener('resize', handler);
+    activeWindow.addEventListener('resize', handler);
     return () => {
-      window.removeEventListener('resize', handler);
+      activeWindow.removeEventListener('resize', handler);
     };
-  }, [breakpoint]);
+  }, [breakpoint, targetWindow]);
+
   return isMobile;
 }

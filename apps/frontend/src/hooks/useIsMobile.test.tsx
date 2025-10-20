@@ -14,4 +14,19 @@ describe('useIsMobile', () => {
     });
     expect(result.current).toBe(false);
   });
+
+  it('defaults to desktop breakpoint when window is unavailable', () => {
+    const { result } = renderHook(() => useIsMobile(500, null));
+    expect(result.current).toBe(false);
+  });
+
+  it('bails when listener APIs are not functions', () => {
+    const stub = {
+      innerWidth: 640,
+      addEventListener: undefined,
+      removeEventListener: undefined,
+    } as unknown as Parameters<typeof useIsMobile>[1];
+    const { result } = renderHook(() => useIsMobile(500, stub));
+    expect(result.current).toBe(false);
+  });
 });

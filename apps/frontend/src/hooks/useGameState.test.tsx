@@ -98,4 +98,65 @@ describe('useGameState hook', () => {
     expect(result.current.gameState).toBeNull();
     expect(result.current.winnerId).toBe('p1');
   });
+
+  it('stops countdown, tracks player updates, and emits typing events', () => {
+    const { __emitServer, __emitMock } = socketModule as unknown as {
+      __emitServer: (e: string, p?: unknown) => void;
+      __emitMock: ReturnType<typeof vi.fn>;
+    };
+    vi.setSystemTime(1_000);
+    const { result } = renderHook(() => useGameState('ROOM'));
+
+    act(() => {
+      __emitServer('gameCountdownStarted', { deadline: Date.now() + 500 });
+    });
+    expect(result.current.countdownDeadline).not.toBeNull();
+
+    act(() => {
+      __emitServer('gameCountdownStopped');
+    });
+    expect(result.current.countdownDeadline).toBeNull();
+    expect(result.current.timeLeftSec).toBe(0);
+
+    act(() => {
+      __emitServer('gameStarted', {
+        fragment: 'go',
+        bombDuration: 2,
+        currentPlayer: 'p1',
+        players: [
+          {
+            id: 'p1',
+            name: 'Player One',
+            lives: 2,
+            isEliminated: false,
+            isConnected: true,
+          },
+        ],
+      });
+    });
+
+    act(() => {
+      __emitServer('playerUpdated', { playerId: 'p1', lives: 0 });
+    });
+    expect(result.current.gameState?.players[0].isEliminated).toBe(true);
+
+    act(() => {
+      result.current.updateLiveInput('p1', 'typing');
+    });
+    expect(__emitMock).toHaveBeenCalledWith(
+      'playerTyping',
+      expect.objectContaining({ roomCode: 'ROOM', playerId: 'p1', input: 'typing' }),
+    );
+
+    act(() => {
+      __emitServer('wordAccepted', { playerId: 'p1', word: ' hey ' });
+    });
+    expect(result.current.lastSubmittedWords.p1.word).toBe('hey');
+    expect(result.current.lastWordAcceptedBy).toBe('p1');
+
+    act(() => {
+      advance(500);
+    });
+    expect(result.current.lastWordAcceptedBy).toBeNull();
+  });
 });

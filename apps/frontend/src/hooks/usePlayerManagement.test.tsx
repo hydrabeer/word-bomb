@@ -100,4 +100,33 @@ describe('usePlayerManagement', () => {
       expect.any(Function),
     );
   });
+
+  it('handles missing leader snapshots and toggles when self not present', () => {
+    const { __emitServer, __emitMock } = socketModule as unknown as {
+      __emitServer: (e: string, p?: unknown) => void;
+      __emitMock: ReturnType<typeof vi.fn>;
+    };
+
+    const { result } = renderHook(() => usePlayerManagement('ROOM'));
+
+    act(() => {
+      __emitServer('playersUpdated', { players: [], leaderId: undefined });
+    });
+    expect(result.current.players).toEqual([]);
+    expect(result.current.leaderId).toBeNull();
+
+    __emitMock.mockClear();
+    act(() => {
+      result.current.toggleSeated();
+    });
+    expect(__emitMock).toHaveBeenCalledWith(
+      'setPlayerSeated',
+      expect.objectContaining({
+        roomCode: 'ROOM',
+        playerId: 'me',
+        seated: true,
+      }),
+      expect.any(Function),
+    );
+  });
 });

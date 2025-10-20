@@ -102,4 +102,46 @@ describe('useWordSubmission', () => {
 
     expect(result.current.inputWord).toBe('');
   });
+
+  it('ignores submissions when input is blank', () => {
+    const initialEmitted = __getEmitted().length;
+    const { result } = renderHook(() => useWordSubmission('ROOM', 'p1'));
+    act(() => {
+      result.current.handleSubmitWord();
+    });
+    expect(__getEmitted().length).toBe(initialEmitted);
+  });
+
+  it('leaves pending entries untouched for invalid acks', () => {
+    const { result } = renderHook(() => useWordSubmission('ROOM', 'p1'));
+
+    act(() => {
+      result.current.setInputWord('pear');
+    });
+    act(() => {
+      result.current.handleSubmitWord();
+    });
+
+    const emitted = __getEmitted();
+    const payload = emitted[emitted.length - 1][1];
+
+    act(() => {
+      __emitServer('actionAck', { success: true });
+      __emitServer('actionAck', {
+        clientActionId: 'unknown-id',
+        success: false,
+      });
+    });
+
+    expect(result.current.isPending).toBe(true);
+
+    act(() => {
+      __emitServer('actionAck', {
+        clientActionId: payload.clientActionId,
+        success: true,
+      });
+    });
+
+    expect(result.current.isPending).toBe(false);
+  });
 });

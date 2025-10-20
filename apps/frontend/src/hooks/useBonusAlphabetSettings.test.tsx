@@ -59,6 +59,21 @@ describe('useBonusAlphabetSettings', () => {
     expect(result.current.settings).toHaveProperty('size');
   });
 
+  it('swallows storage write errors without breaking state', () => {
+    const setItemSpy = vi
+      .spyOn(window.localStorage.__proto__, 'setItem')
+      .mockImplementation(() => {
+        throw new Error('quota');
+      });
+    const { result } = renderHook(() => useBonusAlphabetSettings());
+    act(() => {
+      result.current.setSettings({ showNumbers: false });
+    });
+    expect(result.current.settings.showNumbers).toBe(false);
+    expect(setItemSpy).toHaveBeenCalled();
+    setItemSpy.mockRestore();
+  });
+
   it('reset returns to defaults', () => {
     const { result } = renderHook(() => useBonusAlphabetSettings());
     act(() => {
