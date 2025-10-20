@@ -413,7 +413,7 @@ export default function HomePage() {
                     onClick={() => {
                       void navigate(`/${room.code}`);
                     }}
-                    className="group flex w-full flex-col justify-between rounded-xl border border-white/10 bg-white/5 p-5 text-left transition hover:border-emerald-400/60 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+                    className="group flex w-full flex-col justify-between rounded-xl border border-white/10 bg-white/5 p-5 text-left transition hover:border-emerald-400/60 hover:bg-white/10 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
                     aria-label={`Join ${displayName}`}
                   >
                     <div className="flex items-start justify-between gap-4">
