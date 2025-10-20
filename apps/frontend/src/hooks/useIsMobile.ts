@@ -8,8 +8,9 @@ type WindowLike = Pick<
 /** Responsive breakpoint detection (SSR-safe). Default breakpoint = 768px. */
 export function useIsMobile(
   breakpoint = 768,
-  targetWindow: WindowLike | null =
-    typeof window === 'undefined' ? null : window,
+  targetWindow: WindowLike | null = typeof window === 'undefined'
+    ? null
+    : window,
 ) {
   const resolvedWindow =
     targetWindow ?? (typeof window === 'undefined' ? null : window);

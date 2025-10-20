@@ -145,7 +145,11 @@ describe('useGameState hook', () => {
     });
     expect(__emitMock).toHaveBeenCalledWith(
       'playerTyping',
-      expect.objectContaining({ roomCode: 'ROOM', playerId: 'p1', input: 'typing' }),
+      expect.objectContaining({
+        roomCode: 'ROOM',
+        playerId: 'p1',
+        input: 'typing',
+      }),
     );
 
     act(() => {
