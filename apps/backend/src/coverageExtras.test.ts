@@ -255,7 +255,7 @@ describeCoverage('coverage extras', () => {
         name: 'Obs',
       });
       observer.on('playersDiff', (d) => diffs.push(d));
-      const twoCount = waitForPlayersCount(observer, 2);
+      const twoCount = waitForPlayersCount(pSock, 2);
       pSock.emit('joinRoom', {
         roomCode: 'TIME',
         playerId: pSockId,

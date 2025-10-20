@@ -160,7 +160,7 @@ export function createRoomEventHandlers(
       if (!room.hasPlayer(playerId)) {
         room.addPlayer({ id: playerId, name });
         system(roomCode, `${name} joined the room.`);
-        emitPlayers(io, room);
+        emitPlayers(io, room, { snapshotTargets: [socket.id] });
         log.info(
           { event: 'player_joined', gameId: roomCode, playerId },
           'Player added to room roster',
@@ -200,7 +200,7 @@ export function createRoomEventHandlers(
           reconnectSnapshot?.name ?? previousName ?? 'Someone';
         const wasDisconnected = existingPlayer?.isConnected === false;
         room.setPlayerConnected(playerId, true);
-        emitPlayers(io, room);
+        emitPlayers(io, room, { snapshotTargets: [socket.id] });
         if (wasDisconnected) {
           system(roomCode, `${reconnectName} reconnected.`);
         }

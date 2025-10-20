@@ -69,7 +69,7 @@ describe('RoomBroadcaster', () => {
     vi.clearAllMocks();
   });
 
-  it('broadcasts snapshot and diff when provided', () => {
+  it('broadcasts diff without snapshot when none requested', () => {
     const { broadcaster, emitMock, toMock } = setupBroadcaster();
     const { room } = buildRoomAndGame();
 
@@ -80,22 +80,12 @@ describe('RoomBroadcaster', () => {
       leaderIdChanged: undefined,
     });
 
-    expect(toMock).toHaveBeenCalledTimes(2);
+    expect(toMock).toHaveBeenCalledTimes(1);
     expect(toMock).toHaveBeenCalledWith(`room:${room.code}`);
-    expect(emitMock).toHaveBeenNthCalledWith(
-      1,
+    expect(emitMock).toHaveBeenCalledTimes(1);
+    expect(emitMock).toHaveBeenCalledWith(
       'playersDiff',
       expect.objectContaining({ added: [], updated: [], removed: [] }),
-    );
-    expect(emitMock).toHaveBeenNthCalledWith(
-      2,
-      'playersUpdated',
-      expect.objectContaining({
-        players: expect.arrayContaining([
-          expect.objectContaining({ id: 'P1' }),
-          expect.objectContaining({ id: 'P2' }),
-        ]),
-      }),
     );
   });
 
@@ -109,6 +99,64 @@ describe('RoomBroadcaster', () => {
     expect(emitMock).toHaveBeenCalledTimes(1);
     expect(emitMock).toHaveBeenCalledWith(
       'playersUpdated',
+      expect.objectContaining({ players: expect.any(Array) }),
+    );
+  });
+
+  it('broadcasts snapshot to entire room when requested', () => {
+    const { broadcaster, emitMock, toMock } = setupBroadcaster();
+    const { room } = buildRoomAndGame();
+
+    broadcaster.players(
+      room,
+      {
+        added: [],
+        updated: [],
+        removed: [],
+        leaderIdChanged: undefined,
+      },
+      { broadcastSnapshot: true },
+    );
+
+    expect(toMock).toHaveBeenNthCalledWith(1, `room:${room.code}`);
+    expect(toMock).toHaveBeenNthCalledWith(2, `room:${room.code}`);
+    expect(emitMock).toHaveBeenCalledTimes(2);
+    expect(emitMock).toHaveBeenNthCalledWith(
+      1,
+      'playersDiff',
+      expect.objectContaining({ added: [], updated: [], removed: [] }),
+    );
+    expect(emitMock).toHaveBeenNthCalledWith(
+      2,
+      'playersUpdated',
+      expect.objectContaining({ players: expect.any(Array) }),
+    );
+  });
+
+  it('sends snapshots only to targeted sockets', () => {
+    const { broadcaster, emitMock, toMock } = setupBroadcaster();
+    const { room } = buildRoomAndGame();
+
+    broadcaster.players(
+      room,
+      {
+        added: [],
+        updated: [],
+        removed: [],
+        leaderIdChanged: undefined,
+      },
+      { snapshotTargets: ['sid-1', 'sid-2'] },
+    );
+
+    expect(toMock).toHaveBeenNthCalledWith(1, `room:${room.code}`);
+    expect(toMock).toHaveBeenNthCalledWith(2, 'sid-1');
+    expect(toMock).toHaveBeenNthCalledWith(3, 'sid-2');
+
+    const snapshotCalls = emitMock.mock.calls.filter(
+      (call) => call[0] === 'playersUpdated',
+    );
+    expect(snapshotCalls).toHaveLength(2);
+    expect(snapshotCalls[0][1]).toEqual(
       expect.objectContaining({ players: expect.any(Array) }),
     );
   });

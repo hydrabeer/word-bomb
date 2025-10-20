@@ -25,14 +25,10 @@ export class RoomBroadcaster {
   constructor(private io: TypedServer) {}
 
   /**
-   * Emits a typed socket event to the room namespace, logging telemetry around the emission.
-   *
-   * @param roomCode - Code for the room to emit into.
-   * @param event - Event name from the socket contract.
-   * @param args - Arguments supplied to the event handler on the client.
+   * Emits a typed socket event either to a room or an individual socket, including telemetry.
    */
-  private emit<K extends keyof ServerToClientEvents>(
-    roomCode: string,
+  private emitWithTelemetry<K extends keyof ServerToClientEvents>(
+    target: { roomCode: string } | { socketId: string; roomCode: string },
     event: K,
     ...args: Parameters<ServerToClientEvents[K]>
   ) {
@@ -46,7 +42,7 @@ export class RoomBroadcaster {
         log.warn(
           {
             event: 'message_out_serialize_failed',
-            gameId: roomCode,
+            gameId: target.roomCode,
             type: event,
             err: error,
           },
@@ -54,16 +50,59 @@ export class RoomBroadcaster {
         );
       }
     }
+
     log.debug(
       {
         event: 'message_out',
-        gameId: roomCode,
+        gameId: target.roomCode,
         type: event,
         payloadSize,
+        targetSocketId: 'socketId' in target ? target.socketId : undefined,
       },
       'Emitting socket message',
     );
-    this.io.to(socketRoomId(roomCode)).emit(event, ...args);
+
+    if ('socketId' in target) {
+      this.io.to(target.socketId).emit(event, ...args);
+    } else {
+      this.io.to(socketRoomId(target.roomCode)).emit(event, ...args);
+    }
+  }
+
+  /**
+   * Emits a typed socket event to the room namespace, logging telemetry around the emission.
+   *
+   * @param roomCode - Code for the room to emit into.
+   * @param event - Event name from the socket contract.
+   * @param args - Arguments supplied to the event handler on the client.
+   */
+  private emit<K extends keyof ServerToClientEvents>(
+    roomCode: string,
+    event: K,
+    ...args: Parameters<ServerToClientEvents[K]>
+  ) {
+    this.emitWithTelemetry({ roomCode }, event, ...args);
+  }
+
+  /**
+   * Emits a typed socket event directly to a socket id, including logging.
+   */
+  private emitToSocket<K extends keyof ServerToClientEvents>(
+    socketId: string,
+    roomCode: string,
+    event: K,
+    ...args: Parameters<ServerToClientEvents[K]>
+  ) {
+    this.emitWithTelemetry({ socketId, roomCode }, event, ...args);
+  }
+
+  /**
+   * Options that control how player updates are delivered to clients.
+   */
+  private buildPlayerSnapshotTargets(targets?: Iterable<string>): string[] {
+    if (!targets) return [];
+    if (Array.isArray(targets)) return targets as string[];
+    return Array.from(targets);
   }
 
   /**
@@ -71,11 +110,36 @@ export class RoomBroadcaster {
    *
    * @param room - Source room whose roster should be emitted.
    * @param diff - Optional diff payload describing player mutations.
+   * @param options - Controls who should receive the full snapshot.
    */
-  players(room: GameRoom, diff?: PlayersDiffPayload): void {
+  players(
+    room: GameRoom,
+    diff?: PlayersDiffPayload,
+    options?: {
+      snapshotTargets?: Iterable<string>;
+      broadcastSnapshot?: boolean;
+    },
+  ): void {
     const roomCode = room.code;
     if (diff) this.emit(roomCode, 'playersDiff', diff);
-    this.emit(roomCode, 'playersUpdated', buildPlayersUpdatedPayload(room));
+    const shouldBroadcastSnapshot = options?.broadcastSnapshot === true;
+    const targets = this.buildPlayerSnapshotTargets(options?.snapshotTargets);
+
+    if (!shouldBroadcastSnapshot && targets.length === 0) {
+      if (!diff) {
+        this.emit(roomCode, 'playersUpdated', buildPlayersUpdatedPayload(room));
+      }
+      return;
+    }
+
+    const payload = buildPlayersUpdatedPayload(room);
+    if (shouldBroadcastSnapshot) {
+      this.emit(roomCode, 'playersUpdated', payload);
+    }
+
+    for (const socketId of targets) {
+      this.emitToSocket(socketId, roomCode, 'playersUpdated', payload);
+    }
   }
 
   /**

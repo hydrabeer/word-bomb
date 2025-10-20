@@ -37,6 +37,8 @@ import { SOCKET_ROOM_PREFIX } from './shared/utils/socketRoomId';
 const SHUTDOWN_FORCE_EXIT_TIMEOUT_MS = 5000;
 const DEFAULT_PORT = 3001;
 const FRONTEND_ORIGIN = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+const KEEP_ALIVE_TIMEOUT_MS = 60_000;
+const HEADERS_TIMEOUT_BUFFER_MS = 5_000;
 /** Prefix used for Socket.IO rooms that back active games. */
 
 type HttpServer = ReturnType<typeof createServer>;
@@ -132,6 +134,9 @@ export const nodeHandler: RequestListener = (
   });
 };
 const server = createServer(nodeHandler);
+// Extend keep-alive so proxies can reuse TCP connections more effectively.
+server.keepAliveTimeout = KEEP_ALIVE_TIMEOUT_MS;
+server.headersTimeout = KEEP_ALIVE_TIMEOUT_MS + HEADERS_TIMEOUT_BUFFER_MS;
 
 createSocketServer(server);
 

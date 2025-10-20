@@ -6,7 +6,6 @@ import { createLogger } from '../../../platform/logging';
 import type { TestContext } from '../../../../test/helpers';
 
 import type {
-  PlayersUpdatedPayload,
   PlayersDiffPayload,
   ActionAckPayload,
   RoomRulesPayload,
@@ -144,17 +143,17 @@ describeRoomHandlers('roomHandlers integration', () => {
     await Promise.all([waitForConnect(s1), waitForConnect(s2)]);
     const p1 = requireId(s1.id);
     const p2 = requireId(s2.id);
-    const updates: PlayersUpdatedPayload[] = [];
-    s1.on('playersUpdated', (p) => {
-      updates.push(p);
-    });
     const firstAdd = waitForPlayersCount(s1, 1);
     await joinRoom(s1, { roomCode: code, playerId: p1, name: 'P1' });
     await firstAdd;
-    const secondAdd = waitForPlayersCount(s1, 2);
+    const secondAdd = waitForPlayersCount(s2, 2);
+    const diffReceived = waitForDiff(s1, (diff) =>
+      diff.added.some((player) => player.id === p2),
+    );
     await joinRoom(s2, { roomCode: code, playerId: p2, name: 'P2' });
-    await secondAdd;
-    expect(updates.at(-1)?.players.length).toBe(2);
+    const snapshot = await secondAdd;
+    await diffReceived;
+    expect(snapshot.players.length).toBe(2);
   });
 
   it('starts and cancels countdown via seating changes', async () => {
@@ -177,7 +176,7 @@ describeRoomHandlers('roomHandlers integration', () => {
     const joinA = waitForPlayersCount(s1, 1);
     await joinRoom(s1, { roomCode: code, playerId: p1, name: 'A' });
     await joinA;
-    const joinB = waitForPlayersCount(s1, 2);
+    const joinB = waitForPlayersCount(s2, 2);
     await joinRoom(s2, { roomCode: code, playerId: p2, name: 'B' });
     await joinB;
     await setSeated(s1, { roomCode: code, playerId: p1, seated: true });
@@ -225,7 +224,7 @@ describeRoomHandlers('roomHandlers integration', () => {
     const addA = waitForPlayersCount(s1, 1);
     await joinRoom(s1, { roomCode: code, playerId: p1, name: 'A' });
     await addA;
-    const addB = waitForPlayersCount(s1, 2);
+    const addB = waitForPlayersCount(s2, 2);
     await joinRoom(s2, { roomCode: code, playerId: p2, name: 'B' });
     await addB;
     await setSeated(s1, { roomCode: code, playerId: p1, seated: true });
@@ -350,13 +349,6 @@ describeRoomHandlers('roomHandlers integration', () => {
         (u) => u.id === playerId && u.changes.name === 'Bravo',
       );
     });
-    const playersUpdatedPromise = new Promise<PlayersUpdatedPayload>(
-      (resolve) => {
-        observer.once('playersUpdated', (payload) => {
-          resolve(payload);
-        });
-      },
-    );
 
     const reconnecting = ctx.createClient();
     await waitForConnect(reconnecting);
@@ -373,9 +365,8 @@ describeRoomHandlers('roomHandlers integration', () => {
       ),
     ).toBe(true);
 
-    const playersPayload = await playersUpdatedPromise;
-    const updatedPlayer = playersPayload.players.find((p) => p.id === playerId);
-    expect(updatedPlayer?.name).toBe('Bravo');
+    const room = roomManager.get(code);
+    expect(room?.getPlayer(playerId)?.name).toBe('Bravo');
   });
 
   it('keeps prior name and logs when room update rejects rename', async () => {
@@ -397,7 +388,7 @@ describeRoomHandlers('roomHandlers integration', () => {
     });
     await initialPlayers;
 
-    const firstJoinUpdate = waitForPlayersCount(watcher, 2);
+    const firstJoinUpdate = waitForPlayersCount(client, 2);
     await joinRoom(client, { roomCode: code, playerId, name: 'Alpha' });
     await firstJoinUpdate;
 
@@ -406,7 +397,7 @@ describeRoomHandlers('roomHandlers integration', () => {
     const updateSpy = vi.spyOn(room, 'updatePlayerName').mockReturnValue(false);
 
     try {
-      const renameEvent = waitForPlayersCount(watcher, 2);
+      const renameEvent = waitForPlayersCount(client, 2);
       const response = await joinRoom(client, {
         roomCode: code,
         playerId,
@@ -651,7 +642,7 @@ describeRoomHandlers('roomHandlers integration', () => {
     const joinP1 = waitForPlayersCount(s1, 1);
     await joinRoom(s1, { roomCode: code, playerId: p1, name: 'Alpha' });
     await joinP1;
-    const joinP2 = waitForPlayersCount(s1, 2);
+    const joinP2 = waitForPlayersCount(s2, 2);
     await joinRoom(s2, { roomCode: code, playerId: p2, name: 'Bravo' });
     await joinP2;
 
@@ -752,7 +743,7 @@ describeRoomHandlers('roomHandlers integration', () => {
     const addA = waitForPlayersCount(s1, 1);
     await joinRoom(s1, { roomCode: code, playerId: p1, name: 'A' });
     await addA;
-    const addB = waitForPlayersCount(s1, 2);
+    const addB = waitForPlayersCount(s2, 2);
     await joinRoom(s2, { roomCode: code, playerId: p2, name: 'B' });
     await addB;
     await setSeated(s1, { roomCode: code, playerId: p1, seated: true });
