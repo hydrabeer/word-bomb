@@ -18,6 +18,10 @@ import { setDisconnectGrace } from './roomHandlers';
 import type { Player } from '@game/domain/players/Player';
 
 const testLogger = createLogger({ service: 'backend-tests' });
+const FAST_DISCONNECT_GRACE_MS = 10;
+const SOCKET_EVENT_TIMEOUT_MS = 200;
+const GAME_EVENT_TIMEOUT_MS = 400;
+const POST_DISCONNECT_SETTLE_MS = FAST_DISCONNECT_GRACE_MS * 4;
 
 async function canStartServer(): Promise<boolean> {
   try {
@@ -282,7 +286,7 @@ describeRoomHandlers('roomHandlers integration', () => {
         const timeout = setTimeout(() => {
           observer.off('chatMessage', handler);
           reject(new Error('Timed out waiting for reconnect system message'));
-        }, 700);
+        }, SOCKET_EVENT_TIMEOUT_MS);
         function handler(msg: ChatMessagePayload) {
           if (msg.type === 'system' && /reconnected/i.test(msg.message)) {
             clearTimeout(timeout);
@@ -448,7 +452,7 @@ describeRoomHandlers('roomHandlers integration', () => {
     player.isEliminated = true;
     player.lives = 0;
 
-    setDisconnectGrace(50);
+    setDisconnectGrace(FAST_DISCONNECT_GRACE_MS);
 
     const waitForDisconnectMessage = new Promise<void>((resolve, reject) => {
       const onceHandler = (msg: ChatMessagePayload) => {
@@ -465,7 +469,7 @@ describeRoomHandlers('roomHandlers integration', () => {
       const timeout = setTimeout(() => {
         observer.off('chatMessage', onceHandler);
         reject(new Error('Timed out waiting for disconnect message'));
-      }, 700);
+      }, SOCKET_EVENT_TIMEOUT_MS);
       observer.on('chatMessage', onceHandler);
     });
 
@@ -474,7 +478,7 @@ describeRoomHandlers('roomHandlers integration', () => {
 
       await waitForDisconnectMessage;
       await new Promise((resolve) => {
-        setTimeout(resolve, 200);
+        setTimeout(resolve, POST_DISCONNECT_SETTLE_MS);
       });
 
       const alphaMessages = chatHistory.filter(
@@ -516,7 +520,7 @@ describeRoomHandlers('roomHandlers integration', () => {
       s2.once('turnStarted', () => resolve());
     });
 
-    setDisconnectGrace(50);
+    setDisconnectGrace(FAST_DISCONNECT_GRACE_MS);
 
     try {
       const start = await startGame(s1, code);
@@ -529,7 +533,7 @@ describeRoomHandlers('roomHandlers integration', () => {
           const timeout = setTimeout(() => {
             s2.off('playerUpdated', handler);
             reject(new Error('timeout waiting for player elimination'));
-          }, 1500);
+          }, GAME_EVENT_TIMEOUT_MS);
           const handler = (payload: PlayerUpdatedPayload) => {
             if (payload.playerId === p1 && payload.lives === 0) {
               clearTimeout(timeout);
@@ -545,7 +549,7 @@ describeRoomHandlers('roomHandlers integration', () => {
         const timeout = setTimeout(() => {
           s2.off('gameEnded', endHandler);
           reject(new Error('timeout waiting for gameEnded'));
-        }, 1500);
+        }, GAME_EVENT_TIMEOUT_MS);
         const endHandler = (payload: GameEndedPayload) => {
           clearTimeout(timeout);
           s2.off('gameEnded', endHandler);

@@ -1,11 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import {
-  render,
-  screen,
-  fireEvent,
-  within,
-  waitFor,
-} from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RoomRulesDialog } from './RoomRulesDialog';
 import type { LobbyRules, BasicResponse } from '../hooks/useRoomRules';
@@ -53,25 +47,24 @@ describe('RoomRulesDialog', () => {
 
     // Interact with the dialog controls: enable/disable all and toggle A via
     // the rendered grid inputs/buttons.
-    const user = userEvent.setup({ delay: null });
-    await user.click(screen.getByRole('button', { name: /Enable all/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Enable all/i }));
 
     // Find the button for letter A (first letter) and toggle it
     const letterButton = screen.getByRole('button', {
       name: /Disable letter A|Enable letter A/,
     });
-    await user.click(letterButton);
+    fireEvent.click(letterButton);
 
     // Click Disable all to ensure the action works
-    await user.click(screen.getByRole('button', { name: /Disable all/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Disable all/i }));
 
     const form = document.querySelector('form');
     expect(form).not.toBeNull();
-    fireEvent.submit(form!);
+    const user = userEvent.setup({ delay: null });
+    const save = screen.getByRole('button', { name: /Save changes/i });
+    await user.click(save);
 
-    await waitFor(() => {
-      expect(onSave).toHaveBeenCalledTimes(1);
-    });
+    expect(onSave).toHaveBeenCalledTimes(1);
   });
 
   it('shows validation error when startingLives > maxLives and handles server error', async () => {
@@ -79,7 +72,7 @@ describe('RoomRulesDialog', () => {
       .fn<(next: LobbyRules) => Promise<BasicResponse>>()
       .mockResolvedValue({ success: false, error: 'Server said nope' });
 
-    const { getByLabelText, container } = render(
+    const { getByLabelText } = render(
       <RoomRulesDialog
         open
         onClose={vi.fn()}
@@ -91,19 +84,18 @@ describe('RoomRulesDialog', () => {
       />,
     );
 
-    const form = container.querySelector('form')!;
-    fireEvent.submit(form);
+    const user = userEvent.setup({ delay: null });
+    await user.click(screen.getByRole('button', { name: /Save changes/i }));
     expect(
       screen.getByText('Starting lives cannot exceed max lives.'),
     ).toBeInTheDocument();
 
     // Fix validation with userEvent for realism (and still fast)
-    const user = userEvent.setup({ delay: null });
     const maxLives = getByLabelText('Max lives') as HTMLInputElement;
     await user.clear(maxLives);
     await user.type(maxLives, '6');
 
-    fireEvent.submit(form);
+    await user.click(screen.getByRole('button', { name: /Save changes/i }));
     await screen.findByText('Server said nope');
     expect(onSave).toHaveBeenCalled();
   });
@@ -113,7 +105,7 @@ describe('RoomRulesDialog', () => {
       .fn<(next: LobbyRules) => Promise<BasicResponse>>()
       .mockResolvedValue({ success: true });
 
-    const { container } = render(
+    render(
       <RoomRulesDialog
         open
         onClose={vi.fn()}
@@ -134,12 +126,9 @@ describe('RoomRulesDialog', () => {
     await user.clear(aInput);
     await user.type(aInput, '3');
 
-    const form = container.querySelector('form')!;
-    fireEvent.submit(form);
+    await user.click(screen.getByRole('button', { name: /Save changes/i }));
 
-    await waitFor(() => {
-      expect(onSave).toHaveBeenCalled();
-    });
+    expect(onSave).toHaveBeenCalled();
 
     const calledWith = onSave.mock.calls[0][0];
     expect(calledWith.bonusTemplate[0]).toBe(3);
