@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent, screen, waitFor } from '@testing-library/react';
+import {
+  render,
+  fireEvent,
+  screen,
+  waitFor,
+  createEvent,
+} from '@testing-library/react';
 
 const mockNavigate = vi.fn();
 
@@ -88,6 +94,35 @@ describe('HomePage', () => {
       expect(mockCreateNewRoom).toHaveBeenCalledWith("Alice's room", 'private');
       expect(mockNavigate).toHaveBeenCalledWith('/ROOM');
     });
+  });
+
+  it('keeps a custom room name when saving a new profile name', async () => {
+    await setup();
+    const roomNameInput = screen.getByLabelText(/Room name/i);
+    fireEvent.change(roomNameInput, { target: { value: 'Cool Club' } });
+    fireEvent.click(screen.getByLabelText(/Edit your name/i));
+    const nameInput = screen.getByLabelText(/Your display name/i);
+    fireEvent.change(nameInput, { target: { value: 'Bob' } });
+    fireEvent.click(screen.getByLabelText(/Save name/i));
+    expect((roomNameInput as HTMLInputElement).value).toBe('Cool Club');
+  });
+
+  it('does not create a room when pressing Enter in the room name field', async () => {
+    await setup();
+    const roomNameInput = screen.getByLabelText<HTMLInputElement>(/Room name/i);
+    const blurSpy = vi.spyOn(roomNameInput, 'blur');
+    const event = createEvent.keyDown(roomNameInput, { key: 'Enter' });
+    const preventDefault = vi.spyOn(event, 'preventDefault');
+
+    fireEvent(roomNameInput, event);
+
+    await waitFor(() => {
+      expect(mockCreateNewRoom).not.toHaveBeenCalled();
+      expect(preventDefault).toHaveBeenCalled();
+      expect(blurSpy).toHaveBeenCalled();
+    });
+
+    blurSpy.mockRestore();
   });
 
   it('allows setting room visibility before creating a room', async () => {

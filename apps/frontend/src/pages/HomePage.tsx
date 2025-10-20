@@ -21,9 +21,11 @@ import {
 export default function HomePage() {
   const navigate = useNavigate();
   const { name: initialName } = getOrCreatePlayerProfile();
+  const defaultRoomName = (value: string) => `${value}'s room`;
   const [name, setName] = useState(initialName);
   const [editing, setEditing] = useState(false);
-  const [roomName, setRoomName] = useState(`${initialName}'s room`);
+  const [profileName, setProfileName] = useState(initialName);
+  const [roomName, setRoomName] = useState(defaultRoomName(initialName));
   const [joinCode, setJoinCode] = useState('');
   const [visibility, setVisibility] = useState<RoomVisibility>('private');
   const [publicRooms, setPublicRooms] = useState<RoomSummary[]>([]);
@@ -63,8 +65,14 @@ export default function HomePage() {
       alert('Name must be between 1 and 20 characters.');
       return;
     }
+    const previousDefaultRoomName = defaultRoomName(profileName);
+    const nextDefaultRoomName = defaultRoomName(trimmed);
     updatePlayerName(trimmed);
-    setRoomName(`${trimmed}'s room`);
+    setProfileName(trimmed);
+    setName(trimmed);
+    if (roomName === previousDefaultRoomName) {
+      setRoomName(nextDefaultRoomName);
+    }
     setEditing(false);
   };
 
@@ -82,6 +90,12 @@ export default function HomePage() {
       return;
     }
     void navigate(`/${joinCode}`);
+  };
+
+  const handleRoomNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    event.currentTarget.blur();
   };
 
   return (
@@ -195,6 +209,7 @@ export default function HomePage() {
                     onChange={(e) => {
                       setRoomName(e.target.value);
                     }}
+                    onKeyDown={handleRoomNameKeyDown}
                     maxLength={30}
                     placeholder="Enter room name"
                     className="w-full rounded-lg border border-indigo-600/30 bg-indigo-900/30 px-4 py-3 text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
