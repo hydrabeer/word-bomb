@@ -75,18 +75,12 @@ export function buildTurnStartedPayload(game: Game): TurnStartedPayload {
 /**
  * Creates the comprehensive payload emitted when a game transitions out of lobby.
  *
- * @param room - Room source of leader metadata for the payload.
  * @param game - Game providing active state for the start snapshot.
  * @returns Payload for the `gameStarted` socket event.
  */
-export function buildGameStartedPayload(
-  room: GameRoom,
-  game: Game,
-): GameStartedPayload {
+export function buildGameStartedPayload(game: Game): GameStartedPayload {
   return {
-    roomCode: game.roomCode,
     currentPlayer: getCurrentPlayerId(game),
-    leaderId: room.getLeaderId() ?? null,
     ...buildBaseGamePayload(game),
   };
 }

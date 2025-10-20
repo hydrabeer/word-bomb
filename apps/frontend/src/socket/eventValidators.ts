@@ -94,26 +94,21 @@ const parseBaseTurnData = (
 export function validateGameStarted(v: unknown): Result<GameStartedV> {
   if (!isObj(v)) return { ok: false };
   const obj: Record<string, unknown> = v;
-  const roomCode = obj.roomCode;
-  if (typeof roomCode !== 'string') return { ok: false };
 
   const base = parseBaseTurnData(obj);
   if (!base) return { ok: false };
 
   const currentPlayer = parseNullableString(obj.currentPlayer);
-  const leaderId = parseNullableString(obj.leaderId);
-  if (currentPlayer === undefined || leaderId === undefined) {
+  if (currentPlayer === undefined) {
     return { ok: false };
   }
 
   return {
     ok: true,
     data: {
-      roomCode,
       fragment: base.fragment,
       bombDuration: base.bombDuration,
       currentPlayer,
-      leaderId,
       players: base.players,
     },
   };

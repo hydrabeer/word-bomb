@@ -133,13 +133,12 @@ describe('serialization payload builders', () => {
       rules,
     });
 
-    const payload = buildGameStartedPayload(room, game);
-    expect(payload.roomCode).toBe('WXYZ');
+    const payload = buildGameStartedPayload(game);
     expect(payload.currentPlayer).toBe(pA.id);
     expect(payload.players.map((p) => p.id)).toEqual(['A', 'B']);
   });
 
-  it('buildGameStartedPayload falls back to null leader when room has none', () => {
+  it('buildGameStartedPayload reflects current game state even with empty room', () => {
     const room = new GameRoom({ code: 'NULL' }, rules);
     room.addPlayer({ id: 'A', name: 'Alpha' });
     room.addPlayer({ id: 'B', name: 'Beta' });
@@ -159,7 +158,8 @@ describe('serialization payload builders', () => {
       rules,
     });
 
-    const payload = buildGameStartedPayload(room, game);
-    expect(payload.leaderId).toBeNull();
+    const payload = buildGameStartedPayload(game);
+    expect(payload.currentPlayer).toBe(pB.id);
+    expect(payload.players.length).toBe(2);
   });
 });

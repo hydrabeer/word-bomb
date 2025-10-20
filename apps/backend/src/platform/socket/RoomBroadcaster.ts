@@ -161,7 +161,7 @@ export class RoomBroadcaster {
   /**
    * Announces that the game has started and issues the full game start payload.
    *
-   * @param room - Room metadata used for leader identification and logging.
+   * @param room - Room metadata used for logging and channel selection.
    * @param game - Game instance containing the authoritative state snapshot.
    */
   gameStarted(room: GameRoom, game: Game): void {
@@ -174,7 +174,7 @@ export class RoomBroadcaster {
       },
       'Game started',
     );
-    this.emit(room.code, 'gameStarted', buildGameStartedPayload(room, game));
+    this.emit(room.code, 'gameStarted', buildGameStartedPayload(game));
   }
 
   /**

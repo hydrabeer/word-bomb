@@ -215,7 +215,7 @@ export function createRoomEventHandlers(
       if (room.game) {
         try {
           const game = room.game;
-          socket.emit('gameStarted', buildGameStartedPayload(room, game));
+          socket.emit('gameStarted', buildGameStartedPayload(game));
           socket.emit('turnStarted', buildTurnStartedPayload(game));
         } catch (error) {
           log.warn(

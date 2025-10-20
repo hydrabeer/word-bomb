@@ -13,11 +13,9 @@ import type {
 describe('socket shared types', () => {
   it('GameStartedPayload structure', () => {
     const sample: GameStartedPayload = {
-      roomCode: 'ROOM',
       fragment: 'ab',
       bombDuration: 5,
       currentPlayer: null,
-      leaderId: null,
       players: [{ id: 'p1', name: 'Alice', isEliminated: false, lives: 3 }],
     };
     expect(sample.fragment).toBe('ab');

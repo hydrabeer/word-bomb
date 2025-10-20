@@ -363,7 +363,11 @@ describe('registerRoomHandlers', () => {
       'WXYZ',
       'Alice joined the room.',
     );
-    expect(emitPlayers).toHaveBeenCalledWith(expect.anything(), room);
+    expect(emitPlayers).toHaveBeenCalledWith(
+      expect.anything(),
+      room,
+      expect.objectContaining({ snapshotTargets: [socket.id] }),
+    );
     const rulesEvent = socket.emitted.find(
       (evt) => evt.event === 'roomRulesUpdated',
     );

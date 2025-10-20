@@ -78,11 +78,9 @@ export interface PlayerUpdatedPayload {
   lives: number;
 }
 export interface GameStartedPayload {
-  roomCode: string;
   fragment: string;
   bombDuration: number;
   currentPlayer: string | null;
-  leaderId: string | null;
   players: GamePlayerView[];
 }
 export interface TurnStartedPayload {

@@ -205,6 +205,41 @@ describe('rooms router handlers', () => {
     );
   });
 
+  it('createRoomHandler regenerates code when roomManager.create reports a duplicate', () => {
+    const createMock = roomManager.create as ReturnType<typeof vi.fn>;
+    createMock
+      .mockImplementationOnce(() => {
+        throw new Error('Room AAAA already exists');
+      })
+      .mockImplementationOnce(() => ({}));
+    const hasMock = roomManager.has as ReturnType<typeof vi.fn>;
+    hasMock.mockReturnValue(false);
+    roomCodeGeneratorMock
+      .mockImplementationOnce(() => 'AAAA')
+      .mockImplementationOnce(() => 'BBBB');
+
+    const { response, statusMock, jsonMock } = createMockResponse<{
+      code: string;
+    }>();
+    setRoomCodeGenerator(roomCodeGeneratorMock);
+
+    createRoomHandler(
+      { body: {} } as unknown as Request,
+      response as unknown as Response,
+    );
+
+    expect(createMock).toHaveBeenCalledTimes(2);
+    expect(createMock).toHaveBeenNthCalledWith(
+      2,
+      'BBBB',
+      expect.any(Object),
+      '',
+      'private',
+    );
+    expect(statusMock).toHaveBeenCalledWith(201);
+    expect(jsonMock).toHaveBeenCalledWith({ code: 'BBBB' });
+  });
+
   it('createRoomHandler handles missing request body gracefully', () => {
     (roomManager.create as ReturnType<typeof vi.fn>).mockImplementation(
       () => ({}),

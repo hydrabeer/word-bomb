@@ -161,6 +161,23 @@ describe('RoomBroadcaster', () => {
     );
   });
 
+  it('accepts iterable snapshot targets', () => {
+    const { broadcaster, emitMock, toMock } = setupBroadcaster();
+    const { room } = buildRoomAndGame();
+
+    broadcaster.players(room, undefined, {
+      snapshotTargets: new Set(['sid-iterable']),
+    });
+
+    expect(toMock).toHaveBeenCalledTimes(1);
+    expect(toMock).toHaveBeenCalledWith('sid-iterable');
+    expect(emitMock).toHaveBeenCalledTimes(1);
+    expect(emitMock).toHaveBeenCalledWith(
+      'playersUpdated',
+      expect.objectContaining({ players: expect.any(Array) }),
+    );
+  });
+
   it('emits rules with cloned bonus template', () => {
     const { broadcaster, emitMock, toMock } = setupBroadcaster();
     const { room } = buildRoomAndGame();

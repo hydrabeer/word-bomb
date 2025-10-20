@@ -14,30 +14,25 @@ const basePlayer = { id: 'p1', name: 'Alice', isEliminated: false, lives: 3 };
 describe('eventValidators', () => {
   it('validateGameStarted success', () => {
     const res = validateGameStarted({
-      roomCode: 'ROOM',
       fragment: 'ab',
       bombDuration: 5,
       currentPlayer: 'p1',
-      leaderId: 'p1',
       players: [basePlayer],
     });
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.data.players[0].id).toBe('p1');
   });
 
-  it('validateGameStarted success with nullable currentPlayer/leaderId', () => {
+  it('validateGameStarted success with nullable currentPlayer', () => {
     const res = validateGameStarted({
-      roomCode: 'ROOM',
       fragment: 'ab',
       bombDuration: 5,
       currentPlayer: null,
-      leaderId: null,
       players: [basePlayer],
     });
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.data.currentPlayer).toBeNull();
-      expect(res.data.leaderId).toBeNull();
     }
   });
 
@@ -126,11 +121,9 @@ describe('eventValidators', () => {
 
   it('players parsing: isEliminated omitted coerces to false', () => {
     const res = validateGameStarted({
-      roomCode: 'R',
       fragment: 'ab',
       bombDuration: 3,
       currentPlayer: 'p1',
-      leaderId: 'p1',
       players: [{ id: 'p1', name: 'A', lives: 2 }],
     });
     expect(res.ok).toBe(true);
@@ -142,39 +135,22 @@ describe('eventValidators', () => {
     expect(res.ok).toBe(true);
   });
 
-  it('validateGameStarted fails on invalid roomCode type', () => {
+  it('validateGameStarted fails on missing currentPlayer (undefined)', () => {
     const bad: unknown = {
-      roomCode: 123,
-      fragment: 'ab',
-      bombDuration: 5,
-      currentPlayer: 'p1',
-      leaderId: 'p1',
-      players: [basePlayer],
-    };
-    const res = validateGameStarted(bad);
-    expect(res.ok).toBe(false);
-  });
-
-  it('validateGameStarted fails on missing currentPlayer/leaderId (undefined)', () => {
-    const bad: unknown = {
-      roomCode: 'ROOM',
       fragment: 'ab',
       bombDuration: 5,
       // currentPlayer omitted -> undefined
-      // leaderId omitted -> undefined
       players: [basePlayer],
     };
     const res = validateGameStarted(bad);
     expect(res.ok).toBe(false);
   });
 
-  it('validateGameStarted fails on invalid currentPlayer/leaderId types', () => {
+  it('validateGameStarted fails on invalid currentPlayer type', () => {
     const bad: unknown = {
-      roomCode: 'ROOM',
       fragment: 'ab',
       bombDuration: 5,
       currentPlayer: 123,
-      leaderId: { x: 1 },
       players: [basePlayer],
     };
     const res = validateGameStarted(bad);
@@ -183,20 +159,16 @@ describe('eventValidators', () => {
 
   it('validateGameStarted fails when base turn data invalid (fragment/bombDuration types)', () => {
     const bad1: unknown = {
-      roomCode: 'ROOM',
       fragment: 1,
       bombDuration: 5,
       currentPlayer: 'p1',
-      leaderId: 'p1',
       players: [basePlayer],
     };
     expect(validateGameStarted(bad1).ok).toBe(false);
     const bad2: unknown = {
-      roomCode: 'ROOM',
       fragment: 'ab',
       bombDuration: '5',
       currentPlayer: 'p1',
-      leaderId: 'p1',
       players: [basePlayer],
     };
     expect(validateGameStarted(bad2).ok).toBe(false);
@@ -205,33 +177,27 @@ describe('eventValidators', () => {
   it('validateGameStarted fails when players invalid', () => {
     // players not an array
     const bad1: unknown = {
-      roomCode: 'ROOM',
       fragment: 'ab',
       bombDuration: 5,
       currentPlayer: 'p1',
-      leaderId: 'p1',
       players: {},
     };
     expect(validateGameStarted(bad1).ok).toBe(false);
 
     // players array with non-object
     const bad2: unknown = {
-      roomCode: 'ROOM',
       fragment: 'ab',
       bombDuration: 5,
       currentPlayer: 'p1',
-      leaderId: 'p1',
       players: [1],
     };
     expect(validateGameStarted(bad2).ok).toBe(false);
 
     // players array with wrong field types
     const bad3: unknown = {
-      roomCode: 'ROOM',
       fragment: 'ab',
       bombDuration: 5,
       currentPlayer: 'p1',
-      leaderId: 'p1',
       players: [{ id: 'p1', name: 'n', lives: '3' }],
     };
     expect(validateGameStarted(bad3).ok).toBe(false);
