@@ -483,4 +483,41 @@ describe('rooms router handlers', () => {
 
     expect(roomManager.listRoomsByVisibility).toHaveBeenCalledWith('public');
   });
+
+  it('listRoomsHandler normalizes non-string room names to empty strings', () => {
+    (
+      roomManager.listRoomsByVisibility as ReturnType<typeof vi.fn>
+    ).mockReturnValue([
+      {
+        code: 'ABCD',
+        name: 999,
+        visibility: 'public',
+        getAllPlayers: () => [],
+      },
+    ] as unknown as never);
+    const { response, jsonMock } = createMockResponse<{
+      rooms: {
+        code: string;
+        name: string;
+        playerCount: number;
+        visibility: string;
+      }[];
+    }>();
+
+    listRoomsHandler(
+      { query: { visibility: 'public' } } as unknown as Request,
+      response as unknown as Response,
+    );
+
+    expect(jsonMock).toHaveBeenCalledWith({
+      rooms: [
+        {
+          code: 'ABCD',
+          name: '',
+          playerCount: 0,
+          visibility: 'public',
+        },
+      ],
+    });
+  });
 });
