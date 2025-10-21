@@ -197,7 +197,7 @@ export default function HomePage() {
                     e.preventDefault();
                     void handleJoinRoom();
                   }}
-                  className="flex h-full flex-1 flex-col gap-5 rounded-2xl border border-white/10 bg-indigo-950/40 p-6 shadow-inner shadow-black/20 backdrop-blur min-w-[240px] md:min-w-[280px] xl:min-w-[320px] xl:max-w-sm"
+                  className="flex h-full min-w-[240px] flex-1 flex-col gap-5 rounded-2xl border border-white/10 bg-indigo-950/40 p-6 shadow-inner shadow-black/20 backdrop-blur md:min-w-[280px] xl:min-w-[320px] xl:max-w-sm"
                   aria-labelledby="join-room-heading"
                 >
                   <header className="flex items-center gap-3">
@@ -257,7 +257,7 @@ export default function HomePage() {
                     e.preventDefault();
                     void handleCreateRoom();
                   }}
-                  className="flex h-full flex-1 flex-col gap-5 rounded-2xl border border-white/10 bg-indigo-950/40 p-6 shadow-inner shadow-black/20 backdrop-blur min-w-[240px] md:min-w-[280px] xl:min-w-[320px] xl:max-w-sm"
+                  className="flex h-full min-w-[240px] flex-1 flex-col gap-5 rounded-2xl border border-white/10 bg-indigo-950/40 p-6 shadow-inner shadow-black/20 backdrop-blur md:min-w-[280px] xl:min-w-[320px] xl:max-w-sm"
                   aria-labelledby="create-room-heading"
                 >
                   <header className="flex items-center gap-3">
@@ -393,7 +393,7 @@ export default function HomePage() {
           </section>
 
           <aside className="space-y-6 2xl:sticky 2xl:top-8">
-            <section className="rounded-3xl bg-indigo-900/40 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-sm lg:border lg:border-white/10 max-w-3xl">
+            <section className="max-w-3xl rounded-3xl bg-indigo-900/40 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-sm lg:border lg:border-white/10">
               <header className="mb-5">
                 <h2 className="text-xl font-semibold text-white">
                   How rounds work
@@ -417,11 +417,10 @@ export default function HomePage() {
                 </li>
               </ul>
             </section>
-
           </aside>
         </div>
 
-      <section
+        <section
           id="public-rooms"
           className="mt-12 rounded-3xl bg-indigo-900/40 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-sm lg:border lg:border-white/10 lg:p-8"
           aria-labelledby="public-rooms-heading"
