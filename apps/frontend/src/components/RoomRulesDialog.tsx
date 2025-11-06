@@ -171,6 +171,7 @@ export function RoomRulesDialog({
                   type="number"
                   min={1}
                   max={10}
+                  name="startingLives"
                   value={draft.startingLives}
                   onChange={(e) => {
                     setDraft((prev) => ({
@@ -188,6 +189,7 @@ export function RoomRulesDialog({
                   type="number"
                   min={1}
                   max={10}
+                  name="maxLives"
                   value={draft.maxLives}
                   onChange={(e) => {
                     setDraft((prev) => ({
@@ -216,6 +218,7 @@ export function RoomRulesDialog({
                   min={1}
                   max={1000}
                   step={1}
+                  name="minWordsPerPrompt"
                   value={draft.minWordsPerPrompt}
                   onChange={(e) => {
                     setDraft((prev) => ({
@@ -238,6 +241,7 @@ export function RoomRulesDialog({
                   type="number"
                   min={1}
                   max={10}
+                  name="minTurnDuration"
                   value={draft.minTurnDuration}
                   onChange={(e) => {
                     setDraft((prev) => ({
@@ -315,6 +319,7 @@ export function RoomRulesDialog({
                       type="number"
                       min={BONUS_MIN}
                       max={BONUS_MAX}
+                      name={`bonus-${letter.toLowerCase()}`}
                       value={value}
                       onChange={(e) => {
                         handleBonusChange(idx, Number(e.target.value));

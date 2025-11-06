@@ -301,6 +301,7 @@ export default function Chat({
               maxLength={300}
               placeholder="Type your message..."
               rows={1}
+              name="chatMessage"
               className="scrollbar-none max-h-[150px] min-h-[48px] w-full resize-none rounded-lg border border-indigo-600/30 bg-indigo-900/30 px-4 py-3 pr-16 text-base text-white placeholder-indigo-300 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-400"
               onChange={(e) => {
                 setNewMessage(e.target.value);
