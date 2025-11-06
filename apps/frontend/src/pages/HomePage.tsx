@@ -108,317 +108,289 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-16" role="main">
-        <div className="grid gap-8 pt-8 2xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <section
-            id="quick-start"
-            className="rounded-3xl bg-indigo-900/40 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-sm lg:border lg:border-white/10 lg:p-8"
-            aria-labelledby="quick-start-heading"
-          >
-            <div className="flex flex-col gap-8 xl:flex-row xl:items-stretch">
-              <div className="flex w-full max-w-sm flex-col gap-6 xl:h-full xl:min-w-[280px]">
-                <div className="rounded-2xl border border-white/10 bg-indigo-950/30 p-6 text-left shadow-inner shadow-black/10">
-                  <h2
-                    id="quick-start-heading"
-                    className="text-2xl font-semibold text-white"
-                  >
-                    Jump into a game
-                  </h2>
-                  <p className="mt-3 text-sm text-indigo-200">
-                    Join with a code or host a lobby for friends.
+      <main
+        className="mx-auto w-full max-w-[min(92vw,1600px)] flex-1 px-4 pb-16"
+        role="main"
+      >
+        <section
+          id="quick-start"
+          className="mt-8 rounded-3xl bg-indigo-900/40 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-sm lg:border lg:border-white/10 lg:p-8"
+          aria-labelledby="quick-start-heading"
+        >
+          <div className="grid grid-cols-1 gap-6 sm:gap-8 xl:grid-cols-[minmax(260px,320px)_minmax(320px,1fr)_minmax(320px,1fr)] xl:items-stretch">
+            <div className="flex flex-col gap-6">
+              <div className="rounded-2xl border border-white/10 bg-indigo-950/30 p-6 text-left shadow-inner shadow-black/10">
+                <h2
+                  id="quick-start-heading"
+                  className="text-2xl font-semibold text-white"
+                >
+                  Jump into a game
+                </h2>
+                <p className="mt-3 text-sm text-indigo-200">
+                  Join with a code or host a lobby for friends.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-indigo-950/30 p-6 shadow-inner shadow-black/10">
+                <header className="mb-4">
+                  <h3 className="text-lg font-semibold text-white">
+                    Your profile
+                  </h3>
+                  <p className="text-sm text-indigo-200">
+                    Set the name everyone sees in game.
+                  </p>
+                </header>
+                <div className="space-y-4">
+                  {editing ? (
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        value={name}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                          setName(e.target.value);
+                        }}
+                        onKeyDown={(e: KeyboardEvent<HTMLInputElement>) =>
+                          e.key === 'Enter' && handleSaveName()
+                        }
+                        placeholder="Your name"
+                        maxLength={20}
+                        className="w-full rounded-lg border border-indigo-600/30 bg-indigo-900/40 px-4 py-3 text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        autoFocus
+                        aria-label="Your display name"
+                        aria-describedby="name-constraints"
+                      />
+                      <button
+                        onClick={handleSaveName}
+                        className="mt-2 whitespace-nowrap rounded-md bg-emerald-500 px-4 py-3 text-base font-medium text-black shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 sm:mt-0"
+                        aria-label="Save name"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-3 text-xl font-medium text-indigo-100">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-base font-semibold text-black">
+                          {name.charAt(0).toUpperCase()}
+                        </span>
+                        {name}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setEditing(true);
+                        }}
+                        className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20 focus:ring-2 focus:ring-emerald-400 active:scale-95"
+                        aria-label="Edit your name"
+                      >
+                        Edit Name
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-xs text-indigo-300">
+                    This name shows in chat, leaderboards, and lobby lists.
+                  </p>
+                  <p id="name-constraints" className="sr-only">
+                    Name must be between 1 and 20 characters.
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-indigo-950/30 p-6 shadow-inner shadow-black/10">
-                  <header className="mb-4">
-                    <h3 className="text-lg font-semibold text-white">
-                      Your profile
-                    </h3>
-                    <p className="text-sm text-indigo-200">
-                      Set the name everyone sees in game.
-                    </p>
-                  </header>
-                  <div className="space-y-4">
-                    {editing ? (
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <input
-                          value={name}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                            setName(e.target.value);
-                          }}
-                          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) =>
-                            e.key === 'Enter' && handleSaveName()
-                          }
-                          placeholder="Your name"
-                          maxLength={20}
-                          className="w-full rounded-lg border border-indigo-600/30 bg-indigo-900/40 px-4 py-3 text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                          autoFocus
-                          aria-label="Your display name"
-                          aria-describedby="name-constraints"
-                        />
-                        <button
-                          onClick={handleSaveName}
-                          className="mt-2 whitespace-nowrap rounded-md bg-emerald-500 px-4 py-3 text-base font-medium text-black shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 sm:mt-0"
-                          aria-label="Save name"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-3 text-xl font-medium text-indigo-100">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-base font-semibold text-black">
-                            {name.charAt(0).toUpperCase()}
-                          </span>
-                          {name}
-                        </span>
-                        <button
-                          onClick={() => {
-                            setEditing(true);
-                          }}
-                          className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20 focus:ring-2 focus:ring-emerald-400 active:scale-95"
-                          aria-label="Edit your name"
-                        >
-                          Edit Name
-                        </button>
-                      </div>
-                    )}
-                    <p className="text-xs text-indigo-300">
-                      This name shows in chat, leaderboards, and lobby lists.
-                    </p>
-                    <p id="name-constraints" className="sr-only">
-                      Name must be between 1 and 20 characters.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-1 flex-col gap-6 xl:flex-row xl:items-stretch">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void handleJoinRoom();
-                  }}
-                  className="flex h-full min-w-[240px] flex-1 flex-col gap-5 rounded-2xl border border-white/10 bg-indigo-950/40 p-6 shadow-inner shadow-black/20 backdrop-blur md:min-w-[280px] xl:min-w-[320px] xl:max-w-sm"
-                  aria-labelledby="join-room-heading"
-                >
-                  <header className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-pink-500">
-                      <span className="text-sm font-bold text-black">→</span>
-                    </span>
-                    <h3
-                      id="join-room-heading"
-                      className="text-xl font-semibold text-white"
-                    >
-                      Join with a code
-                    </h3>
-                  </header>
-                  <div className="space-y-4 sm:space-y-5">
-                    <div>
-                      <label
-                        htmlFor="joinCode"
-                        className="mb-2 block text-sm font-medium text-indigo-200"
-                      >
-                        Room code
-                      </label>
-                      <input
-                        id="joinCode"
-                        value={joinCode}
-                        onChange={(e) => {
-                          const filtered = e.target.value
-                            .toUpperCase()
-                            .replace(/[^A-Z]/g, '');
-                          setJoinCode(filtered);
-                        }}
-                        placeholder="Enter 4-letter code"
-                        maxLength={4}
-                        pattern="[A-Z]{4}"
-                        className="text-md w-full rounded-lg border border-indigo-600/30 bg-indigo-900/40 px-4 py-5 text-center tracking-widest text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 sm:text-xl lg:text-2xl"
-                        aria-describedby="joincode-constraints"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      className="w-full rounded-md bg-pink-400 px-4 py-3 text-base font-medium text-slate-950 shadow-lg shadow-pink-400/25 transition hover:bg-pink-300 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={joinCode.length !== 4}
-                      aria-label="Join existing room"
-                    >
-                      Join Room
-                    </button>
-                    <p className="text-center text-sm leading-relaxed text-indigo-200">
-                      Enter the four letters and you are in.
-                    </p>
-                    <p id="joincode-constraints" className="sr-only">
-                      Enter exactly four uppercase letters.
-                    </p>
-                  </div>
-                </form>
-                <form
-                  id="create-room-card"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void handleCreateRoom();
-                  }}
-                  className="flex h-full min-w-[240px] flex-1 flex-col gap-5 rounded-2xl border border-white/10 bg-indigo-950/40 p-6 shadow-inner shadow-black/20 backdrop-blur md:min-w-[280px] xl:min-w-[320px] xl:max-w-sm"
-                  aria-labelledby="create-room-heading"
-                >
-                  <header className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-500">
-                      <span className="text-sm font-bold text-black">+</span>
-                    </span>
-                    <h3
-                      id="create-room-heading"
-                      className="text-xl font-semibold text-white"
-                    >
-                      Create a room
-                    </h3>
-                  </header>
-
-                  <div className="space-y-5">
-                    <div>
-                      <label
-                        htmlFor="roomName"
-                        className="mb-2 block text-sm font-medium text-indigo-200"
-                      >
-                        Room name
-                      </label>
-                      <input
-                        id="roomName"
-                        value={roomName}
-                        onChange={(e) => {
-                          setRoomName(e.target.value);
-                        }}
-                        onKeyDown={handleRoomNameKeyDown}
-                        maxLength={30}
-                        placeholder="Enter room name"
-                        className="w-full rounded-lg border border-indigo-600/30 bg-indigo-900/40 px-4 py-3 text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                        aria-describedby="roomname-constraints"
-                      />
-                    </div>
-
-                    <fieldset className="space-y-3">
-                      <legend
-                        id="room-visibility-label"
-                        className="text-sm font-medium text-indigo-200"
-                      >
-                        Room visibility
-                      </legend>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <label
-                          className={`block rounded-xl border px-4 py-3 transition focus-within:ring-2 focus-within:ring-emerald-400 ${
-                            visibility === 'public'
-                              ? 'border-emerald-400/60 bg-emerald-500/10 shadow-inner'
-                              : 'border-white/10 bg-white/5 hover:border-white/20'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="roomVisibility"
-                            value="public"
-                            checked={visibility === 'public'}
-                            onChange={() => {
-                              setVisibility('public');
-                            }}
-                            className="sr-only"
-                            aria-label="Public room"
-                          />
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20">
-                                <FaGlobe
-                                  className="h-4 w-4 text-emerald-300"
-                                  aria-hidden
-                                />
-                              </span>
-                              <span className="text-sm font-semibold text-white">
-                                Public
-                              </span>
-                            </div>
-                            <p className="text-xs leading-snug text-indigo-200">
-                              Appears in the public lobby list.
-                            </p>
-                          </div>
-                        </label>
-                        <label
-                          className={`block rounded-xl border px-4 py-3 transition focus-within:ring-2 focus-within:ring-emerald-400 ${
-                            visibility === 'private'
-                              ? 'border-emerald-400/60 bg-emerald-500/10 shadow-inner'
-                              : 'border-white/10 bg-white/5 hover:border-white/20'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="roomVisibility"
-                            value="private"
-                            checked={visibility === 'private'}
-                            onChange={() => {
-                              setVisibility('private');
-                            }}
-                            className="sr-only"
-                            aria-label="Private room"
-                          />
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20">
-                                <FaLock
-                                  className="h-4 w-4 text-purple-200"
-                                  aria-hidden
-                                />
-                              </span>
-                              <span className="text-sm font-semibold text-white">
-                                Private
-                              </span>
-                            </div>
-                            <p className="text-xs leading-snug text-indigo-200">
-                              Only accessible with your invite code.
-                            </p>
-                          </div>
-                        </label>
-                      </div>
-                    </fieldset>
-
-                    <button
-                      type="submit"
-                      className="w-full rounded-md bg-emerald-500 px-4 py-3 text-base font-medium text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={!roomName.trim()}
-                      aria-label="Create a new game room"
-                    >
-                      Create &amp; Play
-                    </button>
-                    <p id="roomname-constraints" className="sr-only">
-                      Room name up to 30 characters.
-                    </p>
-                  </div>
-                </form>
               </div>
             </div>
-          </section>
-
-          <aside className="space-y-6 2xl:sticky 2xl:top-8">
-            <section className="max-w-3xl rounded-3xl bg-indigo-900/40 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-sm lg:border lg:border-white/10">
-              <header className="mb-5">
-                <h2 className="text-xl font-semibold text-white">
-                  How rounds work
-                </h2>
-                <p className="text-sm text-indigo-200">
-                  Play fast, pass the bomb, and outlast everyone.
-                </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleJoinRoom();
+              }}
+              className="flex min-h-full flex-1 flex-col gap-5 rounded-2xl border border-white/10 bg-indigo-950/40 p-6 shadow-inner shadow-black/20 backdrop-blur md:min-w-[280px] xl:self-stretch"
+              aria-labelledby="join-room-heading"
+            >
+              <header className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-pink-500">
+                  <span className="text-sm font-bold text-black">→</span>
+                </span>
+                <h3
+                  id="join-room-heading"
+                  className="text-xl font-semibold text-white"
+                >
+                  Join with a code
+                </h3>
               </header>
-              <ul className="mt-4 space-y-3 text-sm leading-relaxed text-indigo-100">
-                <li>
-                  <span className="font-semibold text-white">1.</span> Play a
-                  word with the highlighted syllable before time is up.
-                </li>
-                <li>
-                  <span className="font-semibold text-white">2.</span> Pass the
-                  bomb quickly to stay in the round.
-                </li>
-                <li>
-                  <span className="font-semibold text-white">3.</span> Last
-                  player standing across rounds wins.
-                </li>
-              </ul>
-            </section>
-          </aside>
-        </div>
+              <div className="space-y-4 sm:space-y-5">
+                <div>
+                  <label
+                    htmlFor="joinCode"
+                    className="mb-2 block text-sm font-medium text-indigo-200"
+                  >
+                    Room code
+                  </label>
+                  <input
+                    id="joinCode"
+                    value={joinCode}
+                    onChange={(e) => {
+                      const filtered = e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z]/g, '');
+                      setJoinCode(filtered);
+                    }}
+                    placeholder="Enter 4-letter code"
+                    maxLength={4}
+                    pattern="[A-Z]{4}"
+                    className="text-md w-full rounded-lg border border-indigo-600/30 bg-indigo-900/40 px-4 py-5 text-center tracking-widest text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 sm:text-xl lg:text-2xl"
+                    aria-describedby="joincode-constraints"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full rounded-md bg-pink-400 px-4 py-3 text-base font-medium text-slate-950 shadow-lg shadow-pink-400/25 transition hover:bg-pink-300 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={joinCode.length !== 4}
+                  aria-label="Join existing room"
+                >
+                  Join Room
+                </button>
+                <p className="text-center text-sm leading-relaxed text-indigo-200">
+                  Enter the four letters and you are in.
+                </p>
+                <p id="joincode-constraints" className="sr-only">
+                  Enter exactly four uppercase letters.
+                </p>
+              </div>
+            </form>
+            <form
+              id="create-room-card"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleCreateRoom();
+              }}
+              className="flex min-h-full flex-1 flex-col gap-5 rounded-2xl border border-white/10 bg-indigo-950/40 p-6 shadow-inner shadow-black/20 backdrop-blur md:min-w-[280px] xl:self-stretch"
+              aria-labelledby="create-room-heading"
+            >
+              <header className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-500">
+                  <span className="text-sm font-bold text-black">+</span>
+                </span>
+                <h3
+                  id="create-room-heading"
+                  className="text-xl font-semibold text-white"
+                >
+                  Create a room
+                </h3>
+              </header>
+
+              <div className="space-y-5">
+                <div>
+                  <label
+                    htmlFor="roomName"
+                    className="mb-2 block text-sm font-medium text-indigo-200"
+                  >
+                    Room name
+                  </label>
+                  <input
+                    id="roomName"
+                    value={roomName}
+                    onChange={(e) => {
+                      setRoomName(e.target.value);
+                    }}
+                    onKeyDown={handleRoomNameKeyDown}
+                    maxLength={30}
+                    placeholder="Enter room name"
+                    className="w-full rounded-lg border border-indigo-600/30 bg-indigo-900/40 px-4 py-3 text-white placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    aria-describedby="roomname-constraints"
+                  />
+                </div>
+
+                <fieldset className="space-y-3">
+                  <legend
+                    id="room-visibility-label"
+                    className="text-sm font-medium text-indigo-200"
+                  >
+                    Room visibility
+                  </legend>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label
+                      className={`block rounded-xl border px-4 py-3 transition focus-within:ring-2 focus-within:ring-emerald-400 ${
+                        visibility === 'public'
+                          ? 'border-emerald-400/60 bg-emerald-500/10 shadow-inner'
+                          : 'border-white/10 bg-white/5 hover:border-white/20'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="roomVisibility"
+                        value="public"
+                        checked={visibility === 'public'}
+                        onChange={() => {
+                          setVisibility('public');
+                        }}
+                        className="sr-only"
+                        aria-label="Public room"
+                      />
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20">
+                            <FaGlobe
+                              className="h-4 w-4 text-emerald-300"
+                              aria-hidden
+                            />
+                          </span>
+                          <span className="text-sm font-semibold text-white">
+                            Public
+                          </span>
+                        </div>
+                        <p className="text-xs leading-snug text-indigo-200">
+                          Appears in the public lobby list.
+                        </p>
+                      </div>
+                    </label>
+                    <label
+                      className={`block rounded-xl border px-4 py-3 transition focus-within:ring-2 focus-within:ring-emerald-400 ${
+                        visibility === 'private'
+                          ? 'border-emerald-400/60 bg-emerald-500/10 shadow-inner'
+                          : 'border-white/10 bg-white/5 hover:border-white/20'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="roomVisibility"
+                        value="private"
+                        checked={visibility === 'private'}
+                        onChange={() => {
+                          setVisibility('private');
+                        }}
+                        className="sr-only"
+                        aria-label="Private room"
+                      />
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20">
+                            <FaLock
+                              className="h-4 w-4 text-purple-200"
+                              aria-hidden
+                            />
+                          </span>
+                          <span className="text-sm font-semibold text-white">
+                            Private
+                          </span>
+                        </div>
+                        <p className="text-xs leading-snug text-indigo-200">
+                          Only accessible with your invite code.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </fieldset>
+
+                <button
+                  type="submit"
+                  className="w-full rounded-md bg-emerald-500 px-4 py-3 text-base font-medium text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!roomName.trim()}
+                  aria-label="Create a new game room"
+                >
+                  Create &amp; Play
+                </button>
+                <p id="roomname-constraints" className="sr-only">
+                  Room name up to 30 characters.
+                </p>
+              </div>
+            </form>
+          </div>
+        </section>
 
         <section
           id="public-rooms"
