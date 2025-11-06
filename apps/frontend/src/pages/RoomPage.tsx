@@ -180,17 +180,6 @@ export default function RoomPage({
   );
 
   const formattedElapsed = formatDurationSeconds(elapsedGameTime);
-  const localGamePlayer =
-    gameState?.players.find((player) => player.id === playerId) ?? null;
-  const currentLives = localGamePlayer?.lives ?? roomRules.startingLives;
-  const totalPlayersInGame = gameState?.players.length ?? players.length;
-  const activePlayersCount = gameState
-    ? gameState.players.filter((p) => !p.isEliminated).length
-    : seatedCount;
-  const playersStatusLabel =
-    visualState === 'playing'
-      ? `${activePlayersCount}/${totalPlayersInGame} left`
-      : `${seatedCount}/${players.length} ready`;
 
   const isPublicRoom = visibility === 'public';
   const visibilityLabel = isPublicRoom ? 'Public' : 'Private';
@@ -277,25 +266,6 @@ export default function RoomPage({
             >
               {roomName ?? `Room ${roomCode}`}
             </h1>
-            <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-white/70">
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-[3px] font-semibold text-emerald-100">
-                <span aria-hidden="true">❤️</span>
-                <span>
-                  {currentLives}/{roomRules.maxLives}
-                </span>
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-[3px] uppercase tracking-wide">
-                {playersStatusLabel}
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-[3px] uppercase tracking-wide">
-                Min {roomRules.minTurnDuration}s
-              </span>
-              {visualState === 'playing' && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-[3px] font-mono uppercase tracking-wide text-white">
-                  {formattedElapsed}
-                </span>
-              )}
-            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -303,12 +273,11 @@ export default function RoomPage({
               onClick={() => {
                 void navigate('/');
               }}
-              className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="inline-flex items-center justify-center rounded-full bg-white/10 p-2 text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
               title="Return to home"
               aria-label="Return to home"
             >
               <FaHome className="h-3.5 w-3.5 text-white/70" />
-              <span>Home</span>
             </button>
 
             <button
@@ -370,12 +339,7 @@ export default function RoomPage({
           aria-live="polite"
         >
           <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center px-4 pt-3">
-            <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-2 text-xs text-white/80">
-              {hasServerRules && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 font-semibold uppercase tracking-wide text-emerald-100">
-                  WPP ≥ {roomRules.minWordsPerPrompt}
-                </span>
-              )}
+            <div className="pointer-events-auto flex flex-wrap items-center justify-center text-xs text-white/80">
               <button
                 type="button"
                 onClick={() => {
