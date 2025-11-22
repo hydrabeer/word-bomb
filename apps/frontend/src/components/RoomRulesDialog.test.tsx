@@ -1,30 +1,45 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ComponentProps } from 'react';
 import { RoomRulesDialog } from './RoomRulesDialog';
 import type { LobbyRules, BasicResponse } from '../hooks/useRoomRules';
 
-const rules: LobbyRules = {
-  maxLives: 3,
-  startingLives: 2,
-  bonusTemplate: new Array<number>(26).fill(1),
-  minTurnDuration: 5,
-  minWordsPerPrompt: 100,
+const createRules = (overrides: Partial<LobbyRules> = {}): LobbyRules => {
+  const { bonusTemplate = new Array<number>(26).fill(1), ...rest } = overrides;
+  return {
+    maxLives: 3,
+    startingLives: 2,
+    bonusTemplate: [...bonusTemplate],
+    minTurnDuration: 5,
+    minWordsPerPrompt: 100,
+    ...rest,
+  };
+};
+
+type RoomRulesDialogProps = ComponentProps<typeof RoomRulesDialog>;
+
+const createDialogProps = (
+  overrides: Partial<RoomRulesDialogProps> = {},
+): RoomRulesDialogProps => ({
+  open: true,
+  onClose: vi.fn(),
+  rules: createRules(),
+  isLeader: true,
+  isUpdating: false,
+  serverError: null,
+  onSave: vi.fn().mockResolvedValue({ success: true }),
+  ...overrides,
+});
+
+const renderDialog = (overrides?: Partial<RoomRulesDialogProps>) => {
+  const props = createDialogProps(overrides);
+  return { props, ...render(<RoomRulesDialog {...props} />) };
 };
 
 describe('RoomRulesDialog', () => {
   it('returns null when closed', () => {
-    const { container } = render(
-      <RoomRulesDialog
-        open={false}
-        onClose={vi.fn()}
-        rules={rules}
-        isLeader
-        isUpdating={false}
-        serverError={null}
-        onSave={() => Promise.resolve({ success: true })}
-      />,
-    );
+    const { container } = renderDialog({ open: false });
     expect(container.firstChild).toBeNull();
   });
 
@@ -33,17 +48,8 @@ describe('RoomRulesDialog', () => {
       .fn<(next: LobbyRules) => Promise<BasicResponse>>()
       .mockResolvedValue({ success: true });
 
-    render(
-      <RoomRulesDialog
-        open
-        onClose={vi.fn()}
-        rules={rules}
-        isLeader
-        isUpdating={false}
-        serverError={null}
-        onSave={onSave}
-      />,
-    );
+    renderDialog({ onSave });
+    const user = userEvent.setup({ delay: null });
 
     // Interact with the dialog controls: enable/disable all and toggle A via
     // the rendered grid inputs/buttons.
@@ -60,7 +66,6 @@ describe('RoomRulesDialog', () => {
 
     const form = document.querySelector('form');
     expect(form).not.toBeNull();
-    const user = userEvent.setup({ delay: null });
     const save = screen.getByRole('button', { name: /Save changes/i });
     await user.click(save);
 
@@ -72,19 +77,12 @@ describe('RoomRulesDialog', () => {
       .fn<(next: LobbyRules) => Promise<BasicResponse>>()
       .mockResolvedValue({ success: false, error: 'Server said nope' });
 
-    const { getByLabelText } = render(
-      <RoomRulesDialog
-        open
-        onClose={vi.fn()}
-        rules={{ ...rules, startingLives: 5 }}
-        isLeader
-        isUpdating={false}
-        serverError={null}
-        onSave={onSave}
-      />,
-    );
-
+    const { getByLabelText } = renderDialog({
+      rules: createRules({ startingLives: 5 }),
+      onSave,
+    });
     const user = userEvent.setup({ delay: null });
+
     await user.click(screen.getByRole('button', { name: /Save changes/i }));
     expect(
       screen.getByText('Starting lives cannot exceed max lives.'),
@@ -105,24 +103,14 @@ describe('RoomRulesDialog', () => {
       .fn<(next: LobbyRules) => Promise<BasicResponse>>()
       .mockResolvedValue({ success: true });
 
-    render(
-      <RoomRulesDialog
-        open
-        onClose={vi.fn()}
-        rules={rules}
-        isLeader
-        isUpdating={false}
-        serverError={null}
-        onSave={onSave}
-      />,
-    );
+    renderDialog({ onSave });
+    const user = userEvent.setup({ delay: null });
 
     // Locate the tile for letter 'A' and its numeric input. This is more
     // robust than assuming ordering of spinbuttons.
     const aTile = screen.getByText('A');
     const aTileContainer = aTile.closest('div')!;
     const aInput = within(aTileContainer).getByRole('spinbutton');
-    const user = userEvent.setup({ delay: null });
     await user.clear(aInput);
     await user.type(aInput, '3');
 
@@ -136,17 +124,13 @@ describe('RoomRulesDialog', () => {
 
   it('closes via Escape and overlay click, and respects isLeader/isUpdating disabling', () => {
     const onClose = vi.fn();
-    const first = render(
-      <RoomRulesDialog
-        open
-        onClose={onClose}
-        rules={rules}
-        isLeader={false}
-        isUpdating
-        serverError="Delayed error"
-        onSave={() => Promise.resolve({ success: true })}
-      />,
-    );
+    const utils = renderDialog({
+      onClose,
+      rules: createRules(),
+      isLeader: false,
+      isUpdating: true,
+      serverError: 'Delayed error',
+    });
 
     expect(screen.getByText('Delayed error')).toBeInTheDocument();
 
@@ -154,20 +138,15 @@ describe('RoomRulesDialog', () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(onClose).toHaveBeenCalledTimes(1);
 
-    // Re-render to test overlay click without double-binding
-    const { unmount } = first;
-    unmount();
     onClose.mockClear();
-
-    render(
+    utils.rerender(
       <RoomRulesDialog
-        open
-        onClose={onClose}
-        rules={rules}
-        isLeader={false}
-        isUpdating
-        serverError={null}
-        onSave={() => Promise.resolve({ success: true })}
+        {...createDialogProps({
+          onClose,
+          rules: createRules(),
+          isLeader: false,
+          isUpdating: true,
+        })}
       />,
     );
 

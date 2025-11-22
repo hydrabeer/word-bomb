@@ -47,6 +47,11 @@ vi.mock('../api/rooms', () => ({
   listPublicRooms: mockListPublicRooms,
 }));
 
+vi.mock('react-icons/fa', () => ({
+  FaGlobe: () => <span data-testid="icon-globe" />,
+  FaLock: () => <span data-testid="icon-lock" />,
+}));
+
 describe('HomePage', () => {
   beforeEach(() => {
     document.title = 'Initial Title';
@@ -59,26 +64,28 @@ describe('HomePage', () => {
     mockListPublicRooms.mockResolvedValue([]);
   });
 
-  const setup = async () => {
+  const renderHomePage = () =>
     render(
       <MemoryRouter>
         <HomePage />
       </MemoryRouter>,
     );
-    await waitFor(() => {
+
+  const waitForPublicRoomsLoad = () =>
+    waitFor(() => {
       expect(mockListPublicRooms).toHaveBeenCalled();
     });
-  };
 
   it('sets the base document title on mount', async () => {
-    await setup();
+    renderHomePage();
     await waitFor(() => {
       expect(document.title).toBe('Word Bomb');
     });
   });
 
   it('edits and saves name', async () => {
-    await setup();
+    renderHomePage();
+    await waitForPublicRoomsLoad();
     fireEvent.click(screen.getByLabelText(/Edit your name/i));
     const input = screen.getByLabelText(/Your display name/i);
     fireEvent.change(input, { target: { value: 'Bob' } });
@@ -87,7 +94,7 @@ describe('HomePage', () => {
   });
 
   it('creates room and navigates', async () => {
-    await setup();
+    renderHomePage();
     const createBtn = screen.getByLabelText(/Create a new game room/i);
     fireEvent.click(createBtn);
     await waitFor(() => {
@@ -97,7 +104,8 @@ describe('HomePage', () => {
   });
 
   it('keeps a custom room name when saving a new profile name', async () => {
-    await setup();
+    renderHomePage();
+    await waitForPublicRoomsLoad();
     const roomNameInput = screen.getByLabelText(/Room name/i);
     fireEvent.change(roomNameInput, { target: { value: 'Cool Club' } });
     fireEvent.click(screen.getByLabelText(/Edit your name/i));
@@ -108,7 +116,7 @@ describe('HomePage', () => {
   });
 
   it('does not create a room when pressing Enter in the room name field', async () => {
-    await setup();
+    renderHomePage();
     const roomNameInput = screen.getByLabelText<HTMLInputElement>(/Room name/i);
     const blurSpy = vi.spyOn(roomNameInput, 'blur');
     const event = createEvent.keyDown(roomNameInput, { key: 'Enter' });
@@ -126,7 +134,7 @@ describe('HomePage', () => {
   });
 
   it('allows setting room visibility before creating a room', async () => {
-    await setup();
+    renderHomePage();
     const publicOption = screen.getByRole('radio', { name: /^Public room$/i });
     fireEvent.click(publicOption);
     const createBtn = screen.getByLabelText(/Create a new game room/i);
@@ -138,14 +146,15 @@ describe('HomePage', () => {
   });
 
   it('sanitizes join code input and enables join', async () => {
-    await setup();
+    renderHomePage();
+    await waitForPublicRoomsLoad();
     const joinInput = screen.getByLabelText(/Room code/i);
     fireEvent.change(joinInput, { target: { value: 'a1b!' } });
     expect((joinInput as HTMLInputElement).value).toBe('AB');
   });
 
   it('navigates to the room when validation succeeds', async () => {
-    await setup();
+    renderHomePage();
     const joinInput = screen.getByLabelText(/Room code/i);
     fireEvent.change(joinInput, { target: { value: 'abcd' } });
     const joinButton = screen.getByLabelText(/Join existing room/i);
@@ -162,7 +171,7 @@ describe('HomePage', () => {
       .mockImplementation(() => undefined);
     mockValidateRoom.mockResolvedValueOnce({ exists: false });
 
-    await setup();
+    renderHomePage();
     const joinInput = screen.getByLabelText(/Room code/i);
     fireEvent.change(joinInput, { target: { value: 'abcd' } });
     const joinButton = screen.getByLabelText(/Join existing room/i);
@@ -177,7 +186,7 @@ describe('HomePage', () => {
   });
 
   it('displays encouraging message when there are no public rooms', async () => {
-    await setup();
+    renderHomePage();
     expect(await screen.findByText(/No public rooms yet/i)).toBeTruthy();
   });
 
@@ -186,7 +195,7 @@ describe('HomePage', () => {
       { code: 'ABCD', name: 'Lobby', playerCount: 3, visibility: 'public' },
     ]);
 
-    await setup();
+    renderHomePage();
 
     const roomButton = await screen.findByRole('button', {
       name: /Join Lobby/i,
@@ -201,7 +210,7 @@ describe('HomePage', () => {
   it('shows an error message when public rooms cannot be loaded', async () => {
     mockListPublicRooms.mockRejectedValueOnce(new Error('network'));
 
-    await setup();
+    renderHomePage();
 
     expect(
       await screen.findByText(/Unable to load public rooms right now/i),

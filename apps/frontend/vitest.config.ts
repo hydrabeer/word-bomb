@@ -18,12 +18,42 @@ export default defineConfig({
     ],
   },
   test: {
-    environment: 'jsdom',
     globals: true,
-    setupFiles: './src/setupTests.ts',
+    unstubEnvs: true,
+    exclude: ['**/node_modules/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'frontend-jsdom',
+          environment: 'jsdom',
+          setupFiles: ['./src/setupTests.ts'],
+          include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+          exclude: [
+            'src/api/**/*.test.ts',
+            'src/socket/**/*.test.ts',
+            'src/socket.test.ts',
+            'src/utils/**/*.test.ts',
+          ],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'frontend-node',
+          environment: 'node',
+          include: [
+            'src/api/**/*.test.ts',
+            'src/socket/**/*.test.ts',
+            'src/socket.test.ts',
+            'src/utils/**/*.test.ts',
+          ],
+        },
+      },
+    ],
   },
 });
