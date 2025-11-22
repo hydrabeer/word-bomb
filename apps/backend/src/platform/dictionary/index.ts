@@ -4,7 +4,7 @@ import path from 'path';
 import { getLogger } from '../logging/context';
 
 /**
- * Contract for dictionary lookups and prompt generation used by the game loop.
+ * Defines the dictionary lookup contract and prompt‑generation API used by the game loop.
  *
  * @public
  */
@@ -58,6 +58,51 @@ const DEFAULT_WORDS: string[] = [
   'amount',
 ];
 
+type Logger = ReturnType<typeof getLogger>;
+
+/**
+ * Loads the in‑memory dictionary and rebuilds supporting fragment indexes from the given words.
+ *
+ * @remarks
+ * Mutates module‑level state: `dictionary`, `fragmentCounts`, and `usingFallbackDictionary`.
+ *
+ * @param words - Canonical, lowercase list of dictionary words to load.
+ * @param fallback - Whether this dictionary is the lightweight built-in fallback.
+ * @internal
+ */
+function applyDictionary(words: string[], fallback: boolean): void {
+  dictionary = new Set(words);
+  usingFallbackDictionary = fallback;
+  buildFragmentIndex(words);
+}
+
+/**
+ * Switches to the lightweight fallback dictionary and emits a structured log entry.
+ *
+ * @remarks
+ * Intended for test runs or when the primary dictionary fails to load.
+ *
+ * @param log - Logger instance for structured diagnostics.
+ * @param reason - Reason code for selecting the fallback dictionary.
+ * @param messageSuffix - Optional message suffix appended to the info log entry (defaults to an empty string).
+ * @internal
+ */
+function useFallbackDictionary(
+  log: Logger,
+  reason: 'test_fast_path' | 'load_failed',
+  messageSuffix = '',
+): void {
+  applyDictionary(DEFAULT_WORDS, true);
+  log.info(
+    {
+      event: 'dictionary_using_fallback',
+      reason,
+      wordCount: dictionary.size,
+    },
+    `Using built-in fallback dictionary with ${dictionary.size.toString()} words${messageSuffix}`,
+  );
+}
+
 /**
  * Loads the primary dictionary into process memory and prepares supporting indexes.
  *
@@ -66,6 +111,8 @@ const DEFAULT_WORDS: string[] = [
  * and `./words.txt` during development. When running tests without `DICTIONARY_TEST_MODE=full`
  * the lightweight fallback dictionary keeps CI deterministic. Fallback behavior is also invoked
  * when file loading fails outside of production.
+ *
+ * @public
  */
 export function loadDictionary() {
   const isProd = process.env.NODE_ENV === 'production';
@@ -78,17 +125,7 @@ export function loadDictionary() {
   // Fast path for tests: avoid reading the huge words.txt to keep CI quick and deterministic.
   // Set DICTIONARY_TEST_MODE=full to force reading the local file during tests when desired.
   if (isTest && process.env.DICTIONARY_TEST_MODE !== 'full') {
-    dictionary = new Set(DEFAULT_WORDS);
-    buildFragmentIndex(DEFAULT_WORDS);
-    usingFallbackDictionary = true;
-    log.info(
-      {
-        event: 'dictionary_using_fallback',
-        reason: 'test_fast_path',
-        wordCount: dictionary.size,
-      },
-      `Using built-in fallback dictionary with ${dictionary.size.toString()} words (test fast path)`,
-    );
+    useFallbackDictionary(log, 'test_fast_path', ' (test fast path)');
     return;
   }
 
@@ -109,8 +146,7 @@ export function loadDictionary() {
         `Filtered ${removed.toString()} over-length words (>30 chars)`,
       );
     }
-    dictionary = new Set(words);
-    usingFallbackDictionary = false;
+    applyDictionary(words, false);
     log.info(
       {
         event: 'dictionary_loaded_from_file',
@@ -120,8 +156,6 @@ export function loadDictionary() {
       },
       `Loaded ${dictionary.size.toString()} words (max length 30)`,
     );
-
-    buildFragmentIndex(words);
   } catch (err) {
     log.error(
       { event: 'dictionary_load_failed', err, source: filePath },
@@ -129,40 +163,42 @@ export function loadDictionary() {
     );
     if (!isProd) {
       // Fallback to a tiny built-in dictionary for dev/test so CI remains deterministic.
-      dictionary = new Set(DEFAULT_WORDS);
-      buildFragmentIndex(DEFAULT_WORDS);
-      usingFallbackDictionary = true;
-      log.info(
-        {
-          event: 'dictionary_using_fallback',
-          reason: 'load_failed',
-          wordCount: dictionary.size,
-        },
-        `Using built-in fallback dictionary with ${dictionary.size.toString()} words`,
-      );
+      useFallbackDictionary(log, 'load_failed');
     }
   }
 }
 
 /**
- * Builds a `DictionaryPort` backed by module-level state and helpers.
+ * Builds a `DictionaryPort` backed by module‑level state and helpers.
  *
  * @returns A `DictionaryPort` instance that proxies to the local dictionary utilities.
+ *
+ * @example
+ * ```ts
+ * loadDictionary();
+ * const dict = createDictionaryPort();
+ * dict.isValid('able'); // true/false
+ * const frag = dict.getRandomFragment(10);
+ * ```
+ * @public
  */
 export function createDictionaryPort(): DictionaryPort {
   return {
-    isValid: (word: string) => isValidWord(word),
-    getRandomFragment: (minWordsPerPrompt: number) =>
-      getRandomFragment(minWordsPerPrompt),
+    isValid: isValidWord,
+    getRandomFragment,
   };
 }
 
 /**
  * Populates the fragment frequency index used to support prompt generation heuristics.
  *
+ * @remarks
+ * Overwrites and rebuilds the `fragmentCounts` index and logs a summary of indexed fragments.
+ *
  * @param words - Word list from which to derive fragments.
- * @param minLength - Minimum fragment length to index, inclusive.
- * @param maxLength - Maximum fragment length to index, inclusive.
+ * @param minLength - Minimum fragment length to index, inclusive (default: 2).
+ * @param maxLength - Maximum fragment length to index, inclusive (default: 3).
+ * @internal
  */
 function buildFragmentIndex(
   words: string[],
@@ -197,17 +233,23 @@ function buildFragmentIndex(
  *
  * @param word - Word to validate; casing is normalized internally.
  * @returns `true` if the word is recognized; otherwise `false`.
+ * @public
  */
 export function isValidWord(word: string): boolean {
   return dictionary.has(word.toLowerCase());
 }
 
 /**
- * Generates a random fragment that reaches the desired match count within the dictionary.
+ * Generates a random fragment whose frequency meets the requested minimum in the dictionary.
+ *
+ * @remarks
+ * In test environments, falls back deterministically to `'aa'` when no qualifying fragment exists.
+ * In non-test environments, chooses the most frequent fragment as a best‑effort fallback and logs a warning.
  *
  * @param minWordsPerPrompt - Required minimum number of words that contain the fragment.
- * @returns A fragment satisfying the constraint, or a deterministic fallback during tests.
+ * @returns A fragment that satisfies the constraint.
  * @throws When no qualifying fragment or fallback can be determined (non-test environments only).
+ * @public
  */
 export function getRandomFragment(minWordsPerPrompt: number): string {
   const candidates = Array.from(fragmentCounts.entries())
@@ -249,6 +291,7 @@ export function getRandomFragment(minWordsPerPrompt: number): string {
  * Reports dictionary sizing information for health and readiness checks.
  *
  * @returns Current counts for distinct words and indexed fragments.
+ * @public
  */
 export function getDictionaryStats(): {
   wordCount: number;
@@ -264,6 +307,7 @@ export function getDictionaryStats(): {
  * Indicates whether the in-memory dictionary originates from the lightweight fallback list.
  *
  * @returns `true` when fallback words are active; otherwise `false`.
+ * @public
  */
 export function isUsingFallbackDictionary(): boolean {
   return usingFallbackDictionary;

@@ -1,166 +1,136 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// We'll snapshot & restore relevant env vars we touch.
-const ORIGINAL_ENV = { ...process.env };
+// Helpers: fast env stubbing and fresh imports per test (Vitest best practice)
+const importFresh = async () => {
+  vi.resetModules();
+  return import('.');
+};
 
-function setEnv(env: NodeJS.ProcessEnv) {
-  process.env = { ...ORIGINAL_ENV, ...env };
-}
+const mockFsWith = (content: string) => {
+  const readFileSync = vi.fn(() => content);
+  vi.doMock(
+    'fs',
+    () =>
+      ({
+        readFileSync,
+        default: { readFileSync },
+      }) as unknown as typeof import('fs'),
+  );
+  return readFileSync;
+};
 
-// Utility to dynamically import a FRESH copy of the dictionary module after resetting modules.
-async function freshDictionary() {
-  const mod = await import('.');
-  return mod;
-}
+const mockFsThrow = (message = 'boom') => {
+  const fail = () => {
+    throw new Error(message);
+  };
+  vi.doMock(
+    'fs',
+    () =>
+      ({
+        readFileSync: fail,
+        default: { readFileSync: fail },
+      }) as unknown as typeof import('fs'),
+  );
+};
 
-describe('dictionary module full coverage', () => {
+describe('dictionary module', () => {
   beforeEach(() => {
     vi.resetModules();
-    setEnv({ NODE_ENV: 'test' });
+    vi.unmock('fs');
+    vi.unstubAllEnvs?.();
+    vi.stubEnv('NODE_ENV', 'test');
   });
 
-  it('loads locally (non-prod) & covers isValidWord + random fragment normal path', async () => {
+  afterEach(() => {
+    vi.unmock('fs');
+    vi.unstubAllEnvs?.();
+  });
+
+  it('loads fallback (test fast path) and validates + fragments normally', async () => {
     const { loadDictionary, isValidWord, getRandomFragment } =
-      await freshDictionary();
+      await importFresh();
     await loadDictionary();
     expect(isValidWord('AA')).toBe(true);
     const frag = getRandomFragment(1);
-    expect(frag.length === 2 || frag.length === 3).toBe(true);
+    expect([2, 3]).toContain(frag.length);
   });
 
-  it('loads the on-disk dictionary when DICTIONARY_TEST_MODE forces full load', async () => {
-    setEnv({ NODE_ENV: 'test', DICTIONARY_TEST_MODE: 'full' });
+  it('forces full file load with DICTIONARY_TEST_MODE=full (filters >30 chars)', async () => {
+    vi.stubEnv('DICTIONARY_TEST_MODE', 'full');
     const sample = [
       'apple',
       'banana',
       'supercalifragilisticexpialidocious',
     ].join('\n');
-    const readSpy = vi.fn(() => sample);
-    vi.doMock(
-      'fs',
-      () =>
-        ({
-          readFileSync: readSpy,
-          default: { readFileSync: readSpy },
-        }) as unknown as typeof import('fs'),
-    );
+    const readSpy = mockFsWith(sample);
+
     const { loadDictionary, isValidWord, getDictionaryStats } =
-      await freshDictionary();
+      await importFresh();
     await loadDictionary();
+
     expect(readSpy).toHaveBeenCalled();
     expect(isValidWord('apple')).toBe(true);
     expect(isValidWord('BANANA')).toBe(true);
-    // Word longer than 30 chars should be filtered out
     expect(isValidWord('supercalifragilisticexpialidocious')).toBe(false);
+
     const stats = getDictionaryStats();
     expect(stats.wordCount).toBe(2);
     expect(stats.fragmentCount).toBeGreaterThan(0);
   });
 
-  it('reads dictionary from /tmp/words.txt in production', async () => {
-    setEnv({ NODE_ENV: 'production' });
-    const readSpy = vi.fn(() => ['aa', 'ab'].join('\n'));
-    vi.doMock(
-      'fs',
-      () =>
-        ({
-          readFileSync: readSpy,
-          default: { readFileSync: readSpy },
-        }) as unknown as typeof import('fs'),
-    );
-    const { loadDictionary, isValidWord } = await freshDictionary();
+  it('reads /tmp/words.txt when NODE_ENV=production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const readSpy = mockFsWith(['aa', 'ab'].join('\n'));
+    const { loadDictionary, isValidWord } = await importFresh();
     await loadDictionary();
     expect(readSpy).toHaveBeenCalledWith('/tmp/words.txt', 'utf-8');
     expect(isValidWord('aa')).toBe(true);
   });
 
-  it('returns the most frequent fragment as fallback when threshold is unmet', async () => {
-    setEnv({ NODE_ENV: 'development' });
-    const sample = ['aaaa', 'aaab'].join('\n');
-    const readSpy = vi.fn(() => sample);
-    vi.doMock(
-      'fs',
-      () =>
-        ({
-          readFileSync: readSpy,
-          default: { readFileSync: readSpy },
-        }) as unknown as typeof import('fs'),
-    );
-    const { loadDictionary, getRandomFragment } = await freshDictionary();
+  it('falls back to most frequent fragment in non-test env when threshold unmet', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    const readSpy = mockFsWith(['aaaa', 'aaab'].join('\n'));
+    const { loadDictionary, getRandomFragment } = await importFresh();
     await loadDictionary();
-    const fragment = getRandomFragment(999);
-    expect(fragment).toBe('aa');
+    expect(readSpy).toHaveBeenCalled();
+    expect(getRandomFragment(999)).toBe('aa');
   });
 
-  it('outer readFileSync try/catch path when file read fails', async () => {
-    setEnv({ NODE_ENV: 'development' });
-    vi.doMock(
-      'fs',
-      () =>
-        ({
-          readFileSync: () => {
-            throw new Error('boom');
-          },
-          default: {
-            readFileSync: () => {
-              throw new Error('boom');
-            },
-          } as unknown,
-        }) as unknown as typeof import('fs'),
-    );
-    const { loadDictionary } = await freshDictionary();
-    await loadDictionary(); // should not throw
-    expect(true).toBe(true); // ensure assertion for lint rule
+  it('non-prod load error triggers fallback dictionary', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    mockFsThrow();
+    const { loadDictionary, isUsingFallbackDictionary } = await importFresh();
+    await loadDictionary();
+    expect(isUsingFallbackDictionary()).toBe(true);
   });
 
-  it('getRandomFragment throws when no candidates and not in test env', async () => {
-    setEnv({ NODE_ENV: 'production' });
-    const { getRandomFragment } = await freshDictionary();
-    // fragmentCounts empty; should throw
+  it('throws when no fragments available and not test env', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const { getRandomFragment } = await importFresh();
     expect(() => getRandomFragment(1)).toThrow(/No fragments/);
   });
 
-  it('getRandomFragment returns deterministic fallback in test env when empty', async () => {
-    setEnv({ NODE_ENV: 'test' });
-    vi.resetModules();
-    const { getRandomFragment } = await freshDictionary();
-    // Without loading dictionary, fragmentCounts is empty; in test env it should return 'aa'.
+  it('returns deterministic "aa" when empty in test env', async () => {
+    vi.stubEnv('NODE_ENV', 'test');
+    const { getRandomFragment } = await importFresh();
     expect(getRandomFragment(1)).toBe('aa');
   });
 
-  it('getRandomFragment throws when no fragments and not test env', () => {
-    // Create a fake fragmentCounts state by directly manipulating module (not ideal, but covers branch)
-    // We'll import a fresh module instance
-    vi.resetModules();
-    process.env.NODE_ENV = 'production';
-    const OUT_OF_RANGE_FRAGMENT_INDEX = 999999; // Used to trigger error when no fragments are available
-    return import('../dictionary').then((m) => {
-      // Force fragmentCounts to empty by calling internal methods via public API
-      // This is a bit of whitebox: if no fragments available and not test, it should throw
-      // Simulate by calling getRandomFragment when fragmentCounts is empty
-      expect(() => m.getRandomFragment(OUT_OF_RANGE_FRAGMENT_INDEX)).toThrow(
-        Error,
-      );
-    });
-  });
-
-  it('isUsingFallbackDictionary true in test fast path', async () => {
-    vi.resetModules();
-    process.env.NODE_ENV = 'test';
-    delete process.env.DICTIONARY_TEST_MODE;
-    const m = await import('../dictionary');
+  it('reports fallback usage in test fast path after load', async () => {
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('DICTIONARY_TEST_MODE', undefined as unknown as string);
+    const m = await importFresh();
     await m.loadDictionary();
     expect(m.isValidWord('aa')).toBe(true);
     expect(m.isUsingFallbackDictionary()).toBe(true);
   });
 
   it('createDictionaryPort exposes isValid and getRandomFragment', async () => {
-    setEnv({ NODE_ENV: 'test' });
-    const { loadDictionary, createDictionaryPort } = await freshDictionary();
+    const { loadDictionary, createDictionaryPort } = await importFresh();
     await loadDictionary();
     const port = createDictionaryPort();
     expect(port.isValid('AA')).toBe(true);
     const fragment = port.getRandomFragment(1);
-    expect(fragment.length === 2 || fragment.length === 3).toBe(true);
+    expect([2, 3]).toContain(fragment.length);
   });
 });
