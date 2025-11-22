@@ -23,6 +23,7 @@ import { formatDurationSeconds } from '../utils/formatTime.ts';
 import { useRoomRules, type LobbyRules } from '../hooks/useRoomRules';
 import { RoomRulesDialog } from '../components/RoomRulesDialog';
 import { usePlayerStats } from '../hooks/usePlayerStats';
+import { useInviteLink } from '../hooks/useInviteLink';
 import type { RoomVisibility } from '../api/rooms';
 
 export default function RoomPage({
@@ -39,8 +40,7 @@ export default function RoomPage({
   // effect below will update this when `isMobile` actually changes after
   // mount — we skip the first mount so tests observe a stable initial state.
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [inviteCopied, setInviteCopied] = useState(false);
-  const inviteTimerRef = useRef<number | null>(null);
+  const { copied: inviteCopied, copyInvite } = useInviteLink();
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const mobileChatSheetRef = useRef<HTMLDivElement | null>(null);
   const mobileChatToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -190,6 +190,11 @@ export default function RoomPage({
     ? `Copy room invite link for ${roomName} (${visibilityLabel} room)`
     : `Copy room invite link for Room ${roomCode} (${visibilityLabel} room)`;
 
+  const handleCopyInvite = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    void copyInvite(window.location.href);
+  }, [copyInvite]);
+
   function JoinGameButtons({ className = '' }: { className?: string } = {}) {
     return (
       <button
@@ -281,20 +286,7 @@ export default function RoomPage({
             </button>
 
             <button
-              onClick={() => {
-                setInviteCopied(true);
-                if (inviteTimerRef.current) {
-                  clearTimeout(inviteTimerRef.current);
-                }
-                inviteTimerRef.current = window.setTimeout(() => {
-                  setInviteCopied(false);
-                  inviteTimerRef.current = null;
-                }, 2000);
-
-                void navigator.clipboard
-                  .writeText(window.location.href)
-                  .catch(() => undefined);
-              }}
+              onClick={handleCopyInvite}
               className="inline-flex items-center gap-2 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/80 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
               title={`Copy room invite link (${visibilityLabel} room)`}
               aria-label={shareInviteAriaLabel}
@@ -592,20 +584,7 @@ export default function RoomPage({
         {/* Copy invite link */}
         <div className="flex translate-y-1 items-center gap-3">
           <button
-            onClick={() => {
-              setInviteCopied(true);
-              if (inviteTimerRef.current) {
-                clearTimeout(inviteTimerRef.current);
-              }
-              inviteTimerRef.current = window.setTimeout(() => {
-                setInviteCopied(false);
-                inviteTimerRef.current = null;
-              }, 2000);
-
-              void navigator.clipboard
-                .writeText(window.location.href)
-                .catch(() => undefined);
-            }}
+            onClick={handleCopyInvite}
             className="flex h-9 cursor-copy items-center gap-3 rounded-md bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95"
             title={`Click to copy room link (${visibilityLabel} room)`}
             aria-label={shareInviteAriaLabel}

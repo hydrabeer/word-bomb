@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useState,
-  type ChangeEvent,
-  type KeyboardEvent,
-} from 'react';
+import { useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaGlobe, FaLock } from 'react-icons/fa';
 import {
@@ -12,11 +7,8 @@ import {
 } from '../utils/playerProfile';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useRoomActions } from '../hooks/useRoomActions';
-import {
-  listPublicRooms,
-  type RoomSummary,
-  type RoomVisibility,
-} from '../api/rooms';
+import type { RoomVisibility } from '../api/rooms';
+import { usePublicRooms } from '../hooks/usePublicRooms';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -28,36 +20,15 @@ export default function HomePage() {
   const [roomName, setRoomName] = useState(defaultRoomName(initialName));
   const [joinCode, setJoinCode] = useState('');
   const [visibility, setVisibility] = useState<RoomVisibility>('private');
-  const [publicRooms, setPublicRooms] = useState<RoomSummary[]>([]);
-  const [isLoadingPublicRooms, setIsLoadingPublicRooms] = useState(true);
-  const [publicRoomsError, setPublicRoomsError] = useState(false);
+  const {
+    rooms: publicRooms,
+    isLoading: isLoadingPublicRooms,
+    hasError: publicRoomsError,
+  } = usePublicRooms();
 
   useDocumentTitle('Word Bomb');
 
   const { createNewRoom, validateRoom } = useRoomActions();
-
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoadingPublicRooms(true);
-    listPublicRooms()
-      .then((rooms) => {
-        if (cancelled) return;
-        setPublicRooms(rooms.filter((room) => room.visibility === 'public'));
-        setPublicRoomsError(false);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setPublicRooms([]);
-        setPublicRoomsError(true);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setIsLoadingPublicRooms(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleSaveName = () => {
     const trimmed = name.trim();
