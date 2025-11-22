@@ -1,3 +1,4 @@
+import path from 'path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Helpers: fast env stubbing and fresh imports per test (Vitest best practice)
@@ -78,12 +79,15 @@ describe('dictionary module', () => {
     expect(stats.fragmentCount).toBeGreaterThan(0);
   });
 
-  it('reads /tmp/words.txt when NODE_ENV=production', async () => {
+  it('reads bundled words.txt when NODE_ENV=production', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     const readSpy = mockFsWith(['aa', 'ab'].join('\n'));
     const { loadDictionary, isValidWord } = await importFresh();
     await loadDictionary();
-    expect(readSpy).toHaveBeenCalledWith('/tmp/words.txt', 'utf-8');
+    expect(readSpy).toHaveBeenCalledWith(
+      path.resolve(__dirname, './words.txt'),
+      'utf-8',
+    );
     expect(isValidWord('aa')).toBe(true);
   });
 

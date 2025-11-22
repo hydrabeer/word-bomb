@@ -107,8 +107,7 @@ function useFallbackDictionary(
  * Loads the primary dictionary into process memory and prepares supporting indexes.
  *
  * @remarks
- * Chooses a dictionary source based on `NODE_ENV`, defaulting to `/tmp/words.txt` in production
- * and `./words.txt` during development. When running tests without `DICTIONARY_TEST_MODE=full`
+ * Loads the bundled `./words.txt` dictionary file. When running tests without `DICTIONARY_TEST_MODE=full`
  * the lightweight fallback dictionary keeps CI deterministic. Fallback behavior is also invoked
  * when file loading fails outside of production.
  *
@@ -117,9 +116,7 @@ function useFallbackDictionary(
 export function loadDictionary() {
   const isProd = process.env.NODE_ENV === 'production';
   const isTest = process.env.NODE_ENV === 'test';
-  const localPath = path.resolve(__dirname, './words.txt');
-  const prodPath = '/tmp/words.txt';
-  const filePath = isProd ? prodPath : localPath;
+  const filePath = path.resolve(__dirname, './words.txt');
   const log = getLogger();
 
   // Fast path for tests: avoid reading the huge words.txt to keep CI quick and deterministic.
