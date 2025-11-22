@@ -4,6 +4,7 @@ import type { TypedServer } from './typedSocket';
 import { Game } from '@game/domain/game/Game';
 import { GameRoom } from '@game/domain/rooms/GameRoom';
 import type { GameRoomRules } from '@game/domain/rooms/GameRoomRules';
+import type { PlayersDiffPayload } from '@word-bomb/types/socket';
 
 const logger = vi.hoisted(() => ({
   info: vi.fn(),
@@ -32,6 +33,19 @@ const baseRules: GameRoomRules = {
   minTurnDuration: 5,
   minWordsPerPrompt: 5,
 };
+
+const emptyDiffPayload: PlayersDiffPayload = {
+  added: [],
+  updated: [],
+  removed: [],
+  leaderIdChanged: undefined,
+};
+
+const expectPlayersSnapshot = () =>
+  expect.objectContaining({ players: expect.any(Array) });
+
+const expectEmptyDiff = () =>
+  expect.objectContaining({ added: [], updated: [], removed: [] });
 
 function buildRoomAndGame() {
   const roomRules: GameRoomRules = {
@@ -65,58 +79,40 @@ function setupBroadcaster() {
 }
 
 describe('RoomBroadcaster', () => {
+  let broadcaster: RoomBroadcaster;
+  let emitMock: ReturnType<typeof vi.fn>;
+  let toMock: ReturnType<typeof vi.fn>;
+  let room: GameRoom;
+  let game: Game;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    ({ broadcaster, emitMock, toMock } = setupBroadcaster());
+    ({ room, game } = buildRoomAndGame());
   });
 
   it('broadcasts diff without snapshot when none requested', () => {
-    const { broadcaster, emitMock, toMock } = setupBroadcaster();
-    const { room } = buildRoomAndGame();
-
-    broadcaster.players(room, {
-      added: [],
-      updated: [],
-      removed: [],
-      leaderIdChanged: undefined,
-    });
+    broadcaster.players(room, emptyDiffPayload);
 
     expect(toMock).toHaveBeenCalledTimes(1);
     expect(toMock).toHaveBeenCalledWith(`room:${room.code}`);
     expect(emitMock).toHaveBeenCalledTimes(1);
-    expect(emitMock).toHaveBeenCalledWith(
-      'playersDiff',
-      expect.objectContaining({ added: [], updated: [], removed: [] }),
-    );
+    expect(emitMock).toHaveBeenCalledWith('playersDiff', expectEmptyDiff());
   });
 
   it('omits diff when no diff payload provided', () => {
-    const { broadcaster, emitMock, toMock } = setupBroadcaster();
-    const { room } = buildRoomAndGame();
-
     broadcaster.players(room);
 
     expect(toMock).toHaveBeenCalledWith(`room:${room.code}`);
     expect(emitMock).toHaveBeenCalledTimes(1);
     expect(emitMock).toHaveBeenCalledWith(
       'playersUpdated',
-      expect.objectContaining({ players: expect.any(Array) }),
+      expectPlayersSnapshot(),
     );
   });
 
   it('broadcasts snapshot to entire room when requested', () => {
-    const { broadcaster, emitMock, toMock } = setupBroadcaster();
-    const { room } = buildRoomAndGame();
-
-    broadcaster.players(
-      room,
-      {
-        added: [],
-        updated: [],
-        removed: [],
-        leaderIdChanged: undefined,
-      },
-      { broadcastSnapshot: true },
-    );
+    broadcaster.players(room, emptyDiffPayload, { broadcastSnapshot: true });
 
     expect(toMock).toHaveBeenNthCalledWith(1, `room:${room.code}`);
     expect(toMock).toHaveBeenNthCalledWith(2, `room:${room.code}`);
@@ -124,29 +120,19 @@ describe('RoomBroadcaster', () => {
     expect(emitMock).toHaveBeenNthCalledWith(
       1,
       'playersDiff',
-      expect.objectContaining({ added: [], updated: [], removed: [] }),
+      expectEmptyDiff(),
     );
     expect(emitMock).toHaveBeenNthCalledWith(
       2,
       'playersUpdated',
-      expect.objectContaining({ players: expect.any(Array) }),
+      expectPlayersSnapshot(),
     );
   });
 
   it('sends snapshots only to targeted sockets', () => {
-    const { broadcaster, emitMock, toMock } = setupBroadcaster();
-    const { room } = buildRoomAndGame();
-
-    broadcaster.players(
-      room,
-      {
-        added: [],
-        updated: [],
-        removed: [],
-        leaderIdChanged: undefined,
-      },
-      { snapshotTargets: ['sid-1', 'sid-2'] },
-    );
+    broadcaster.players(room, emptyDiffPayload, {
+      snapshotTargets: ['sid-1', 'sid-2'],
+    });
 
     expect(toMock).toHaveBeenNthCalledWith(1, `room:${room.code}`);
     expect(toMock).toHaveBeenNthCalledWith(2, 'sid-1');
@@ -156,15 +142,10 @@ describe('RoomBroadcaster', () => {
       (call) => call[0] === 'playersUpdated',
     );
     expect(snapshotCalls).toHaveLength(2);
-    expect(snapshotCalls[0][1]).toEqual(
-      expect.objectContaining({ players: expect.any(Array) }),
-    );
+    expect(snapshotCalls[0][1]).toEqual(expectPlayersSnapshot());
   });
 
   it('accepts iterable snapshot targets', () => {
-    const { broadcaster, emitMock, toMock } = setupBroadcaster();
-    const { room } = buildRoomAndGame();
-
     broadcaster.players(room, undefined, {
       snapshotTargets: new Set(['sid-iterable']),
     });
@@ -174,14 +155,11 @@ describe('RoomBroadcaster', () => {
     expect(emitMock).toHaveBeenCalledTimes(1);
     expect(emitMock).toHaveBeenCalledWith(
       'playersUpdated',
-      expect.objectContaining({ players: expect.any(Array) }),
+      expectPlayersSnapshot(),
     );
   });
 
   it('emits rules with cloned bonus template', () => {
-    const { broadcaster, emitMock, toMock } = setupBroadcaster();
-    const { room } = buildRoomAndGame();
-
     broadcaster.rules(room);
 
     expect(toMock).toHaveBeenCalledWith(`room:${room.code}`);
@@ -203,9 +181,6 @@ describe('RoomBroadcaster', () => {
   });
 
   it('emits lifecycle events and logs informational messages', () => {
-    const { broadcaster, emitMock, toMock } = setupBroadcaster();
-    const { room, game } = buildRoomAndGame();
-
     broadcaster.gameStarted(room, game);
     broadcaster.turnStarted(game);
     broadcaster.gameEnded(room.code, 'P1');
@@ -266,8 +241,6 @@ describe('RoomBroadcaster', () => {
   });
 
   it('does not log elimination when lives remain', () => {
-    const { broadcaster, emitMock, toMock } = setupBroadcaster();
-
     broadcaster.playerUpdated('ROOM', 'P1', 2);
 
     expect(toMock).toHaveBeenCalledWith('room:ROOM');
@@ -279,7 +252,6 @@ describe('RoomBroadcaster', () => {
   });
 
   it('logs warning when measuring payload size fails but still emits', () => {
-    const { broadcaster, emitMock, toMock } = setupBroadcaster();
     const cyclic: any = {};
     cyclic.self = cyclic;
 
@@ -298,7 +270,6 @@ describe('RoomBroadcaster', () => {
   });
 
   it('logs warning when current player cannot be determined before payload build', () => {
-    const { broadcaster, emitMock } = setupBroadcaster();
     const badGame: any = {
       roomCode: 'WARN',
       currentTurnIndex: 0,
@@ -338,7 +309,6 @@ describe('RoomBroadcaster', () => {
   });
 
   it('logs a warning when payload serialization fails before emitting', () => {
-    const { broadcaster, emitMock } = setupBroadcaster();
     const cyclic: any = {};
     cyclic.self = cyclic;
 
@@ -356,7 +326,6 @@ describe('RoomBroadcaster', () => {
   });
 
   it('supports measuring payloads with multiple arguments', () => {
-    const { broadcaster, emitMock } = setupBroadcaster();
     const unsafe = broadcaster as unknown as {
       emit: (roomCode: string, event: string, ...payload: unknown[]) => void;
     };

@@ -20,6 +20,20 @@ const rules: GameRoomRules = {
   minWordsPerPrompt: 10,
 };
 
+function makeRoom(code: string, ...players: [string, string][]) {
+  const room = new GameRoom({ code }, rules);
+  players.forEach(([id, name]) => room.addPlayer({ id, name }));
+  return room;
+}
+
+function getRequiredPlayers(room: GameRoom, ...ids: string[]) {
+  return ids.map((id) => {
+    const player = room.getPlayer(id);
+    if (!player) throw new Error(`Player ${id} missing`);
+    return player;
+  });
+}
+
 function makePlayer(
   id: string,
   name: string,
@@ -89,9 +103,7 @@ describe('serialization player views', () => {
 
 describe('serialization payload builders', () => {
   it('buildPlayersUpdatedPayload includes leader id and players', () => {
-    const room = new GameRoom({ code: 'ABCD' }, rules);
-    room.addPlayer({ id: 'L', name: 'Leader' });
-    room.addPlayer({ id: 'S', name: 'Sam' });
+    const room = makeRoom('ABCD', ['L', 'Leader'], ['S', 'Sam']);
     room.setPlayerSeated('S', true);
     const payload = buildPlayersUpdatedPayload(room);
     expect(payload.leaderId).toBe('L');
@@ -100,7 +112,7 @@ describe('serialization payload builders', () => {
   });
 
   it('buildPlayersUpdatedPayload omits leader id when none exists', () => {
-    const room = new GameRoom({ code: 'EMPT' }, rules);
+    const room = makeRoom('EMPT');
     const payload = buildPlayersUpdatedPayload(room);
     expect(payload.leaderId).toBeUndefined();
     expect(payload.players).toEqual([]);
@@ -116,13 +128,8 @@ describe('serialization payload builders', () => {
   });
 
   it('buildGameStartedPayload composes game start snapshot', () => {
-    const room = new GameRoom({ code: 'WXYZ' }, rules);
-    room.addPlayer({ id: 'A', name: 'Alpha' });
-    room.addPlayer({ id: 'B', name: 'Beta' });
-
-    const pA = room.getPlayer('A');
-    const pB = room.getPlayer('B');
-    if (!pA || !pB) throw new Error('Players missing');
+    const room = makeRoom('WXYZ', ['A', 'Alpha'], ['B', 'Beta']);
+    const [pA, pB] = getRequiredPlayers(room, 'A', 'B');
 
     const game = new Game({
       roomCode: room.code,
@@ -139,12 +146,8 @@ describe('serialization payload builders', () => {
   });
 
   it('buildGameStartedPayload reflects current game state even with empty room', () => {
-    const room = new GameRoom({ code: 'NULL' }, rules);
-    room.addPlayer({ id: 'A', name: 'Alpha' });
-    room.addPlayer({ id: 'B', name: 'Beta' });
-    const pA = room.getPlayer('A');
-    const pB = room.getPlayer('B');
-    if (!pA || !pB) throw new Error('Players missing');
+    const room = makeRoom('NULL', ['A', 'Alpha'], ['B', 'Beta']);
+    const [pA, pB] = getRequiredPlayers(room, 'A', 'B');
 
     room.removePlayer('A');
     room.removePlayer('B');
