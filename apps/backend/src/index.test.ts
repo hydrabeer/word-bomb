@@ -57,6 +57,7 @@ interface IndexHarness {
     close?: ReturnType<typeof vi.fn>;
     server?: Record<string, unknown>;
     nodeHandler?: Listener;
+    createServer?: ReturnType<typeof vi.fn>;
   };
   dictionary: {
     loadDictionary: ReturnType<typeof vi.fn>;
@@ -73,6 +74,7 @@ interface IndexHarness {
     adapterHandlers: Map<string, Listener[]>;
     connectionHandlers: Listener[];
     registerRoomHandlers: ReturnType<typeof vi.fn>;
+    createTypedServer: ReturnType<typeof vi.fn>;
   };
   engineRegistry: { shutdownEngines: ReturnType<typeof vi.fn> };
 }
@@ -97,9 +99,6 @@ function createLoggerMock(overrides: Partial<LoggerMock> = {}): LoggerMock {
     debug: overrides.debug ?? vi.fn(),
     child: overrides.child ?? vi.fn(() => createNestedLogger()),
   };
-  vi.doMock('./platform/logging', () => ({
-    createLogger: vi.fn(() => logger),
-  }));
   return logger;
 }
 
@@ -120,16 +119,17 @@ function createLoggingContextMock(
     ? vi.fn(overrides.runWithContext)
     : vi.fn((_ctx: Record<string, unknown>, cb: () => unknown) => cb());
 
-  vi.doMock('./platform/logging/context', () => ({
-    initializeLoggerContext: vi.fn(),
+  const initializeLoggerContext = vi.fn();
+  const childLogger = vi.fn(() => logger);
+
+  return {
     getLogger,
     getLogContext,
     withLogContext,
     runWithContext,
-    childLogger: vi.fn(() => logger),
-  }));
-
-  return { getLogger, getLogContext, withLogContext, runWithContext };
+    initializeLoggerContext,
+    childLogger,
+  };
 }
 
 function createDictionaryMock(options: DictionaryMockOptions = {}) {
@@ -140,11 +140,6 @@ function createDictionaryMock(options: DictionaryMockOptions = {}) {
     ? vi.fn(options.getDictionaryStats)
     : vi.fn(() => ({ wordCount: 4, fragmentCount: 2 }));
 
-  vi.doMock('./platform/dictionary', () => ({
-    loadDictionary,
-    getDictionaryStats,
-  }));
-
   return { loadDictionary, getDictionaryStats };
 }
 
@@ -152,9 +147,6 @@ function createEngineRegistryMock(
   options: { shutdownEngines?: ReturnType<typeof vi.fn> } = {},
 ) {
   const shutdownEngines = options.shutdownEngines ?? vi.fn();
-  vi.doMock('./features/gameplay/engine/engineRegistry', () => ({
-    shutdownEngines,
-  }));
   return { shutdownEngines };
 }
 
@@ -163,6 +155,11 @@ function createSocketMock(options: SocketMockOptions = {}) {
   const connectionHandlers: Listener[] = [];
   const registerRoomHandlers =
     options.registerRoomHandlers ?? vi.fn(() => undefined);
+
+  const createTypedServer = vi.fn((srv: unknown, opts?: unknown) => {
+    void opts;
+    return new FakeServer(srv, opts);
+  });
 
   class FakeServer {
     adapter = {
@@ -192,12 +189,12 @@ function createSocketMock(options: SocketMockOptions = {}) {
     }
   }
 
-  vi.doMock('socket.io', () => ({ Server: FakeServer }));
-  vi.doMock('./features/rooms/socket/roomHandlers', () => ({
+  return {
+    adapterHandlers,
+    connectionHandlers,
     registerRoomHandlers,
-  }));
-
-  return { adapterHandlers, connectionHandlers, registerRoomHandlers };
+    createTypedServer,
+  };
 }
 
 function createHttpMock(options: HttpMockOptions = {}) {
@@ -243,20 +240,17 @@ function createHttpMock(options: HttpMockOptions = {}) {
 
   let serverInstance: Record<string, unknown> | undefined;
   let nodeHandler: Listener | undefined;
-
-  vi.doMock('http', () => ({
-    createServer: (handler: Listener) => {
-      nodeHandler = handler;
-      serverInstance = {
-        listen,
-        ...(once ? { once } : {}),
-        ...(off ? { off } : {}),
-        ...(removeListener ? { removeListener } : {}),
-        ...(close ? { close } : {}),
-      };
-      return serverInstance;
-    },
-  }));
+  const createServer = vi.fn((handler: Listener) => {
+    nodeHandler = handler;
+    serverInstance = {
+      listen,
+      ...(once ? { once } : {}),
+      ...(off ? { off } : {}),
+      ...(removeListener ? { removeListener } : {}),
+      ...(close ? { close } : {}),
+    };
+    return serverInstance;
+  });
 
   return {
     listen,
@@ -264,6 +258,7 @@ function createHttpMock(options: HttpMockOptions = {}) {
     off,
     removeListener,
     close,
+    createServer,
     get server() {
       return serverInstance;
     },
@@ -291,6 +286,75 @@ function createMocks(options: HarnessOptions = {}) {
   return { logger, loggingContext, dictionary, http, socket, engineRegistry };
 }
 
+const activeMocks = vi.hoisted(() => createMocks());
+
+function applyHarnessMocks(mocks: HarnessMocks) {
+  activeMocks.logger = mocks.logger;
+  activeMocks.loggingContext = mocks.loggingContext;
+  activeMocks.dictionary = mocks.dictionary;
+  activeMocks.http = mocks.http;
+  activeMocks.socket = mocks.socket;
+  activeMocks.engineRegistry = mocks.engineRegistry;
+}
+
+vi.mock('./platform/logging', () => ({
+  createLogger: vi.fn(() => activeMocks.logger),
+}));
+
+vi.mock('./platform/logging/context', () => ({
+  get initializeLoggerContext() {
+    return activeMocks.loggingContext.initializeLoggerContext;
+  },
+  get getLogger() {
+    return activeMocks.loggingContext.getLogger;
+  },
+  get getLogContext() {
+    return activeMocks.loggingContext.getLogContext;
+  },
+  get withLogContext() {
+    return activeMocks.loggingContext.withLogContext;
+  },
+  get runWithContext() {
+    return activeMocks.loggingContext.runWithContext;
+  },
+  get childLogger() {
+    return activeMocks.loggingContext.childLogger;
+  },
+}));
+
+vi.mock('./platform/dictionary', () => ({
+  get loadDictionary() {
+    return activeMocks.dictionary.loadDictionary;
+  },
+  get getDictionaryStats() {
+    return activeMocks.dictionary.getDictionaryStats;
+  },
+}));
+
+vi.mock('./features/gameplay/engine/engineRegistry', () => ({
+  get shutdownEngines() {
+    return activeMocks.engineRegistry.shutdownEngines;
+  },
+}));
+
+vi.mock('./platform/socket/typedSocket', () => ({
+  get createTypedServer() {
+    return activeMocks.socket.createTypedServer;
+  },
+}));
+
+vi.mock('./features/rooms/socket/roomHandlers', () => ({
+  get registerRoomHandlers() {
+    return activeMocks.socket.registerRoomHandlers;
+  },
+}));
+
+vi.mock('http', () => ({
+  get createServer() {
+    return activeMocks.http.createServer;
+  },
+}));
+
 function createImportIndex() {
   return async function importIndex(nodeEnv = 'development') {
     const previousEnv = process.env.NODE_ENV;
@@ -306,6 +370,7 @@ function createImportIndex() {
 type HarnessMocks = ReturnType<typeof createMocks>;
 
 function createHarness(mocks: HarnessMocks): IndexHarness {
+  applyHarnessMocks(mocks);
   return {
     importIndex: createImportIndex(),
     http: mocks.http,
